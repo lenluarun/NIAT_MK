@@ -5,7 +5,7 @@ Offline face-recognition attendance system built with Python and OpenCV, with a 
 ## Highlights
 
 - Fully offline workflow (no cloud dependency)
-- Stylish terminal UI themes (`neon`, `metasploit`, `matrix`, `abyss`, `phantom`)
+- Stylish terminal UI themes (`neon`, `e2c`, `matrix`, `abyss`, `phantom`)
 - Camera Studio with scan, selection, and profile view
 - Student management (single add, bulk add, CSV import, delete, view)
 - Face capture, model training, and attendance recognition

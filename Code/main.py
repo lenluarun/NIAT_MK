@@ -384,13 +384,14 @@ def data_management_menu():
                 ("2", "► Add Single Student"),
                 ("3", "► Add Multiple Students (Bulk)"),
                 ("4", "► Delete Student"),
-                ("5", "► Back to Main Menu"),
+                ("5", "► Complete Database Reset (Password Protected)"),
+                ("6", "► Back to Main Menu"),
             ],
             accent=Colors.BRIGHT_GREEN
         )
         
         try:
-            choice = int(input(f"\n{info('➤')} Enter Your Choice (1-5): "))
+            choice = int(input(f"\n{info('➤')} Enter Your Choice (1-6): "))
             if choice == 1:
                 data_manager.display_all_students()
                 input("Press ENTER to continue...")
@@ -404,7 +405,7 @@ def data_management_menu():
                 try:
                     student_id = input(f"\n{info('➤')} Enter Student ID to delete: ")
                     if data_manager.delete_student(student_id):
-                        print(success(f"✓ Student {student_id} deleted successfully!"))
+                        print(success(f"✓ Student {student_id} and related training images deleted successfully!"))
                     else:
                         print(error(f"✗ Failed to delete student {student_id}!"))
                     input("Press ENTER to continue...")
@@ -412,6 +413,21 @@ def data_management_menu():
                     print(error(f"✗ Error: {e}"))
                     input("Press ENTER to continue...")
             elif choice == 5:
+                print(warning("⚠ This will clear Student database, Training images, and Trained models."))
+                print(info("ℹ Attendance report files are not deleted."))
+                confirm = input(f"{info('➤')} Type RESET to continue: ").strip()
+                if confirm != "RESET":
+                    print(warning("⚠ Reset canceled."))
+                    input("Press ENTER to continue...")
+                    continue
+                pwd = input(f"{info('🔐')} Enter reset password: ").strip()
+                ok, msg = data_manager.reset_database(pwd)
+                if ok:
+                    print(success(f"✓ {msg}"))
+                else:
+                    print(error(f"✗ Reset failed: {msg}"))
+                input("Press ENTER to continue...")
+            elif choice == 6:
                 main_menu()
                 break
             else:
@@ -462,7 +478,7 @@ def system_settings_menu():
                 ("1", "► Change Storage Location"),
                 ("2", "► Set Capture Sample Limit"),
                 ("3", "► Set Recognition Pass Mark"),
-                ("4", "► Switch UI Theme (Neon/Metasploit/Matrix/Abyss/Phantom)"),
+                ("4", "► Switch UI Theme (Neon/E2C/Matrix/Abyss/Phantom)"),
                 ("5", "► Toggle Boot Animation"),
                 ("6", "► Configure Camera Scan Range"),
                 ("7", "► Toggle HUD Status Panel"),
@@ -495,8 +511,8 @@ def system_settings_menu():
                     print(error("✗ Invalid mark. Choose a number between 40 and 90."))
                 input("Press ENTER to continue...")
             elif choice == 4:
-                theme = input(f"{info('➤')} Enter theme (neon/metasploit/matrix/abyss/phantom): ").strip().lower()
-                if theme in ("neon", "metasploit", "matrix", "abyss", "phantom"):
+                theme = input(f"{info('➤')} Enter theme (neon/e2c/matrix/abyss/phantom): ").strip().lower()
+                if theme in ("neon", "e2c", "matrix", "abyss", "phantom"):
                     app_settings = update_setting("ui_theme", theme)
                     print(success(f"✓ UI theme switched to {theme}."))
                 else:

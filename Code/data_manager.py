@@ -65,18 +65,94 @@ class DataManager:
         return students
     
     def delete_student(self, student_id):
-        """Delete a student"""
+        """Delete a student and their training images."""
         try:
+            student_id = str(student_id).strip()
             students = self.get_all_students()
+            target_student = next((s for s in students if s['id'] == student_id), None)
+            if not target_student:
+                return False
+
             with open(self.student_file, 'w', newline='') as f:
                 writer = csv.writer(f)
                 writer.writerow(['Id', 'Name', 'Email', 'DateAdded'])
                 for student in students:
-                    if student['id'] != str(student_id):
+                    if student['id'] != student_id:
                         writer.writerow([student['id'], student['name'], student['email'], student['date_added']])
+
+            self._delete_student_training_images(student_id, target_student.get('name', ''))
             return True
         except:
             return False
+
+    def _delete_student_training_images(self, student_id, student_name=''):
+        """Delete all captured training images for one student."""
+        training_path = self.storage_paths.get('TrainingImages')
+        if not training_path or not os.path.exists(training_path):
+            return 0
+
+        removed = 0
+        for file_name in os.listdir(training_path):
+            if not file_name.lower().endswith(".jpg"):
+                continue
+            # Capture format: {name}.{id}.{sample}.jpg
+            if f".{student_id}." in file_name:
+                try:
+                    os.remove(os.path.join(training_path, file_name))
+                    removed += 1
+                except:
+                    pass
+            elif student_name and file_name.startswith(f"{student_name}."):
+                try:
+                    os.remove(os.path.join(training_path, file_name))
+                    removed += 1
+                except:
+                    pass
+        return removed
+
+    def reset_database(self, password):
+        """
+        Reset core student database only.
+        Clears student CSV, training images and trained models.
+        """
+        if password != "E2C":
+            return False, "Invalid password."
+
+        try:
+            # Reset student database file
+            with open(self.student_file, 'w', newline='') as f:
+                writer = csv.writer(f)
+                writer.writerow(['Id', 'Name', 'Email', 'DateAdded'])
+
+            # Clear training images
+            cleared_images = 0
+            training_path = self.storage_paths.get('TrainingImages')
+            if training_path and os.path.exists(training_path):
+                for file_name in os.listdir(training_path):
+                    file_path = os.path.join(training_path, file_name)
+                    if os.path.isfile(file_path):
+                        try:
+                            os.remove(file_path)
+                            cleared_images += 1
+                        except:
+                            pass
+
+            # Clear trained models
+            cleared_models = 0
+            model_path = self.storage_paths.get('TrainedModels')
+            if model_path and os.path.exists(model_path):
+                for file_name in os.listdir(model_path):
+                    file_path = os.path.join(model_path, file_name)
+                    if os.path.isfile(file_path):
+                        try:
+                            os.remove(file_path)
+                            cleared_models += 1
+                        except:
+                            pass
+
+            return True, f"Database reset complete. Removed {cleared_images} images and {cleared_models} model files."
+        except Exception as e:
+            return False, str(e)
     
     def display_all_students(self):
         """Display all students in a formatted table"""

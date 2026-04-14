@@ -11,7 +11,7 @@ DEFAULT_SETTINGS = {
     "camera_scan_range": 5,
     "max_capture_samples": 120,
     "recognition_pass_mark": 67,
-    "ui_theme": "metasploit",
+    "ui_theme": "e2c",
     "boot_animation": True,
     "hud_mode": True
 }
@@ -32,6 +32,9 @@ def load_settings():
 
     merged = DEFAULT_SETTINGS.copy()
     merged.update(data if isinstance(data, dict) else {})
+    # Backward-compat: migrate old theme name.
+    if merged.get("ui_theme") == "metasploit":
+        merged["ui_theme"] = "e2c"
     return merged
 
 
