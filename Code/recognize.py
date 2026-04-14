@@ -2,7 +2,7 @@ import datetime
 import os
 import time
 import cv2
-import pandas as pd
+import csv
 import signal
 import sys
 from colors import success, error, info, bold, separator, warning
@@ -17,6 +17,31 @@ def signal_handler(sig, frame):
     print(f"\n\n{info('⏳')} Shutting down gracefully...")
 
 signal.signal(signal.SIGINT, signal_handler)
+
+
+def load_student_lookup(student_file):
+    """Build student id -> name lookup from CSV."""
+    lookup = {}
+    try:
+        with open(student_file, "r", newline="", encoding="utf-8") as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                sid = str(row.get("Id", "")).strip()
+                name = str(row.get("Name", "")).strip()
+                if sid:
+                    lookup[sid] = name or "Unknown"
+    except Exception as e:
+        print(warning(f"⚠ Could not fully load student file: {e}"))
+    return lookup
+
+
+def save_attendance_csv(file_path, attendance_rows):
+    """Save attendance rows using built-in csv module."""
+    with open(file_path, "w", newline="", encoding="utf-8") as f:
+        writer = csv.writer(f)
+        writer.writerow(["Id", "Name", "Date", "Time"])
+        for row in attendance_rows:
+            writer.writerow([row["Id"], row["Name"], row["Date"], row["Time"]])
 
 
 def print_header(title):
@@ -60,10 +85,10 @@ def recognize_attendence(storage_paths, data_manager, camera_index=0, pass_mark=
         print(error(f"✗ Check file exists: {harcascadePath}"))
         return
     
-    df = pd.read_csv(data_manager.student_file)
+    student_lookup = load_student_lookup(data_manager.student_file)
     font = cv2.FONT_HERSHEY_SIMPLEX
-    col_names = ['Id', 'Name', 'Date', 'Time']
-    attendance = pd.DataFrame(columns=col_names)
+    attendance = []
+    attendance_seen = set()
 
     print(f"  {success('✓')} Model loaded successfully")
     print(f"  {success('✓')} Student database loaded")
@@ -132,14 +157,16 @@ def recognize_attendence(storage_paths, data_manager, camera_index=0, pass_mark=
                 # Lowered threshold from 100 to 85 for LBPH (better for varying lighting)
                 if conf < 85:
                     try:
-                        aa = df.loc[df['Id'] == Id]['Name'].values
+                        student_name = student_lookup.get(str(Id), "Unknown")
                         confstr = "  {0}%".format(round(100 - conf))
-                        tt = str(Id)+"-"+str(aa[0]) if len(aa) > 0 else "Unknown"
+                        tt = str(Id) + "-" + str(student_name) if student_name != "Unknown" else "Unknown"
                     except:
+                        student_name = "Unknown"
                         tt = "Unknown"
                         confstr = "  {0}%".format(round(100 - conf))
                 else:
                     Id = '  Unknown  '
+                    student_name = "Unknown"
                     tt = str(Id)
                     confstr = "  {0}%".format(round(100 - conf))
 
@@ -147,11 +174,15 @@ def recognize_attendence(storage_paths, data_manager, camera_index=0, pass_mark=
                     ts = time.time()
                     date = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d')
                     timeStamp = datetime.datetime.fromtimestamp(ts).strftime('%H:%M:%S')
-                    try:
-                        aa = str(aa[0]) if len(aa) > 0 else "Unknown"
-                    except:
-                        aa = "Unknown"
-                    attendance.loc[len(attendance)] = [Id, aa, date, timeStamp]
+                    sid = str(Id).strip()
+                    if sid and sid.lower() != "unknown" and sid not in attendance_seen:
+                        attendance.append({
+                            "Id": sid,
+                            "Name": student_name,
+                            "Date": date,
+                            "Time": timeStamp
+                        })
+                        attendance_seen.add(sid)
 
                 tt = str(tt)[2:-2] if str(tt) != "Unknown" else tt
                 if(100-conf) > pass_mark:
@@ -168,11 +199,6 @@ def recognize_attendence(storage_paths, data_manager, camera_index=0, pass_mark=
                     cv2.putText(im, str(confstr), (x + 5, y + h - 5), font, 1, (0, 0, 255), 1)
 
 
-            # Skip duplicate check every other frame for better performance
-            frame_count += 1
-            if frame_count % 2 == 0:
-                attendance = attendance.drop_duplicates(subset=['Id'], keep='first')
-            
             cv2.putText(im, "E2C TEAM - Attendance System (Optimized)", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2)
             cv2.putText(im, f"Students Marked: {len(attendance)}", (10, 70), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 0, 0), 2)
             
@@ -197,7 +223,7 @@ def recognize_attendence(storage_paths, data_manager, camera_index=0, pass_mark=
         
         # Create directory if it doesn't exist
         os.makedirs(os.path.dirname(file_path), exist_ok=True)
-        attendance.to_csv(file_path, index=False)
+        save_attendance_csv(file_path, attendance)
         
         print("\n" + separator("═", 60))
         print(f"  {success('✓')} ATTENDANCE SAVED SUCCESSFULLY")
@@ -221,7 +247,7 @@ def recognize_attendence(storage_paths, data_manager, camera_index=0, pass_mark=
             attendance_file = f"Attendance_{date}_{Hour}-{Minute}-{Second}_interrupted.csv"
             file_path = os.path.join(storage_paths['AttendanceRecords'], attendance_file)
             os.makedirs(os.path.dirname(file_path), exist_ok=True)
-            attendance.to_csv(file_path, index=False)
+            save_attendance_csv(file_path, attendance)
             print(f"{success('✓')} Partial attendance saved: {attendance_file}\n")
         else:
             print(f"{info('ℹ')} No attendance records to save\n")

@@ -8,10 +8,12 @@ import os
 SETTINGS_FILE = "app_settings.json"
 DEFAULT_SETTINGS = {
     "camera_index": 0,
+    "camera_scan_range": 5,
     "max_capture_samples": 120,
     "recognition_pass_mark": 67,
     "ui_theme": "metasploit",
-    "boot_animation": True
+    "boot_animation": True,
+    "hud_mode": True
 }
 
 

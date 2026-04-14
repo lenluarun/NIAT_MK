@@ -7,9 +7,11 @@ import sys
 import check_camera
 import capture_image
 import train_image
-import recognize
 from camera_utils import detect_available_cameras
-from ui_console import render_banner, clear_screen, print_card, boot_sequence
+from ui_console import (
+    render_banner, clear_screen, print_card, boot_sequence,
+    render_symbol_wall, render_hud_status, print_menu_block
+)
 from colors import (Colors, bold, colored, success, error, warning, info, 
                    highlight, separator)
 from storage_manager import get_storage_path, create_storage_folders
@@ -21,6 +23,28 @@ storage_path = None
 storage_paths = None
 data_manager = None
 app_settings = None
+recognize = None
+RECOGNITION_AVAILABLE = False
+RECOGNITION_IMPORT_ERROR = ""
+
+try:
+    import recognize as _recognize_module
+    recognize = _recognize_module
+    RECOGNITION_AVAILABLE = True
+except Exception as exc:
+    RECOGNITION_IMPORT_ERROR = str(exc)
+
+
+def configure_console_encoding():
+    """Force UTF-8 output on Windows to avoid Unicode print crashes."""
+    try:
+        if hasattr(sys.stdout, "reconfigure"):
+            sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+        if hasattr(sys.stderr, "reconfigure"):
+            sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        # Keep app running even if reconfiguration is unavailable.
+        pass
 
 
 def init_system():
@@ -51,6 +75,10 @@ def init_system():
     print(f"{success('✓')} System initialized successfully!")
     print(f"{success('✓')} Storage Location: {bold(storage_path)}")
     print(f"{success('✓')} Active Camera Index: {bold(str(app_settings['camera_index']))}\n")
+    if not RECOGNITION_AVAILABLE:
+        print(warning("⚠ Recognition module unavailable."))
+        print(warning(f"⚠ Reason: {RECOGNITION_IMPORT_ERROR}"))
+        print(info("ℹ Capture/Train/Camera features are still available.\n"))
     input("Press ENTER to continue...")
 
 
@@ -58,31 +86,39 @@ def title_bar():
     """Display the main title bar"""
     clear_screen()
     render_banner(app_settings.get("ui_theme", "neon"))
+    render_symbol_wall(app_settings.get("ui_theme", "neon"))
 
 
 def main_menu():
     """Display main menu with all options"""
     title_bar()
-    
-    print(colored(separator("─", 60), Colors.BRIGHT_YELLOW))
-    print(highlight("┌" + "─" * 58 + "┐"))
-    print(highlight("│" + " " * 20 + bold("MAIN MENU") + " " * 29 + "│"))
-    print(highlight("└" + "─" * 58 + "┘"))
-    
-    print(f"\n{colored('[1]', Colors.BRIGHT_CYAN)} {bold('► Camera Check')}")
-    print(f"{colored('[2]', Colors.BRIGHT_CYAN)} {bold('► Capture Faces')}")
-    print(f"{colored('[3]', Colors.BRIGHT_CYAN)} {bold('► Train Images')}")
-    print(f"{colored('[4]', Colors.BRIGHT_CYAN)} {bold('► Recognize & Attendance')}")
-    print(f"{colored('[5]', Colors.BRIGHT_CYAN)} {bold('► Camera Studio (Scan/Select)')}")
-    print(f"{colored('[6]', Colors.BRIGHT_CYAN)} {bold('► Project Dashboard')}")
-    print(f"{colored('[7]', Colors.BRIGHT_CYAN)} {bold('► Data Management')}")
-    print(f"{colored('[8]', Colors.BRIGHT_CYAN)} {bold('► View Reports')}")
-    print(f"{colored('[9]', Colors.BRIGHT_CYAN)} {bold('► System Settings')}")
-    print(f"{colored('[10]', Colors.BRIGHT_CYAN)} {bold('► Quick Pipeline (Capture > Train > Recognize)')}")
-    print(f"{colored('[11]', Colors.BRIGHT_CYAN)} {bold('► Exit')}\n")
-    print(f"{info('📷')} Active Camera: {bold(str(app_settings['camera_index']))}  |  {info('🎯')} Capture Samples: {bold(str(app_settings['max_capture_samples']))}")
-    
-    print(colored(separator("─", 60), Colors.BRIGHT_YELLOW))
+    if app_settings.get("hud_mode", True):
+        render_hud_status(
+            "CONTROL DECK",
+            [
+                ("Active Cam", app_settings["camera_index"]),
+                ("Samples", app_settings["max_capture_samples"]),
+                ("Pass Mark", app_settings["recognition_pass_mark"]),
+                ("Theme", app_settings.get("ui_theme", "neon")),
+            ],
+        )
+    print_menu_block(
+        "MAIN MENU // CHOOSE MODULE",
+        [
+            ("1", "► Camera Check"),
+            ("2", "► Capture Faces"),
+            ("3", "► Train Images"),
+            ("4", "► Recognize & Attendance"),
+            ("5", "► Camera Studio (Scan/Select)"),
+            ("6", "► Project Dashboard"),
+            ("7", "► Data Management"),
+            ("8", "► View Reports"),
+            ("9", "► System Settings"),
+            ("10", "► Quick Pipeline (Capture > Train > Recognize)"),
+            ("11", "► Exit"),
+        ],
+        accent=Colors.BRIGHT_CYAN
+    )
     
     while True:
         try:
@@ -157,6 +193,12 @@ def train_images_option():
 
 def recognize_faces_option():
     """Recognize faces option"""
+    if not RECOGNITION_AVAILABLE:
+        print(error("✗ Recognition is disabled because required dependency failed to load."))
+        print(warning(f"⚠ Details: {RECOGNITION_IMPORT_ERROR}"))
+        input("\nPress ENTER to return to Main Menu...")
+        main_menu()
+        return
     recognize.recognize_attendence(
         storage_paths,
         data_manager,
@@ -171,24 +213,35 @@ def camera_studio_menu():
     """Camera utility and selection menu."""
     global app_settings
     while True:
-        os.system('cls')
-        print("\n")
-        print(highlight("╔" + "═" * 68 + "╗"))
-        print(highlight("║" + " " * 23 + "CAMERA STUDIO" + " " * 32 + "║"))
-        print(highlight("╚" + "═" * 68 + "╝"))
-        print(f"\n{info('📷')} Active Camera Index: {bold(str(app_settings['camera_index']))}")
-        print(f"{colored('[1]', Colors.BRIGHT_GREEN)} {bold('► Scan Available Cameras')}")
-        print(f"{colored('[2]', Colors.BRIGHT_GREEN)} {bold('► Set Active Camera')}")
-        print(f"{colored('[3]', Colors.BRIGHT_GREEN)} {bold('► Test Active Camera')}")
-        print(f"{colored('[4]', Colors.BRIGHT_GREEN)} {bold('► Back to Main Menu')}\n")
+        title_bar()
+        render_hud_status(
+            "CAMERA STUDIO",
+            [
+                ("Active Camera", app_settings["camera_index"]),
+                ("Scan Range", app_settings.get("camera_scan_range", 5)),
+                ("HUD", "ON" if app_settings.get("hud_mode", True) else "OFF"),
+            ],
+        )
+        print_menu_block(
+            "CAMERA OPERATIONS",
+            [
+                ("1", "► Scan Available Cameras"),
+                ("2", "► Set Active Camera (manual index)"),
+                ("3", "► Test Active Camera"),
+                ("4", "► Smart Select Camera From List"),
+                ("5", "► Show Active Camera Details"),
+                ("6", "► Back to Main Menu"),
+            ],
+            accent=Colors.BRIGHT_GREEN
+        )
 
         try:
-            choice = int(input(f"{info('➤')} Enter Your Choice (1-4): "))
+            choice = int(input(f"{info('➤')} Enter Your Choice (1-6): "))
             if choice == 1:
-                cameras = detect_available_cameras()
+                cameras = detect_available_cameras(app_settings.get("camera_scan_range", 5))
                 print("\n" + separator("─", 70))
                 if not cameras:
-                    print(error("✗ No cameras detected in index range 0-5."))
+                    print(error("✗ No cameras detected in configured index range."))
                 else:
                     print(success(f"✓ Found {len(cameras)} camera(s):"))
                     for cam in cameras:
@@ -208,6 +261,43 @@ def camera_studio_menu():
                 check_camera.camer(app_settings['camera_index'])
                 input("\nPress ENTER to continue...")
             elif choice == 4:
+                cameras = detect_available_cameras(app_settings.get("camera_scan_range", 5))
+                if not cameras:
+                    print(error("✗ No cameras available for smart selection."))
+                    input("Press ENTER to continue...")
+                    continue
+                print(success("✓ Available cameras:"))
+                for cam in cameras:
+                    print(f"  [{cam['index']}] {cam['resolution']} @ {cam['fps']} FPS")
+                selected = input(f"{info('➤')} Choose camera index from list: ").strip()
+                if not selected.isdigit():
+                    print(error("✗ Selection must be numeric."))
+                else:
+                    target = int(selected)
+                    if any(cam["index"] == target for cam in cameras):
+                        app_settings = update_setting("camera_index", target)
+                        print(success(f"✓ Active camera switched to {target}."))
+                    else:
+                        print(error("✗ Selected index is not in scanned camera list."))
+                input("Press ENTER to continue...")
+            elif choice == 5:
+                cameras = detect_available_cameras(app_settings.get("camera_scan_range", 5))
+                current = next((cam for cam in cameras if cam["index"] == app_settings["camera_index"]), None)
+                if current:
+                    print_card(
+                        "ACTIVE CAMERA PROFILE",
+                        [
+                            f"Camera Index   : {current['index']}",
+                            f"Resolution     : {current['resolution']}",
+                            f"Reported FPS   : {current['fps']}",
+                            f"Scan Range     : 0-{app_settings.get('camera_scan_range', 5)}",
+                            "Status         : Ready",
+                        ],
+                    )
+                else:
+                    print(warning("⚠ Active camera not detected in current scan range."))
+                input("\nPress ENTER to continue...")
+            elif choice == 6:
                 main_menu()
                 return
             else:
@@ -244,6 +334,13 @@ def project_dashboard():
 
 def quick_pipeline():
     """Run complete flow in one menu option."""
+    if not RECOGNITION_AVAILABLE:
+        print(error("✗ Quick pipeline unavailable because recognition module is disabled."))
+        print(info("ℹ You can still run capture + training manually from the main menu."))
+        print(warning(f"⚠ Details: {RECOGNITION_IMPORT_ERROR}"))
+        input("\nPress ENTER to return to Main Menu...")
+        main_menu()
+        return
     print_card(
         "QUICK PIPELINE MODE",
         [
@@ -279,19 +376,18 @@ def quick_pipeline():
 def data_management_menu():
     """Data management menu"""
     while True:
-        os.system('cls')
-        print("\n")
-        print(highlight("╔" + "═" * 68 + "╗"))
-        print(highlight("║" + " " * 18 + "DATA MANAGEMENT OPTIONS" + " " * 27 + "║"))
-        print(highlight("╚" + "═" * 68 + "╝"))
-        
-        print(f"\n{colored('[1]', Colors.BRIGHT_GREEN)} {bold('► View All Students')}")
-        print(f"{colored('[2]', Colors.BRIGHT_GREEN)} {bold('► Add Single Student')}")
-        print(f"{colored('[3]', Colors.BRIGHT_GREEN)} {bold('► Add Multiple Students (Bulk)')}")
-        print(f"{colored('[4]', Colors.BRIGHT_GREEN)} {bold('► Delete Student')}")
-        print(f"{colored('[5]', Colors.BRIGHT_GREEN)} {bold('► Back to Main Menu')}\n")
-        
-        print(colored(separator("─", 60), Colors.BRIGHT_YELLOW))
+        title_bar()
+        print_menu_block(
+            "DATA MANAGEMENT OPTIONS",
+            [
+                ("1", "► View All Students"),
+                ("2", "► Add Single Student"),
+                ("3", "► Add Multiple Students (Bulk)"),
+                ("4", "► Delete Student"),
+                ("5", "► Back to Main Menu"),
+            ],
+            accent=Colors.BRIGHT_GREEN
+        )
         
         try:
             choice = int(input(f"\n{info('➤')} Enter Your Choice (1-5): "))
@@ -327,17 +423,16 @@ def data_management_menu():
 def view_reports_menu():
     """View reports menu"""
     while True:
-        os.system('cls')
-        print("\n")
-        print(highlight("╔" + "═" * 68 + "╗"))
-        print(highlight("║" + " " * 23 + "VIEW REPORTS" + " " * 33 + "║"))
-        print(highlight("╚" + "═" * 68 + "╝"))
-        
-        print(f"\n{colored('[1]', Colors.BRIGHT_MAGENTA)} {bold('► Attendance Report')}")
-        print(f"{colored('[2]', Colors.BRIGHT_MAGENTA)} {bold('► Student Database Report')}")
-        print(f"{colored('[3]', Colors.BRIGHT_MAGENTA)} {bold('► Back to Main Menu')}\n")
-        
-        print(colored(separator("─", 60), Colors.BRIGHT_YELLOW))
+        title_bar()
+        print_menu_block(
+            "REPORTS CENTER",
+            [
+                ("1", "► Attendance Report"),
+                ("2", "► Student Database Report"),
+                ("3", "► Back to Main Menu"),
+            ],
+            accent=Colors.BRIGHT_MAGENTA
+        )
         
         try:
             choice = int(input(f"\n{info('➤')} Enter Your Choice (1-3): "))
@@ -360,24 +455,25 @@ def system_settings_menu():
     """System settings menu"""
     global app_settings
     while True:
-        os.system('cls')
-        print("\n")
-        print(highlight("╔" + "═" * 68 + "╗"))
-        print(highlight("║" + " " * 22 + "SYSTEM SETTINGS" + " " * 31 + "║"))
-        print(highlight("╚" + "═" * 68 + "╝"))
-        
-        print(f"\n{colored('[1]', Colors.BRIGHT_BLUE)} {bold('► Change Storage Location')}")
-        print(f"{colored('[2]', Colors.BRIGHT_BLUE)} {bold('► Set Capture Sample Limit')}")
-        print(f"{colored('[3]', Colors.BRIGHT_BLUE)} {bold('► Set Recognition Pass Mark')}")
-        print(f"{colored('[4]', Colors.BRIGHT_BLUE)} {bold('► Switch UI Theme (Neon/Metasploit/Matrix)')}")
-        print(f"{colored('[5]', Colors.BRIGHT_BLUE)} {bold('► Toggle Boot Animation')}")
-        print(f"{colored('[6]', Colors.BRIGHT_BLUE)} {bold('► View System Info')}")
-        print(f"{colored('[7]', Colors.BRIGHT_BLUE)} {bold('► Back to Main Menu')}\n")
-        
-        print(colored(separator("─", 60), Colors.BRIGHT_YELLOW))
+        title_bar()
+        print_menu_block(
+            "SYSTEM SETTINGS",
+            [
+                ("1", "► Change Storage Location"),
+                ("2", "► Set Capture Sample Limit"),
+                ("3", "► Set Recognition Pass Mark"),
+                ("4", "► Switch UI Theme (Neon/Metasploit/Matrix/Abyss/Phantom)"),
+                ("5", "► Toggle Boot Animation"),
+                ("6", "► Configure Camera Scan Range"),
+                ("7", "► Toggle HUD Status Panel"),
+                ("8", "► View System Info"),
+                ("9", "► Back to Main Menu"),
+            ],
+            accent=Colors.BRIGHT_BLUE
+        )
         
         try:
-            choice = int(input(f"\n{info('➤')} Enter Your Choice (1-7): "))
+            choice = int(input(f"\n{info('➤')} Enter Your Choice (1-9): "))
             if choice == 1:
                 print(f"\n{warning('⚠')} Changing storage location...")
                 input("Press ENTER to continue...")
@@ -399,8 +495,8 @@ def system_settings_menu():
                     print(error("✗ Invalid mark. Choose a number between 40 and 90."))
                 input("Press ENTER to continue...")
             elif choice == 4:
-                theme = input(f"{info('➤')} Enter theme (neon/metasploit/matrix): ").strip().lower()
-                if theme in ("neon", "metasploit", "matrix"):
+                theme = input(f"{info('➤')} Enter theme (neon/metasploit/matrix/abyss/phantom): ").strip().lower()
+                if theme in ("neon", "metasploit", "matrix", "abyss", "phantom"):
                     app_settings = update_setting("ui_theme", theme)
                     print(success(f"✓ UI theme switched to {theme}."))
                 else:
@@ -413,6 +509,20 @@ def system_settings_menu():
                 print(success(f"✓ Boot animation {mode}."))
                 input("Press ENTER to continue...")
             elif choice == 6:
+                scan_range = input(f"{info('➤')} Enter camera scan max index (1-20): ").strip()
+                if scan_range.isdigit() and 1 <= int(scan_range) <= 20:
+                    app_settings = update_setting("camera_scan_range", int(scan_range))
+                    print(success(f"✓ Camera scan range updated to 0-{scan_range}."))
+                else:
+                    print(error("✗ Invalid range. Choose a number between 1 and 20."))
+                input("Press ENTER to continue...")
+            elif choice == 7:
+                current = bool(app_settings.get("hud_mode", True))
+                app_settings = update_setting("hud_mode", not current)
+                mode = "enabled" if not current else "disabled"
+                print(success(f"✓ HUD panel {mode}."))
+                input("Press ENTER to continue...")
+            elif choice == 8:
                 os.system('cls')
                 print("\n")
                 print(highlight("╔" + "═" * 68 + "╗"))
@@ -424,14 +534,16 @@ def system_settings_menu():
                 print(f"{bold('Storage Type:')} {success('Local Storage')}")
                 print(f"{bold('Storage Path:')} {colored(storage_path, Colors.BRIGHT_CYAN)}")
                 print(f"{bold('Active Camera:')} {colored(str(app_settings['camera_index']), Colors.BRIGHT_GREEN)}")
+                print(f"{bold('Camera Scan Range:')} {colored(str(app_settings.get('camera_scan_range', 5)), Colors.BRIGHT_GREEN)}")
                 print(f"{bold('Capture Samples:')} {colored(str(app_settings['max_capture_samples']), Colors.BRIGHT_GREEN)}")
                 print(f"{bold('Pass Mark:')} {colored(str(app_settings['recognition_pass_mark']), Colors.BRIGHT_GREEN)}")
                 print(f"{bold('UI Theme:')} {colored(str(app_settings.get('ui_theme', 'neon')), Colors.BRIGHT_GREEN)}")
                 print(f"{bold('Boot Animation:')} {colored(str(app_settings.get('boot_animation', True)), Colors.BRIGHT_GREEN)}")
+                print(f"{bold('HUD Mode:')} {colored(str(app_settings.get('hud_mode', True)), Colors.BRIGHT_GREEN)}")
                 print(f"{bold('Team:')} {highlight('E2C TEAM')}")
-                print(f"{bold('Version:')} 3.0 (Cyber UI Edition)\n")
+                print(f"{bold('Version:')} 4.0 (Cinematic UI Edition)\n")
                 input("Press ENTER to continue...")
-            elif choice == 7:
+            elif choice == 9:
                 main_menu()
                 break
             else:
@@ -442,6 +554,7 @@ def system_settings_menu():
 
 if __name__ == "__main__":
     try:
+        configure_console_encoding()
         init_system()
         main_menu()
     except KeyboardInterrupt:
