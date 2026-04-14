@@ -2,6 +2,7 @@ import csv
 import cv2
 import os
 from colors import success, error, info, bold, separator, highlight
+from ui_console import print_card
 
 
 def is_number(s):
@@ -21,12 +22,17 @@ def is_number(s):
 
 def print_section(title):
     """Print a stylish section header"""
-    print("\n" + separator("═", 50))
-    print(f"  {title}")
-    print(separator("═", 50))
+    print_card(
+        title,
+        [
+            "Collect high-quality face images for model training.",
+            "Face should be centered and clearly visible.",
+            "Press Q in camera window for manual stop.",
+        ],
+    )
 
 
-def takeImages(storage_paths, data_manager):
+def takeImages(storage_paths, data_manager, camera_index=0, max_samples=100):
     print_section("📸 CAPTURE FACES - Training Image Collection")
     Id = input(f"\n  {info('➤')} Enter Student ID (Numeric): ")
     name = input(f"  {info('➤')} Enter Student Name (Alphabetic): ")
@@ -34,11 +40,29 @@ def takeImages(storage_paths, data_manager):
 
     if(is_number(Id) and name.isalpha()):
         print(f"\n  {success('✓')} Starting capture for: {bold(name)} (ID: {bold(Id)})")
-        print("  Press 'Q' to stop or capture 100+ images\n")
+        print(f"  {info('📷')} Camera Index: {bold(camera_index)}")
+        print(f"  {info('🎯')} Target Samples: {bold(max_samples)}")
+        print("  Press 'Q' to stop early\n")
         
-        cam = cv2.VideoCapture(0)
-        harcascadePath = "haarcascade_default.xml"
-        detector = cv2.CascadeClassifier(harcascadePath)
+        cam = cv2.VideoCapture(camera_index, cv2.CAP_DSHOW)
+        if not cam.isOpened():
+            print(f"  {error('✗')} Cannot open camera index {camera_index}!")
+            return
+        
+        # Get absolute path to cascade classifier
+        cascade_dir = os.path.dirname(os.path.abspath(__file__))
+        cascade_path = os.path.join(cascade_dir, "haarcascade_default.xml")
+        
+        if not os.path.exists(cascade_path):
+            print(f"  {error('✗')} Cascade classifier not found at: {cascade_path})")
+            return
+        
+        detector = cv2.CascadeClassifier(cascade_path)
+        
+        if detector.empty():
+            print(f"  {error('✗')} Failed to load cascade classifier!")
+            return
+        
         sampleNum = 0
         training_path = storage_paths['TrainingImages']
 
@@ -47,16 +71,26 @@ def takeImages(storage_paths, data_manager):
             if not ret:
                 break
             gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-            faces = detector.detectMultiScale(gray, 1.3, 5, minSize=(30,30), flags=cv2.CASCADE_SCALE_IMAGE)
+            
+            # Optimize cascade parameters for better detection during capture
+            faces = detector.detectMultiScale(gray, 1.1, 4, minSize=(30,30), maxSize=(200,200), flags=cv2.CASCADE_SCALE_IMAGE)
+            
             for(x,y,w,h) in faces:
                 cv2.rectangle(img, (x, y), (x+w, y+h), (0, 255, 0), 2)
                 sampleNum = sampleNum+1
+                
+                # Extract and equalize face region for better training data quality
+                face_roi = gray[y:y+h, x:x+w]
+                face_roi = cv2.equalizeHist(face_roi)
+                
                 cv2.putText(img, f"Samples: {sampleNum}", (x+5, y-10), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
-                cv2.imwrite(os.path.join(training_path, f"{name}.{Id}.{sampleNum}.jpg"), gray[y:y+h, x:x+w])
+                
+                # Save equalized image for better training
+                cv2.imwrite(os.path.join(training_path, f"{name}.{Id}.{sampleNum}.jpg"), face_roi)
                 cv2.imshow('Face Capture - E2C TEAM', img)
             if cv2.waitKey(100) & 0xFF == ord('q'):
                 break
-            elif sampleNum > 100:
+            elif sampleNum >= max_samples:
                 break
         cam.release()
         cv2.destroyAllWindows()

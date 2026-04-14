@@ -1,19 +1,36 @@
-def camer():
+def camer(camera_index=0):
     """Test camera connectivity and display"""
     import cv2
+    import os
+    from ui_console import print_card
     
-    print("\n" + "═" * 55)
-    print("  📷 CAMERA TEST - Initializing...")
-    print("═" * 55)
-    print("\n  ✓ Camera is active")
-    print("  ✓ Detecting faces...")
-    print("  💡 Press 'Q' to close camera\n")
+    print_card(
+        "CAMERA TEST / LIVE PREVIEW",
+        [
+            f"Target Camera Index: {camera_index}",
+            "Face detector: Haar Cascade",
+            "Press Q to stop camera preview",
+        ],
+    )
 
-    cascade_face = cv2.CascadeClassifier('haarcascade_default.xml')
-    cap = cv2.VideoCapture(0)
+    # Get absolute path to cascade classifier
+    cascade_dir = os.path.dirname(os.path.abspath(__file__))
+    cascade_path = os.path.join(cascade_dir, 'haarcascade_default.xml')
+    
+    if not os.path.exists(cascade_path):
+        print(f"  ⚠ Error: Cascade classifier not found at {cascade_path}!\n")
+        return
+    
+    cascade_face = cv2.CascadeClassifier(cascade_path)
+    
+    if cascade_face.empty():
+        print(f"  ⚠ Error: Failed to load cascade classifier!\n")
+        return
+    
+    cap = cv2.VideoCapture(camera_index, cv2.CAP_DSHOW)
 
     if not cap.isOpened():
-        print("  ⚠ Error: Cannot open camera!\n")
+        print(f"  ⚠ Error: Cannot open camera index {camera_index}!\n")
         return
 
     while True:

@@ -4,13 +4,19 @@ import cv2
 import numpy as np
 from PIL import Image
 from colors import success, error, info, bold, separator, highlight
+from ui_console import print_card
 
 
 def print_header(title):
     """Print stylish header"""
-    print("\n" + separator("═", 55))
-    print(f"  {title}")
-    print(separator("═", 55))
+    print_card(
+        title,
+        [
+            "Engine: LBPH (optimized)",
+            "Mode: Offline model training",
+            "Tip : Keep varied lighting images for better results",
+        ],
+    )
 
 
 def getImagesAndLabels(path):
@@ -38,8 +44,13 @@ def TrainImages(storage_paths):
     print(f"\n  {info('⏳')} Loading training images...")
     
     recognizer = cv2.face.LBPHFaceRecognizer_create()
-    harcascadePath = "haarcascade_default.xml"
-    detector = cv2.CascadeClassifier(harcascadePath)
+    
+    # Validate cascade classifier exists (in case needed for future updates)
+    cascade_dir = os.path.dirname(os.path.abspath(__file__))
+    cascade_path = os.path.join(cascade_dir, "haarcascade_default.xml")
+    if not os.path.exists(cascade_path):
+        print(f"  {error('✗')} Warning: Cascade classifier not found at: {cascade_path}")
+    
     training_path = storage_paths['TrainingImages']
     faces, Id = getImagesAndLabels(training_path)
     
@@ -50,6 +61,10 @@ def TrainImages(storage_paths):
     
     print(f"  {success('✓')} Found {bold(len(faces))} images to train\n")
     print(f"  {info('⏳')} Training in progress...")
+    
+    # Recreate recognizer with optimized LBPH parameters for better accuracy
+    # radius=2, neighbors=16 provides better facial feature recognition
+    recognizer = cv2.face.LBPHFaceRecognizer_create(radius=2, neighbors=16, grid_x=8, grid_y=8)
     recognizer.train(faces, np.array(Id))
     counter_img(training_path)
     
