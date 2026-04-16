@@ -8,6 +8,9 @@ import sys
 # Add Code directory to Python path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'Code'))
 
+if os.name == "nt":
+    os.environ.setdefault("OPENCV_VIDEOIO_MSMF_ENABLE_HW_TRANSFORMS", "0")
+
 import check_camera
 import capture_image
 import train_image
@@ -121,28 +124,40 @@ def main_menu():
 
 def check_camera_option():
     """Check camera option"""
-    check_camera.camer()
+    try:
+        check_camera.camer()
+    except KeyboardInterrupt:
+        print(error("⚠ Camera check canceled by user."))
     input(f"\n{success('✓')} Press ENTER to return to Main Menu...")
     main_menu()
 
 
 def capture_faces_option():
     """Capture faces option"""
-    capture_image.takeImages(storage_paths, data_manager)
+    try:
+        capture_image.takeImages(storage_paths, data_manager)
+    except KeyboardInterrupt:
+        print(error("⚠ Face capture canceled by user."))
     input(f"\n{success('✓')} Press ENTER to return to Main Menu...")
     main_menu()
 
 
 def train_images_option():
     """Train images option"""
-    train_image.TrainImages(storage_paths)
+    try:
+        train_image.TrainImages(storage_paths)
+    except KeyboardInterrupt:
+        print(error("⚠ Training canceled by user."))
     input(f"\n{success('✓')} Press ENTER to return to Main Menu...")
     main_menu()
 
 
 def recognize_faces_option():
     """Recognize faces option"""
-    recognize.recognize_attendence(storage_paths, data_manager)
+    try:
+        recognize.recognize_attendence(storage_paths, data_manager)
+    except KeyboardInterrupt:
+        print(error("⚠ Recognition canceled by user."))
     input(f"\n{success('✓')} Press ENTER to return to Main Menu...")
     main_menu()
 

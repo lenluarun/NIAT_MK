@@ -2,272 +2,144 @@ import datetime
 import os
 import time
 import cv2
-import csv
-import signal
-import sys
-from colors import success, error, info, bold, separator, warning
-
-# Global flag for graceful shutdown
-should_exit = False
-
-def signal_handler(sig, frame):
-    """Handle Ctrl+C gracefully"""
-    global should_exit
-    should_exit = True
-    print(f"\n\n{info('⏳')} Shutting down gracefully...")
-
-signal.signal(signal.SIGINT, signal_handler)
+import pandas as pd
+import numpy as np
+from colors import Colors
+import ui_console
 
 
-def load_student_lookup(student_file):
-    """Build student id -> name lookup from CSV."""
-    lookup = {}
-    try:
-        with open(student_file, "r", newline="", encoding="utf-8") as f:
-            reader = csv.DictReader(f)
-            for row in reader:
-                sid = str(row.get("Id", "")).strip()
-                name = str(row.get("Name", "")).strip()
-                if sid:
-                    lookup[sid] = name or "Unknown"
-    except Exception as e:
-        print(warning(f"⚠ Could not fully load student file: {e}"))
-    return lookup
-
-
-def save_attendance_csv(file_path, attendance_rows):
-    """Save attendance rows using built-in csv module."""
-    with open(file_path, "w", newline="", encoding="utf-8") as f:
-        writer = csv.writer(f)
-        writer.writerow(["Id", "Name", "Date", "Time"])
-        for row in attendance_rows:
-            writer.writerow([row["Id"], row["Name"], row["Date"], row["Time"]])
-
-
-def print_header(title):
-    """Print stylish header"""
-    print("\n" + separator("═", 60))
-    print(f"  {title}")
-    print(separator("═", 60))
-
-
-def recognize_attendence(storage_paths, data_manager, camera_index=0, pass_mark=67):
-    global should_exit
-    should_exit = False
-    
-    print_header("✓ ATTENDANCE RECOGNITION - Starting")
-    print(f"\n  {info('⏳')} Loading model and student data...\n")
-    
-    model_path = os.path.join(storage_paths['TrainedModels'], 'Trainner.yml')
-    
-    if not os.path.exists(model_path):
-        print(error("✗ Trained model not found!"))
-        print(error("✗ Please train the model first.\n"))
-        return
-    
-    # Use tuned LBPH parameters for better accuracy and consistency
-    recognizer = cv2.face.LBPHFaceRecognizer_create(radius=2, neighbors=16, grid_x=8, grid_y=8)
-    recognizer.read(model_path)
-    
-    # Get absolute path to cascade classifier
-    cascade_dir = os.path.dirname(os.path.abspath(__file__))
-    harcascadePath = os.path.join(cascade_dir, "haarcascade_default.xml")
-    
+def recognize_attendence(storage_paths=None, data_manager=None, camera_index=0, pass_mark=45, fast_mode=True):
+    recognizer = cv2.face.LBPHFaceRecognizer_create()  
+    trained_dir = storage_paths.get('TrainedModels') if storage_paths else "TrainingImageLabel"
+    recognizer.read(os.path.join(trained_dir, "Trainner.yml"))
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    harcascadePath = os.path.join(base_dir, "haarcascade_default.xml")
     if not os.path.exists(harcascadePath):
-        print(error(f"✗ Cascade classifier not found at: {harcascadePath}"))
-        return
-    
+        harcascadePath = cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
     faceCascade = cv2.CascadeClassifier(harcascadePath)
-    
-    # Verify cascade classifier loaded successfully
-    if faceCascade.empty():
-        print(error("✗ Failed to load cascade classifier!"))
-        print(error(f"✗ Check file exists: {harcascadePath}"))
-        return
-    
-    student_lookup = load_student_lookup(data_manager.student_file)
-    font = cv2.FONT_HERSHEY_SIMPLEX
-    attendance = []
-    attendance_seen = set()
+    student_file = data_manager.student_file if data_manager else "StudentDetails" + os.sep + "StudentDetails.csv"
 
-    print(f"  {success('✓')} Model loaded successfully")
-    print(f"  {success('✓')} Student database loaded")
-    print(f"  {info('💡')} Press 'Q' to stop and save attendance\n")
-    
-    cam = None
+    # Read student file forcing Id to be string to ensure consistent comparisons
     try:
-        cam = cv2.VideoCapture(camera_index, cv2.CAP_DSHOW)
-        if not cam.isOpened():
-            print(error(f"✗ Cannot open camera index {camera_index}!"))
-            return
-            
-        cam.set(3, 640) 
-        cam.set(4, 480) 
-        minW = 0.1 * cam.get(3)
-        minH = 0.1 * cam.get(4)
-        frame_count = 0
-        last_frame_time = time.time()
-        frame_timeout = 5  # Reset timeout every 5 seconds
-        
-        print(f"{info('▶')} Starting face recognition... (Ctrl+C or press Q to stop)\n")
+        df = pd.read_csv(student_file, dtype={'Id': str})
+    except Exception:
+        # Fallback: read normally
+        df = pd.read_csv(student_file)
 
+    font = cv2.FONT_HERSHEY_SIMPLEX
+    col_names = ['Id', 'Name', 'Date', 'Time']
+    attendance = pd.DataFrame(columns=col_names)
+
+    # start realtime video capture
+    cam = cv2.VideoCapture(camera_index, cv2.CAP_DSHOW)
+    cam.set(3, 640) 
+    cam.set(4, 480) 
+    minW = 0.1 * cam.get(3)
+    minH = 0.1 * cam.get(4)
+
+    try:
         while True:
-            # Check for graceful shutdown signal
-            if should_exit:
-                print(f"{info('⏳')} Exit signal received...")
-                break
-            
-            # Timeout protection - if no frames for 5 seconds, something's wrong
-            if time.time() - last_frame_time > frame_timeout:
-                print(warning("⚠ Camera timeout - no frames received. Restarting..."))
-                cam.release()
-                time.sleep(1)
-                cam = cv2.VideoCapture(camera_index, cv2.CAP_DSHOW)
-                if not cam.isOpened():
-                    print(error("✗ Cannot reconnect to camera!"))
-                    break
-                last_frame_time = time.time()
-                continue
-            
             ret, im = cam.read()
-            if not ret:
-                print(warning("⚠ Failed to read frame from camera"))
+            if not ret or im is None:
+                print("✗ Failed to read frame from camera. Stopping recognition.")
                 break
-            
-            last_frame_time = time.time()
-            
-            # Resize for faster processing
-            im = cv2.resize(im, (640, 480))
             gray = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
-            
-            # Apply histogram equalization for consistent lighting
-            gray = cv2.equalizeHist(gray)
-            
-            # Optimized cascade parameters (1.1 scale factor, 4 neighbors for better accuracy)
-            faces = faceCascade.detectMultiScale(gray, 1.1, 4,
-                    minSize = (int(minW), int(minH)), maxSize=(int(minW*5), int(minH*5)), flags = cv2.CASCADE_SCALE_IMAGE)
+            faces = faceCascade.detectMultiScale(gray, 1.2, 5,
+                    minSize = (int(minW), int(minH)),flags = cv2.CASCADE_SCALE_IMAGE)
             for(x, y, w, h) in faces:
-                # Extract and equalize face region for better recognition
-                face_roi = gray[y:y+h, x:x+w]
-                face_roi = cv2.equalizeHist(face_roi)
-                
-                cv2.rectangle(im, (x, y), (x+w, y+h), (0, 255, 0), 2)
-                Id, conf = recognizer.predict(face_roi)
-                
-                # Lowered threshold from 100 to 85 for LBPH (better for varying lighting)
-                if conf < 85:
-                    try:
-                        student_name = student_lookup.get(str(Id), "Unknown")
-                        confstr = "  {0}%".format(round(100 - conf))
-                        tt = str(Id) + "-" + str(student_name) if student_name != "Unknown" else "Unknown"
-                    except:
-                        student_name = "Unknown"
-                        tt = "Unknown"
-                        confstr = "  {0}%".format(round(100 - conf))
-                else:
-                    Id = '  Unknown  '
-                    student_name = "Unknown"
-                    tt = str(Id)
-                    confstr = "  {0}%".format(round(100 - conf))
+                cv2.rectangle(im, (x, y), (x+w, y+h), (10, 159, 255), 2)
+                Id, conf = recognizer.predict(gray[y:y+h, x:x+w])
 
-                if (100-conf) > 60:
+                # Normalize ID and prepare confidence text
+                confstr = "  {0}%".format(round(100 - conf))
+                Id_str = str(Id).strip()
+
+                # Lookup name safely
+                name_vals = df.loc[df['Id'] == Id_str]['Name'].values
+                name = name_vals[0] if len(name_vals) > 0 else ''
+
+                if conf < 100:
+                    tt = f"{Id_str}-{name}" if name else Id_str
+                else:
+                    Id_str = 'Unknown'
+                    name = ''
+                    tt = Id_str
+
+                # Mark attendance only when pass threshold is met
+                if (100-conf) >= pass_mark:
                     ts = time.time()
                     date = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d')
                     timeStamp = datetime.datetime.fromtimestamp(ts).strftime('%H:%M:%S')
-                    sid = str(Id).strip()
-                    if sid and sid.lower() != "unknown" and sid not in attendance_seen:
-                        attendance.append({
-                            "Id": sid,
-                            "Name": student_name,
-                            "Date": date,
-                            "Time": timeStamp
-                        })
-                        attendance_seen.add(sid)
+                    # Ensure we write string ID (matching StudentDetails format)
+                    attendance.loc[len(attendance)] = [Id_str, name, date, timeStamp]
 
-                tt = str(tt)[2:-2] if str(tt) != "Unknown" else tt
-                if(100-conf) > pass_mark:
+                tt = str(tt)
+                if(100-conf) >= pass_mark:
                     tt = tt + " [Pass]"
-                    cv2.putText(im, str(tt), (x+5,y-5), font, 1, (0, 255, 0), 2)
+                    cv2.putText(im, str(tt), (x+5,y-5), font, 1, (255, 255, 255), 2)
                 else:
                     cv2.putText(im, str(tt), (x + 5, y - 5), font, 1, (255, 255, 255), 2)
 
-                if (100-conf) > pass_mark:
-                    cv2.putText(im, str(confstr), (x + 5, y + h - 5), font, 1, (0, 255, 0), 1)
+                if (100-conf) >= pass_mark:
+                    cv2.putText(im, str(confstr), (x + 5, y + h - 5), font,1, (0, 255, 0),1 )
                 elif (100-conf) > 50:
                     cv2.putText(im, str(confstr), (x + 5, y + h - 5), font, 1, (0, 255, 255), 1)
                 else:
                     cv2.putText(im, str(confstr), (x + 5, y + h - 5), font, 1, (0, 0, 255), 1)
 
 
-            cv2.putText(im, "E2C TEAM - Attendance System (Optimized)", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2)
-            cv2.putText(im, f"Students Marked: {len(attendance)}", (10, 70), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 0, 0), 2)
+            # Deduplicate by string Id
+            attendance['Id'] = attendance['Id'].astype(str)
+            attendance = attendance.drop_duplicates(subset=['Id'], keep='first')
+            cv2.imshow('Attendance', im)
             
-            cv2.imshow('Attendance System - Press Q to Exit', im)
-            
-            # Non-blocking keyboard input with timeout
-            try:
-                key = cv2.waitKey(100) & 0xFF
-                if key == ord('q') or key == ord('Q'):
-                    break
-            except Exception as e:
-                print(warning(f"⚠ Keyboard input error: {e}"))
+            if not attendance.empty:
                 break
+
+            if (cv2.waitKey(1) == ord('q')):
+                break
+    except KeyboardInterrupt:
+        print("\n⚠ Recognition interrupted by user (Ctrl+C).")
         
-        # Save attendance data
+    cam.release()
+    cv2.destroyAllWindows()
+
+    if not attendance.empty:
         ts = time.time()
         date = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d')
         timeStamp = datetime.datetime.fromtimestamp(ts).strftime('%H:%M:%S')
         Hour, Minute, Second = timeStamp.split(":")
-        attendance_file = f"Attendance_{date}_{Hour}-{Minute}-{Second}.csv"
-        file_path = os.path.join(storage_paths['AttendanceRecords'], attendance_file)
+        att_dir = storage_paths.get('AttendanceRecords') if storage_paths else "Attendance"
+        os.makedirs(att_dir, exist_ok=True)
+        fileName = os.path.join(att_dir, "Attendance_"+date+"_"+Hour+"-"+Minute+"-"+Second+".csv")
+        attendance.to_csv(fileName, index=False)
         
-        # Create directory if it doesn't exist
-        os.makedirs(os.path.dirname(file_path), exist_ok=True)
-        save_attendance_csv(file_path, attendance)
-        
-        print("\n" + separator("═", 60))
-        print(f"  {success('✓')} ATTENDANCE SAVED SUCCESSFULLY")
-        print(separator("═", 60))
-        print(f"\n  {success('✓')} Total Students Marked: {bold(len(attendance))}")
-        print(f"  {success('✓')} File: {bold(attendance_file)}")
-        print(f"  {success('✓')} Date: {bold(date)}")
-        print(f"  {success('✓')} Time: {bold(timeStamp)}")
-        print(f"  {info('📁')} Path: {bold(file_path)}")
-        print(f"  {separator('═', 60)}\n")
-        
-    except KeyboardInterrupt:
-        print(f"\n\n{warning('⚠')} Recognition interrupted by user")
-        print(f"{info('💾')} Saving attendance records...")
-        
-        if len(attendance) > 0:
-            ts = time.time()
-            date = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d')
-            timeStamp = datetime.datetime.fromtimestamp(ts).strftime('%H:%M:%S')
-            Hour, Minute, Second = timeStamp.split(":")
-            attendance_file = f"Attendance_{date}_{Hour}-{Minute}-{Second}_interrupted.csv"
-            file_path = os.path.join(storage_paths['AttendanceRecords'], attendance_file)
-            os.makedirs(os.path.dirname(file_path), exist_ok=True)
-            save_attendance_csv(file_path, attendance)
-            print(f"{success('✓')} Partial attendance saved: {attendance_file}\n")
-        else:
-            print(f"{info('ℹ')} No attendance records to save\n")
-    
-    except Exception as e:
-        print(f"\n{error(f'✗ Error during recognition: {str(e)}')}") 
-        import traceback
-        traceback.print_exc()
-    
-    finally:
-        # Ensure resources are always cleaned up
-        if cam is not None:
-            try:
-                cam.release()
-            except:
-                pass
-        
-        try:
-            cv2.destroyAllWindows()
-        except:
-            pass
-        
-        print(f"{success('✓')} Camera and resources released\n")
+        ui_console.clear_screen()
+        print(f"{Colors.BRIGHT_GREEN}")
+        print("  ┏" + "━" * 68 + "┓")
+        print("  ┃" + " " * 27 + "ATTENDANCE SAVED" + " " * 25 + "┃")
+        print("  ┗" + "━" * 68 + "┛\n")
+        print(r"""
+     __  __    _    ____  _  _______ ____  
+    |  \/  |  / \  |  _ \| |/ / ____|  _ \ 
+    | |\/| | / _ \ | |_) | ' /|  _| | | | |
+    | |  | |/ ___ \|  _ <| . \| |___| |_| |
+    |_|  |_/_/   \_\_| \_\_|\_\_____|____/ 
+""")
+        print(f"{Colors.RESET}")
+        print(f"  {Colors.BRIGHT_WHITE}User ID Recognized & Logged Successfully.{Colors.RESET}")
+    else:
+        ui_console.clear_screen()
+        print(f"{Colors.BRIGHT_RED}")
+        print("  ┏" + "━" * 68 + "┓")
+        print("  ┃" + " " * 26 + "ATTENDANCE FAILED" + " " * 25 + "┃")
+        print("  ┗" + "━" * 68 + "┛\n")
+        print(r"""
+     _   _  ___ _____   __  __    _    ____  _  _______ ____  
+    | \ | |/ _ \_   _| |  \/  |  / \  |  _ \| |/ / ____|  _ \ 
+    |  \| | | | || |   | |\/| | / _ \ | |_) | ' /|  _| | | | |
+    | |\  | |_| || |   | |  | |/ ___ \|  _ <| . \| |___| |_| |
+    |_| \_|\___/ |_|   |_|  |_/_/   \_\_| \_\_|\_\_____|____/ 
+""")
+        print(f"{Colors.RESET}")
+        print(f"  {Colors.BRIGHT_WHITE}No user was recognized. Please try again.{Colors.RESET}")

@@ -4,6 +4,11 @@ Completely Offline | E2C TEAM
 """
 import os
 import sys
+
+# Must run before any module imports cv2 (stabilizes MSMF on some Windows setups).
+if os.name == "nt":
+    os.environ.setdefault("OPENCV_VIDEOIO_MSMF_ENABLE_HW_TRANSFORMS", "0")
+
 import check_camera
 import capture_image
 import train_image
@@ -99,6 +104,7 @@ def main_menu():
                 ("Active Cam", app_settings["camera_index"]),
                 ("Samples", app_settings["max_capture_samples"]),
                 ("Pass Mark", app_settings["recognition_pass_mark"]),
+                ("Rec Mode", app_settings.get("recognition_mode", "fast")),
                 ("Theme", app_settings.get("ui_theme", "neon")),
             ],
         )
@@ -167,26 +173,35 @@ def main_menu():
 
 def check_camera_option():
     """Check camera option"""
-    check_camera.camer(app_settings['camera_index'])
+    try:
+        check_camera.camer(app_settings['camera_index'])
+    except KeyboardInterrupt:
+        print(warning("\n⚠ Camera check canceled by user."))
     input(f"\n{success('✓')} Press ENTER to return to Main Menu...")
     main_menu()
 
 
 def capture_faces_option():
     """Capture faces option"""
-    capture_image.takeImages(
-        storage_paths,
-        data_manager,
-        camera_index=app_settings['camera_index'],
-        max_samples=app_settings['max_capture_samples']
-    )
+    try:
+        capture_image.takeImages(
+            storage_paths,
+            data_manager,
+            camera_index=app_settings['camera_index'],
+            max_samples=app_settings['max_capture_samples']
+        )
+    except KeyboardInterrupt:
+        print(warning("\n⚠ Face capture canceled by user."))
     input(f"\n{success('✓')} Press ENTER to return to Main Menu...")
     main_menu()
 
 
 def train_images_option():
     """Train images option"""
-    train_image.TrainImages(storage_paths)
+    try:
+        train_image.TrainImages(storage_paths)
+    except KeyboardInterrupt:
+        print(warning("\n⚠ Training canceled by user."))
     input(f"\n{success('✓')} Press ENTER to return to Main Menu...")
     main_menu()
 
@@ -199,12 +214,16 @@ def recognize_faces_option():
         input("\nPress ENTER to return to Main Menu...")
         main_menu()
         return
-    recognize.recognize_attendence(
-        storage_paths,
-        data_manager,
-        camera_index=app_settings['camera_index'],
-        pass_mark=app_settings['recognition_pass_mark']
-    )
+    try:
+        recognize.recognize_attendence(
+            storage_paths,
+            data_manager,
+            camera_index=app_settings['camera_index'],
+            pass_mark=app_settings['recognition_pass_mark'],
+            fast_mode=(app_settings.get("recognition_mode", "fast") == "fast")
+        )
+    except KeyboardInterrupt:
+        print(warning("\n⚠ Recognition canceled by user."))
     input(f"\n{success('✓')} Press ENTER to return to Main Menu...")
     main_menu()
 
@@ -356,19 +375,26 @@ def quick_pipeline():
         input("Press ENTER to return...")
         main_menu()
         return
-    capture_image.takeImages(
-        storage_paths,
-        data_manager,
-        camera_index=app_settings['camera_index'],
-        max_samples=app_settings['max_capture_samples']
-    )
-    train_image.TrainImages(storage_paths)
-    recognize.recognize_attendence(
-        storage_paths,
-        data_manager,
-        camera_index=app_settings['camera_index'],
-        pass_mark=app_settings['recognition_pass_mark']
-    )
+    try:
+        capture_image.takeImages(
+            storage_paths,
+            data_manager,
+            camera_index=app_settings['camera_index'],
+            max_samples=app_settings['max_capture_samples']
+        )
+        train_image.TrainImages(storage_paths)
+        recognize.recognize_attendence(
+            storage_paths,
+            data_manager,
+            camera_index=app_settings['camera_index'],
+            pass_mark=app_settings['recognition_pass_mark'],
+            fast_mode=(app_settings.get("recognition_mode", "fast") == "fast")
+        )
+    except KeyboardInterrupt:
+        print(warning("\n⚠ Quick pipeline canceled by user."))
+        input("Press ENTER to return...")
+        main_menu()
+        return
     input(f"\n{success('✓')} Quick pipeline completed. Press ENTER to return...")
     main_menu()
 
@@ -478,18 +504,19 @@ def system_settings_menu():
                 ("1", "► Change Storage Location"),
                 ("2", "► Set Capture Sample Limit"),
                 ("3", "► Set Recognition Pass Mark"),
-                ("4", "► Switch UI Theme (Neon/E2C/Matrix/Abyss/Phantom)"),
-                ("5", "► Toggle Boot Animation"),
-                ("6", "► Configure Camera Scan Range"),
-                ("7", "► Toggle HUD Status Panel"),
-                ("8", "► View System Info"),
-                ("9", "► Back to Main Menu"),
+                ("4", "► Set Recognition Mode (Fast/Accurate)"),
+                ("5", "► Switch UI Theme (Neon/E2C/Matrix/Abyss/Phantom)"),
+                ("6", "► Toggle Boot Animation"),
+                ("7", "► Configure Camera Scan Range"),
+                ("8", "► Toggle HUD Status Panel"),
+                ("9", "► View System Info"),
+                ("10", "► Back to Main Menu"),
             ],
             accent=Colors.BRIGHT_BLUE
         )
         
         try:
-            choice = int(input(f"\n{info('➤')} Enter Your Choice (1-9): "))
+            choice = int(input(f"\n{info('➤')} Enter Your Choice (1-10): "))
             if choice == 1:
                 print(f"\n{warning('⚠')} Changing storage location...")
                 input("Press ENTER to continue...")
@@ -511,6 +538,14 @@ def system_settings_menu():
                     print(error("✗ Invalid mark. Choose a number between 40 and 90."))
                 input("Press ENTER to continue...")
             elif choice == 4:
+                mode = input(f"{info('➤')} Enter recognition mode (fast/accurate): ").strip().lower()
+                if mode in ("fast", "accurate"):
+                    app_settings = update_setting("recognition_mode", mode)
+                    print(success(f"✓ Recognition mode set to {mode}."))
+                else:
+                    print(error("✗ Invalid mode. Use fast or accurate."))
+                input("Press ENTER to continue...")
+            elif choice == 5:
                 theme = input(f"{info('➤')} Enter theme (neon/e2c/matrix/abyss/phantom): ").strip().lower()
                 if theme in ("neon", "e2c", "matrix", "abyss", "phantom"):
                     app_settings = update_setting("ui_theme", theme)
@@ -518,13 +553,13 @@ def system_settings_menu():
                 else:
                     print(error("✗ Invalid theme."))
                 input("Press ENTER to continue...")
-            elif choice == 5:
+            elif choice == 6:
                 current = bool(app_settings.get("boot_animation", True))
                 app_settings = update_setting("boot_animation", not current)
                 mode = "enabled" if not current else "disabled"
                 print(success(f"✓ Boot animation {mode}."))
                 input("Press ENTER to continue...")
-            elif choice == 6:
+            elif choice == 7:
                 scan_range = input(f"{info('➤')} Enter camera scan max index (1-20): ").strip()
                 if scan_range.isdigit() and 1 <= int(scan_range) <= 20:
                     app_settings = update_setting("camera_scan_range", int(scan_range))
@@ -532,13 +567,13 @@ def system_settings_menu():
                 else:
                     print(error("✗ Invalid range. Choose a number between 1 and 20."))
                 input("Press ENTER to continue...")
-            elif choice == 7:
+            elif choice == 8:
                 current = bool(app_settings.get("hud_mode", True))
                 app_settings = update_setting("hud_mode", not current)
                 mode = "enabled" if not current else "disabled"
                 print(success(f"✓ HUD panel {mode}."))
                 input("Press ENTER to continue...")
-            elif choice == 8:
+            elif choice == 9:
                 os.system('cls')
                 print("\n")
                 print(highlight("╔" + "═" * 68 + "╗"))
@@ -553,13 +588,14 @@ def system_settings_menu():
                 print(f"{bold('Camera Scan Range:')} {colored(str(app_settings.get('camera_scan_range', 5)), Colors.BRIGHT_GREEN)}")
                 print(f"{bold('Capture Samples:')} {colored(str(app_settings['max_capture_samples']), Colors.BRIGHT_GREEN)}")
                 print(f"{bold('Pass Mark:')} {colored(str(app_settings['recognition_pass_mark']), Colors.BRIGHT_GREEN)}")
+                print(f"{bold('Recognition Mode:')} {colored(str(app_settings.get('recognition_mode', 'fast')), Colors.BRIGHT_GREEN)}")
                 print(f"{bold('UI Theme:')} {colored(str(app_settings.get('ui_theme', 'neon')), Colors.BRIGHT_GREEN)}")
                 print(f"{bold('Boot Animation:')} {colored(str(app_settings.get('boot_animation', True)), Colors.BRIGHT_GREEN)}")
                 print(f"{bold('HUD Mode:')} {colored(str(app_settings.get('hud_mode', True)), Colors.BRIGHT_GREEN)}")
                 print(f"{bold('Team:')} {highlight('E2C TEAM')}")
                 print(f"{bold('Version:')} 4.0 (Cinematic UI Edition)\n")
                 input("Press ENTER to continue...")
-            elif choice == 9:
+            elif choice == 10:
                 main_menu()
                 break
             else:

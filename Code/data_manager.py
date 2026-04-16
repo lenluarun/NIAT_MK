@@ -6,6 +6,11 @@ import csv
 import json
 from datetime import datetime
 from colors import success, error, warning, info, bold, separator
+from reportlab.lib.pagesizes import letter
+from reportlab.pdfgen import canvas
+from reportlab.lib import colors
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+from reportlab.lib.styles import getSampleStyleSheet
 
 
 class DataManager:
@@ -399,29 +404,202 @@ class DataManager:
             print(error(f"✗ Error creating sample: {e}"))
     
     def generate_attendance_report(self):
-        """Generate attendance report"""
-        os.system('cls')
-        print("\n")
-        print(bold("═" * 80))
-        print(bold(f"\n  📈 ATTENDANCE REPORT\n"))
-        print(bold("═" * 80))
+        """Generate, Manage and Export Attendance Reports"""
+        attendance_path = self.storage_paths['AttendanceRecords']
+        
+        while True:
+            os.system('cls')
+            print("\n")
+            print(bold("═" * 80))
+            print(bold(f"\n  📈 ATTENDANCE REPORTS MANAGER\n"))
+            print(bold("═" * 80))
+            
+            attendance_files = [f for f in os.listdir(attendance_path) if f.endswith('.csv')]
+            
+            if not attendance_files:
+                print(warning("\n⚠ No attendance records found!"))
+                return
+            
+            print(f"\n{info('Available Records (Latest 20):')}")
+            print(separator("─", 80))
+            
+            # Sort files with latest first
+            sorted_files = sorted(attendance_files, reverse=True)[:20]
+            for idx, file in enumerate(sorted_files, 1):
+                try:
+                    with open(os.path.join(attendance_path, file), 'r') as f:
+                        records = len(f.readlines()) - 1
+                        print(f"[{idx}] {file} - {records} records")
+                except:
+                    print(f"[{idx}] {file} - (Error reading)")
+            
+            print(separator("─", 80))
+            print(f"{info('[D]')} Delete a record  |  {info('[E]')} Export to PDF  |  {info('[Q]')} Go Back")
+            
+            choice = input(f"\n{info('➤')} Enter choice (D/E/Q): ").strip().upper()
+            
+            if choice == 'Q':
+                break
+                
+            elif choice == 'D':
+                sel = input(f"{info('➤')} Enter record number to delete: ").strip()
+                if sel.isdigit() and 1 <= int(sel) <= len(sorted_files):
+                    file_to_del = sorted_files[int(sel) - 1]
+                    confirm = input(f"{warning('⚠')} Delete {file_to_del}? (Y/N): ").strip().upper()
+                    if confirm == 'Y':
+                        try:
+                            os.remove(os.path.join(attendance_path, file_to_del))
+                            print(success(f"✓ Deleted successfully!"))
+                        except Exception as e:
+                            print(error(f"✗ Failed to delete: {e}"))
+                else:
+                    print(error("✗ Invalid selection."))
+                input("Press ENTER to continue...")
+                
+            elif choice == 'E':
+                sel = input(f"{info('➤')} Enter record number to export to PDF: ").strip()
+                if sel.isdigit() and 1 <= int(sel) <= len(sorted_files):
+                    file_to_exp = sorted_files[int(sel) - 1]
+                    self._export_attendance_pdf(file_to_exp)
+                else:
+                    print(error("✗ Invalid selection."))
+                input("Press ENTER to continue...")
+
+    def _export_attendance_pdf(self, csv_filename):
+        """Generates a PDF format with Marked & Unmarked students"""
+        print(info(f"⏳ Generating PDF for {csv_filename}..."))
         
         attendance_path = self.storage_paths['AttendanceRecords']
-        attendance_files = [f for f in os.listdir(attendance_path) if f.endswith('.csv')]
+        file_path = os.path.join(attendance_path, csv_filename)
+        pdf_filename = csv_filename.replace('.csv', '_Report.pdf')
+        pdf_path = os.path.join(attendance_path, pdf_filename)
         
-        if not attendance_files:
-            print(warning("⚠ No attendance records found!"))
+        all_students = self.get_all_students()
+        
+        marked_ids = set()
+        try:
+            with open(file_path, 'r') as f:
+                reader = csv.reader(f)
+                next(reader) # skip header
+                for row in reader:
+                    if row:
+                        marked_ids.add(str(row[0]).strip())
+        except Exception as e:
+            print(error(f"✗ Failed to read CSV: {e}"))
             return
+            
+        marked_list = []
+        unmarked_list = []
         
-        total_records = 0
-        for file in sorted(attendance_files, reverse=True)[:10]:
-            try:
-                with open(os.path.join(attendance_path, file), 'r') as f:
-                    records = len(f.readlines()) - 1
-                    total_records += records
-                    print(f"\n{info(f'📄 {file}')}: {bold(str(records))} records")
-            except:
-                pass
-        
-        print(f"\n{separator('─', 80)}")
-        print(f"\n{success(f'✓ Total Attendance Records: {total_records}')}\n")
+        for student in all_students:
+            s_id = str(student['id']).strip()
+            row_data = [student['id'], student['name']]
+            if s_id in marked_ids:
+                marked_list.append(row_data)
+            else:
+                unmarked_list.append(row_data)
+                
+        try:
+            doc = SimpleDocTemplate(pdf_path, pagesize=letter, rightMargin=40, leftMargin=40, topMargin=40, bottomMargin=40)
+            elements = []
+            styles = getSampleStyleSheet()
+            
+            # --- ELEGANT HEADER ---
+            title_style = styles['Heading1']
+            title_style.textColor = colors.HexColor("#1A237E") # Dark Indigo
+            title_style.alignment = 1 # Center
+            title_style.fontSize = 22
+            title_style.spaceAfter = 10
+            
+            sub_style = styles['Normal']
+            sub_style.alignment = 1
+            sub_style.textColor = colors.HexColor("#546E7A")
+            sub_style.fontSize = 12
+            
+            elements.append(Paragraph("<b>SMART ATTENDANCE REPORT</b>", title_style))
+            elements.append(Paragraph(f"Session Log: {csv_filename.replace('.csv', '')} | E2C TEAM", sub_style))
+            elements.append(Spacer(1, 20))
+            
+            # --- SUMMARY METRICS ---
+            total = len(marked_list) + len(unmarked_list)
+            summary_data = [
+                ['Total Enrolled', 'Present (Marked)', 'Absent (Unmarked)'],
+                [str(total), str(len(marked_list)), str(len(unmarked_list))]
+            ]
+            summary_table = Table(summary_data, colWidths=[150, 150, 150])
+            summary_table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#3F51B5")),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, 0), 12),
+                ('BOTTOMPADDING', (0, 0), (-1, 0), 10),
+                ('TOPPADDING', (0, 0), (-1, 0), 10),
+                ('BACKGROUND', (0, 1), (-1, -1), colors.HexColor("#E8EAF6")),
+                ('FONTSIZE', (0, 1), (-1, -1), 16),
+                ('TEXTCOLOR', (1, 1), (1, 1), colors.HexColor("#2E7D32")), # Green for present
+                ('TEXTCOLOR', (2, 1), (2, 1), colors.HexColor("#C62828")), # Red for absent
+                ('FONTNAME', (0, 1), (-1, -1), 'Helvetica-Bold'),
+                ('BOTTOMPADDING', (0, 1), (-1, -1), 15),
+                ('TOPPADDING', (0, 1), (-1, -1), 15),
+                ('BOX', (0,0), (-1,-1), 1.5, colors.HexColor("#283593")),
+                ('INNERGRID', (0,0), (-1,-1), 0.5, colors.white)
+            ]))
+            elements.append(summary_table)
+            elements.append(Spacer(1, 30))
+            
+            # Helper to generate alternating row colors
+            def get_data_table_style(header_bg, is_empty):
+                style = [
+                    ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor(header_bg)),
+                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                    ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                    ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                    ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+                    ('TOPPADDING', (0, 0), (-1, 0), 12),
+                    ('LINEABOVE', (0, 0), (-1, 0), 2, colors.HexColor("#212121")),
+                ]
+                if not is_empty:
+                    style.extend([
+                        ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor("#F5F5F5")]),
+                        ('LINEBELOW', (0, 1), (-1, -1), 0.5, colors.lightgrey),
+                        ('BOTTOMPADDING', (0, 1), (-1, -1), 8),
+                        ('TOPPADDING', (0, 1), (-1, -1), 8),
+                    ])
+                return TableStyle(style)
+
+            # --- MARKED TABLE ---
+            elements.append(Paragraph("<b>✓ MARKED STUDENTS (PRESENT)</b>", styles['Heading2']))
+            elements.append(Spacer(1, 5))
+            if marked_list:
+                m_data = [['Student ID', 'Student Name']] + marked_list
+                m_table = Table(m_data, colWidths=[150, 300])
+                m_table.setStyle(get_data_table_style("#4CAF50", False))
+                elements.append(m_table)
+            else:
+                elements.append(Paragraph("<i>No students were recognized in this session.</i>", styles['Normal']))
+                
+            elements.append(Spacer(1, 25))
+            
+            # --- UNMARKED TABLE ---
+            elements.append(Paragraph("<b>✗ UNMARKED STUDENTS (ABSENT)</b>", styles['Heading2']))
+            elements.append(Spacer(1, 5))
+            if unmarked_list:
+                u_data = [['Student ID', 'Student Name']] + unmarked_list
+                u_table = Table(u_data, colWidths=[150, 300])
+                u_table.setStyle(get_data_table_style("#F44336", False))
+                elements.append(u_table)
+            else:
+                elements.append(Paragraph("<i>All registered students were present! Outstanding!</i>", styles['Normal']))
+                
+            # --- FOOTER ---
+            elements.append(Spacer(1, 40))
+            footer = Paragraph(f"<font color='#9E9E9E' size='9'>Report auto-generated by the E2C Smart Attendance Engine on {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}.</font>", sub_style)
+            elements.append(footer)
+
+            doc.build(elements)
+            print(success(f"✓ Beautiful PDF successfully exported to:\n  {pdf_path}"))
+            
+        except Exception as e:
+            print(error(f"✗ Failed to generate beautiful PDF: {e}"))
+

@@ -1,8 +1,7 @@
 import csv
 import cv2
 import os
-from colors import success, error, info, bold, separator, highlight
-from ui_console import print_card
+import time
 
 
 def is_number(s):
@@ -20,90 +19,98 @@ def is_number(s):
     return False
 
 
-def print_section(title):
-    """Print a stylish section header"""
-    print_card(
-        title,
-        [
-            "Collect high-quality face images for model training.",
-            "Face should be centered and clearly visible.",
-            "Press Q in camera window for manual stop.",
-        ],
-    )
+def takeImages(storage_paths, data_manager=None, camera_index=0, max_samples=100):
+    """
+    Capture face images from a camera and save into storage_paths['TrainingImages'].
+    Parameters:
+      storage_paths: dict with folder paths (expects keys 'TrainingImages' and 'StudentDetails')
+      data_manager: optional DataManager instance to register student (if provided)
+      camera_index: integer camera index to open with OpenCV
+      max_samples: maximum number of face samples to capture
+    """
+    # Validate storage_paths
+    training_dir = storage_paths.get('TrainingImages') if isinstance(storage_paths, dict) else None
+    student_csv_dir = storage_paths.get('StudentDetails') if isinstance(storage_paths, dict) else None
 
+    if not training_dir:
+        raise ValueError("storage_paths must contain 'TrainingImages' path")
 
-def takeImages(storage_paths, data_manager, camera_index=0, max_samples=100):
-    print_section("📸 CAPTURE FACES - Training Image Collection")
-    Id = input(f"\n  {info('➤')} Enter Student ID (Numeric): ")
-    name = input(f"  {info('➤')} Enter Student Name (Alphabetic): ")
-    email = input(f"  {info('➤')} Enter Email (Optional, press Enter to skip): ")
+    # Ask for user inputs
+    Id = input("Enter Your Id: ").strip()
+    name = input("Enter Your Name: ").strip()
 
-    if(is_number(Id) and name.isalpha()):
-        print(f"\n  {success('✓')} Starting capture for: {bold(name)} (ID: {bold(Id)})")
-        print(f"  {info('📷')} Camera Index: {bold(camera_index)}")
-        print(f"  {info('🎯')} Target Samples: {bold(max_samples)}")
-        print("  Press 'Q' to stop early\n")
-        
-        cam = cv2.VideoCapture(camera_index, cv2.CAP_DSHOW)
-        if not cam.isOpened():
-            print(f"  {error('✗')} Cannot open camera index {camera_index}!")
-            return
-        
-        # Get absolute path to cascade classifier
-        cascade_dir = os.path.dirname(os.path.abspath(__file__))
-        cascade_path = os.path.join(cascade_dir, "haarcascade_default.xml")
-        
-        if not os.path.exists(cascade_path):
-            print(f"  {error('✗')} Cascade classifier not found at: {cascade_path})")
-            return
-        
-        detector = cv2.CascadeClassifier(cascade_path)
-        
-        if detector.empty():
-            print(f"  {error('✗')} Failed to load cascade classifier!")
-            return
-        
-        sampleNum = 0
-        training_path = storage_paths['TrainingImages']
+    if not (is_number(Id) and name.isalpha()):
+        if not is_number(Id):
+            print("Enter Numeric ID")
+        if not name.isalpha():
+            print("Enter Alphabetical Name")
+        return
 
-        while(True):
+    cam = cv2.VideoCapture(int(camera_index))
+    if not cam.isOpened():
+        print(f"✗ Failed to open camera at index {camera_index}")
+        return
+
+    # Haarcascade path: prefer the one bundled in project folder
+    base_dir = os.path.dirname(__file__)
+    cascade_path = os.path.join(base_dir, "haarcascade_default.xml")
+    if not os.path.exists(cascade_path):
+        # fallback to OpenCV default cascade location (if available)
+        cascade_path = cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
+
+    detector = cv2.CascadeClassifier(cascade_path)
+    sampleNum = 0
+
+    # Ensure training directory exists
+    os.makedirs(training_dir, exist_ok=True)
+    # Ensure student details dir exists and CSV file available
+    if student_csv_dir:
+        os.makedirs(student_csv_dir, exist_ok=True)
+    student_csv_file = os.path.join(student_csv_dir or base_dir, "StudentDetails.csv")
+
+    try:
+        while True:
             ret, img = cam.read()
-            if not ret:
+            if not ret or img is None:
+                print("✗ Failed to read frame from camera. Stopping capture.")
                 break
             gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-            
-            # Optimize cascade parameters for better detection during capture
-            faces = detector.detectMultiScale(gray, 1.1, 4, minSize=(30,30), maxSize=(200,200), flags=cv2.CASCADE_SCALE_IMAGE)
-            
-            for(x,y,w,h) in faces:
-                cv2.rectangle(img, (x, y), (x+w, y+h), (0, 255, 0), 2)
-                sampleNum = sampleNum+1
-                
-                # Extract and equalize face region for better training data quality
-                face_roi = gray[y:y+h, x:x+w]
-                face_roi = cv2.equalizeHist(face_roi)
-                
-                cv2.putText(img, f"Samples: {sampleNum}", (x+5, y-10), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
-                
-                # Save equalized image for better training
-                cv2.imwrite(os.path.join(training_path, f"{name}.{Id}.{sampleNum}.jpg"), face_roi)
-                cv2.imshow('Face Capture - E2C TEAM', img)
+            faces = detector.detectMultiScale(gray, 1.3, 5, minSize=(30, 30), flags=cv2.CASCADE_SCALE_IMAGE)
+            for (x, y, w, h) in faces:
+                cv2.rectangle(img, (x, y), (x + w, y + h), (10, 159, 255), 2)
+                sampleNum += 1
+                filename = f"{name}.{Id}.{sampleNum}.jpg"
+                filepath = os.path.join(training_dir, filename)
+                cv2.imwrite(filepath, gray[y:y + h, x:x + w])
+                cv2.imshow('frame', img)
+            # Break conditions
             if cv2.waitKey(100) & 0xFF == ord('q'):
                 break
-            elif sampleNum >= max_samples:
+            if sampleNum >= int(max_samples):
                 break
+    except KeyboardInterrupt:
+        print("\n⚠ Face capture interrupted by user (Ctrl+C).")
+    finally:
+        # release resources
         cam.release()
         cv2.destroyAllWindows()
-        
-        data_manager.add_student(Id, name, email)
-        
-        print(f"\n  {success('✓')} Images Saved Successfully!")
-        print(f"  {success('✓')} Student: {bold(name)} (ID: {bold(Id)})")
-        print(f"  {success('✓')} Total Images Captured: {bold(sampleNum)}")
-        print(f"  {separator('═', 50)}")
-    else:
-        print(f"\n  {error('✗')} Validation Error:")
-        if(not is_number(Id)):
-            print(f"    {error('•')} ID must be numeric")
-        if(not name.isalpha()):
-            print(f"    {error('•')} Name must contain only alphabetic characters")
+
+    # Save student details
+    try:
+        if data_manager is not None:
+            # Attempt to use data_manager API if available
+            try:
+                data_manager.add_student(str(Id), name)
+            except Exception:
+                # fallback to CSV append
+                with open(student_csv_file, 'a+', newline='') as csvFile:
+                    writer = csv.writer(csvFile)
+                    writer.writerow([Id, name])
+        else:
+            with open(student_csv_file, 'a+', newline='') as csvFile:
+                writer = csv.writer(csvFile)
+                writer.writerow([Id, name])
+    except Exception as e:
+        print(f"⚠ Failed to record student details: {e}")
+
+    print(f"Images Saved for ID : {Id} Name : {name}")
