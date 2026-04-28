@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Face Recognition Attendance System</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.3);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .card-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 15px;
+            font-size: 1.5rem;
+            color: white;
+        }
+
+        .card-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 10px;
+            background: rgba(102, 126, 234, 0.1);
+            border-radius: 8px;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #667eea;
+            display: block;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+            color: white;
+        }
+
+        .btn-success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(76, 175, 80, 0.4);
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
+            color: white;
+        }
+
+        .btn-warning:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 152, 0, 0.4);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(244, 67, 54, 0.4);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none !important;
+            box-shadow: none !important;
+        }
+
+        .status-panel {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 10px;
+            padding: 15px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+            backdrop-filter: blur(10px);
+            min-width: 300px;
+            z-index: 1000;
+        }
+
+        .status-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .status-icon {
+            margin-right: 10px;
+            font-size: 1.2rem;
+        }
+
+        .status-title {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .status-message {
+            color: #666;
+            font-size: 0.9rem;
+            margin-bottom: 10px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: #e0e0e0;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            border-radius: 3px;
+            transition: width 0.3s ease;
+        }
+
+        .status-idle { border-left: 4px solid #666; }
+        .status-running { border-left: 4px solid #ff9800; }
+        .status-success { border-left: 4px solid #4CAF50; }
+        .status-error { border-left: 4px solid #f44336; }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .modal-close {
+            cursor: pointer;
+            font-size: 1.5rem;
+            color: #666;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #333;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .camera-icon { background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%); }
+        .capture-icon { background: linear-gradient(135deg, #FF5722 0%, #D84315 100%); }
+        .train-icon { background: linear-gradient(135deg, #9C27B0 0%, #7B1FA2 100%); }
+        .recognize-icon { background: linear-gradient(135deg, #4CAF50 0%, #388E3C 100%); }
+        .data-icon { background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%); }
+        .reports-icon { background: linear-gradient(135deg, #607D8B 0%, #455A64 100%); }
+        .settings-icon { background: linear-gradient(135deg, #795548 0%, #5D4037 100%); }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .dashboard {
+                grid-template-columns: 1fr;
+            }
+
+            .status-panel {
+                position: static;
+                margin: 20px;
+                width: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1><i class="fas fa-brain"></i> Smart Attendance System</h1>
+            <p>Professional Face Recognition Attendance Management</p>
+        </div>
+
+        <div class="dashboard">
+            <!-- Camera Check -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-icon camera-icon">
+                        <i class="fas fa-camera"></i>
+                    </div>
+                    <div class="card-title">Camera Check</div>
+                </div>
+                <p>Test and verify camera functionality</p>
+                <button class="btn btn-primary" onclick="checkCamera()">
+                    <i class="fas fa-play"></i> Check Camera
+                </button>
+            </div>
+
+            <!-- Capture Faces -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-icon capture-icon">
+                        <i class="fas fa-user-plus"></i>
+                    </div>
+                    <div class="card-title">Capture Faces</div>
+                </div>
+                <p>Capture face images for new students</p>
+                <button class="btn btn-warning" onclick="captureFaces()">
+                    <i class="fas fa-camera-retro"></i> Start Capture
+                </button>
+            </div>
+
+            <!-- Train Images -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-icon train-icon">
+                        <i class="fas fa-cogs"></i>
+                    </div>
+                    <div class="card-title">Train Model</div>
+                </div>
+                <p>Train the recognition model with captured images</p>
+                <button class="btn btn-success" onclick="trainImages()">
+                    <i class="fas fa-graduation-cap"></i> Train Model
+                </button>
+            </div>
+
+            <!-- Recognize Attendance -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-icon recognize-icon">
+                        <i class="fas fa-search"></i>
+                    </div>
+                    <div class="card-title">Live Recognition</div>
+                </div>
+                <p>Start real-time attendance recognition</p>
+                <button class="btn btn-success" onclick="recognizeAttendance()" id="recognizeBtn">
+                    <i class="fas fa-play-circle"></i> Start Recognition
+                </button>
+            </div>
+
+            <!-- Data Management -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-icon data-icon">
+                        <i class="fas fa-database"></i>
+                    </div>
+                    <div class="card-title">Data Management</div>
+                </div>
+                <p>Manage student database and records</p>
+                <button class="btn btn-warning" onclick="showDataModal()">
+                    <i class="fas fa-users"></i> Manage Data
+                </button>
+            </div>
+
+            <!-- Reports -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-icon reports-icon">
+                        <i class="fas fa-chart-bar"></i>
+                    </div>
+                    <div class="card-title">Reports</div>
+                </div>
+                <p>View attendance reports and analytics</p>
+                <button class="btn btn-primary" onclick="showReports()">
+                    <i class="fas fa-file-alt"></i> View Reports
+                </button>
+            </div>
+
+            <!-- Settings -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-icon settings-icon">
+                        <i class="fas fa-cog"></i>
+                    </div>
+                    <div class="card-title">Settings</div>
+                </div>
+                <p>Configure system settings and preferences</p>
+                <button class="btn btn-primary" onclick="showSettings()">
+                    <i class="fas fa-sliders-h"></i> System Settings
+                </button>
+            </div>
+
+            <!-- System Status -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-icon" style="background: linear-gradient(135deg, #00BCD4 0%, #0097A7 100%);">
+                        <i class="fas fa-tachometer-alt"></i>
+                    </div>
+                    <div class="card-title">System Status</div>
+                </div>
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <span class="stat-value" id="students-count">0</span>
+                        <div class="stat-label">Students</div>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-value" id="images-count">0</span>
+                        <div class="stat-label">Images</div>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-value" id="models-count">0</span>
+                        <div class="stat-label">Models</div>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-value" id="attendance-count">0</span>
+                        <div class="stat-label">Records</div>
+                    </div>
+                </div>
+                <button class="btn btn-primary" onclick="refreshStatus()">
+                    <i class="fas fa-sync"></i> Refresh
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Status Panel -->
+    <div class="status-panel" id="statusPanel">
+        <div class="status-header">
+            <div class="status-icon" id="statusIcon">
+                <i class="fas fa-info-circle"></i>
+            </div>
+            <div class="status-title" id="statusTitle">System Ready</div>
+        </div>
+        <div class="status-message" id="statusMessage">All systems operational</div>
+        <div class="progress-bar">
+            <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+        </div>
+    </div>
+
+    <!-- Data Management Modal -->
+    <div class="modal" id="dataModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">Data Management</div>
+                <div class="modal-close" onclick="closeModal('dataModal')">
+                    <i class="fas fa-times"></i>
+                </div>
+            </div>
+            <div id="dataContent">
+                <p>Loading student data...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div class="modal" id="settingsModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">System Settings</div>
+                <div class="modal-close" onclick="closeModal('settingsModal')">
+                    <i class="fas fa-times"></i>
+                </div>
+            </div>
+            <div id="settingsContent">
+                <p>Loading settings...</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const socket = null; // Removed SocketIO dependency
+        let currentStatus = 'idle';
+        let statusInterval = null;
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            refreshStatus();
+            startStatusPolling();
+            updateStatus('idle', 'System ready for operations', 0);
+        });
+
+        // Status polling
+        function startStatusPolling() {
+            statusInterval = setInterval(async () => {
+                try {
+                    const response = await fetch('/api/operation/status');
+                    const data = await response.json();
+                    updateStatus(data.status, data.message, data.progress);
+                } catch (error) {
+                    console.error('Failed to poll status:', error);
+                }
+            }, 1000); // Poll every second
+        }
+
+        function stopStatusPolling() {
+            if (statusInterval) {
+                clearInterval(statusInterval);
+                statusInterval = null;
+            }
+        }
+
+        // Status management
+        function updateStatus(status, message, progress) {
+            currentStatus = status;
+            const panel = document.getElementById('statusPanel');
+            const icon = document.getElementById('statusIcon');
+            const title = document.getElementById('statusTitle');
+            const msg = document.getElementById('statusMessage');
+            const fill = document.getElementById('progressFill');
+
+            panel.className = `status-panel status-${status}`;
+            msg.textContent = message;
+            fill.style.width = `${progress}%`;
+
+            // Update icon and title based on status
+            switch(status) {
+                case 'idle':
+                    icon.innerHTML = '<i class="fas fa-info-circle"></i>';
+                    title.textContent = 'System Ready';
+                    break;
+                case 'running':
+                    icon.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+                    title.textContent = 'Processing';
+                    break;
+                case 'success':
+                    icon.innerHTML = '<i class="fas fa-check-circle"></i>';
+                    title.textContent = 'Success';
+                    break;
+                case 'error':
+                    icon.innerHTML = '<i class="fas fa-exclamation-triangle"></i>';
+                    title.textContent = 'Error';
+                    break;
+            }
+
+            // Disable/enable buttons based on status
+            const buttons = document.querySelectorAll('.btn');
+            const isRunning = status === 'running';
+            buttons.forEach(btn => {
+                btn.disabled = isRunning;
+            });
+        }
+
+        // API calls
+        async function checkCamera() {
+            try {
+                const response = await fetch('/api/camera/check', { method: 'POST' });
+                const data = await response.json();
+                if (data.status === 'started') {
+                    updateStatus('running', 'Checking camera...', 0);
+                }
+            } catch (error) {
+                updateStatus('error', 'Failed to start camera check', 0);
+            }
+        }
+
+        async function captureFaces() {
+            try {
+                const response = await fetch('/api/capture/faces', { method: 'POST' });
+                const data = await response.json();
+                if (data.status === 'started') {
+                    updateStatus('running', 'Starting face capture...', 0);
+                }
+            } catch (error) {
+                updateStatus('error', 'Failed to start face capture', 0);
+            }
+        }
+
+        async function trainImages() {
+            try {
+                const response = await fetch('/api/train/images', { method: 'POST' });
+                const data = await response.json();
+                if (data.status === 'started') {
+                    updateStatus('running', 'Starting model training...', 0);
+                }
+            } catch (error) {
+                updateStatus('error', 'Failed to start training', 0);
+            }
+        }
+
+        async function recognizeAttendance() {
+            const btn = document.getElementById('recognizeBtn');
+            const isRunning = btn.innerHTML.includes('Stop');
+
+            if (isRunning) {
+                // Stop recognition
+                try {
+                    const response = await fetch('/api/recognize/stop', { method: 'POST' });
+                    btn.innerHTML = '<i class="fas fa-play-circle"></i> Start Recognition';
+                    updateStatus('idle', 'Recognition stopped', 0);
+                } catch (error) {
+                    updateStatus('error', 'Failed to stop recognition', 0);
+                }
+            } else {
+                // Start recognition
+                try {
+                    const response = await fetch('/api/recognize/attendance', { method: 'POST' });
+                    const data = await response.json();
+                    if (data.status === 'started') {
+                        btn.innerHTML = '<i class="fas fa-stop-circle"></i> Stop Recognition';
+                        updateStatus('running', 'Starting attendance recognition...', 0);
+                    }
+                } catch (error) {
+                    updateStatus('error', 'Failed to start recognition', 0);
+                }
+            }
+        }
+
+        async function refreshStatus() {
+            try {
+                const response = await fetch('/api/system/status');
+                const data = await response.json();
+
+                document.getElementById('students-count').textContent = data.students;
+                document.getElementById('images-count').textContent = data.training_images;
+                document.getElementById('models-count').textContent = data.trained_models;
+                document.getElementById('attendance-count').textContent = data.attendance_records;
+            } catch (error) {
+                console.error('Failed to refresh status:', error);
+            }
+        }
+
+        function showDataModal() {
+            document.getElementById('dataModal').classList.add('show');
+            loadStudentData();
+        }
+
+        function showSettings() {
+            document.getElementById('settingsModal').classList.add('show');
+            loadSettings();
+        }
+
+        function showReports() {
+            alert('Reports functionality coming soon!');
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('show');
+        }
+
+        async function loadStudentData() {
+            try {
+                const response = await fetch('/api/data/students');
+                const data = await response.json();
+
+                let html = '<div style="margin-bottom: 20px;">';
+                html += '<button class="btn btn-success" style="margin-bottom: 15px;" onclick="showAddStudentForm()">';
+                html += '<i class="fas fa-plus"></i> Add New Student</button>';
+
+                if (data.students && data.students.length > 0) {
+                    html += '<div style="max-height: 300px; overflow-y: auto;">';
+                    data.students.forEach(student => {
+                        html += `<div style="padding: 10px; border: 1px solid #e0e0e0; border-radius: 8px; margin-bottom: 10px;">`;
+                        html += `<strong>${student.name}</strong> (ID: ${student.id})`;
+                        html += `<button class="btn btn-danger" style="float: right; padding: 5px 10px; font-size: 0.8rem;" onclick="deleteStudent('${student.id}')">`;
+                        html += '<i class="fas fa-trash"></i></button>';
+                        html += '</div>';
+                    });
+                    html += '</div>';
+                } else {
+                    html += '<p>No students found.</p>';
+                }
+
+                html += '</div>';
+                document.getElementById('dataContent').innerHTML = html;
+            } catch (error) {
+                document.getElementById('dataContent').innerHTML = '<p>Error loading student data.</p>';
+            }
+        }
+
+        async function loadSettings() {
+            try {
+                const response = await fetch('/api/settings');
+                const settings = await response.json();
+
+                let html = '<form id="settingsForm">';
+                html += '<div class="form-group">';
+                html += '<label class="form-label">Camera Index</label>';
+                html += `<input type="number" class="form-input" name="camera_index" value="${settings.camera_index || 0}">`;
+                html += '</div>';
+
+                html += '<div class="form-group">';
+                html += '<label class="form-label">Max Capture Samples</label>';
+                html += `<input type="number" class="form-input" name="max_capture_samples" value="${settings.max_capture_samples || 50}">`;
+                html += '</div>';
+
+                html += '<div class="form-group">';
+                html += '<label class="form-label">Recognition Pass Mark</label>';
+                html += `<input type="number" class="form-input" name="recognition_pass_mark" value="${settings.recognition_pass_mark || 80}">`;
+                html += '</div>';
+
+                html += '<button type="submit" class="btn btn-primary">Save Settings</button>';
+                html += '</form>';
+
+                document.getElementById('settingsContent').innerHTML = html;
+
+                document.getElementById('settingsForm').addEventListener('submit', async function(e) {
+                    e.preventDefault();
+                    const formData = new FormData(e.target);
+                    const settingsData = {};
+                    for (let [key, value] of formData.entries()) {
+                        settingsData[key] = isNaN(value) ? value : parseInt(value);
+                    }
+
+                    try {
+                        const response = await fetch('/api/settings', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(settingsData)
+                        });
+                        const result = await response.json();
+                        if (result.status === 'success') {
+                            closeModal('settingsModal');
+                            updateStatus('success', 'Settings saved successfully!', 100);
+                        }
+                    } catch (error) {
+                        updateStatus('error', 'Failed to save settings', 0);
+                    }
+                });
+            } catch (error) {
+                document.getElementById('settingsContent').innerHTML = '<p>Error loading settings.</p>';
+            }
+        }
+
+        function showAddStudentForm() {
+            const html = `
+                <form id="addStudentForm">
+                    <div class="form-group">
+                        <label class="form-label">Student ID</label>
+                        <input type="text" class="form-input" name="student_id" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Student Name</label>
+                        <input type="text" class="form-input" name="name" required>
+                    </div>
+                    <button type="submit" class="btn btn-success">Add Student</button>
+                    <button type="button" class="btn btn-primary" onclick="loadStudentData()">Cancel</button>
+                </form>
+            `;
+            document.getElementById('dataContent').innerHTML = html;
+
+            document.getElementById('addStudentForm').addEventListener('submit', async function(e) {
+                e.preventDefault();
+                const formData = new FormData(e.target);
+                const studentData = {
+                    student_id: formData.get('student_id'),
+                    name: formData.get('name')
+                };
+
+                try {
+                    const response = await fetch('/api/data/add_student', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(studentData)
+                    });
+                    const result = await response.json();
+                    if (result.status === 'success') {
+                        loadStudentData();
+                        refreshStatus();
+                    }
+                } catch (error) {
+                    updateStatus('error', 'Failed to add student', 0);
+                }
+            });
+        }
+
+        async function deleteStudent(studentId) {
+            if (confirm('Are you sure you want to delete this student?')) {
+                // Implement delete functionality
+                alert('Delete functionality coming soon!');
+            }
+        }
+    </script>
+</body>
+</html>

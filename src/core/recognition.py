@@ -4,8 +4,8 @@ import time
 import cv2
 import pandas as pd
 import numpy as np
-from utils.colors import Colors
-from utils import ui as ui_console
+from ..utils.colors import Colors
+from ..utils import ui as ui_console
 import pyfiglet
 
 

@@ -4,6 +4,7 @@
 
 ![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)
 ![OpenCV](https://img.shields.io/badge/OpenCV-4.x-green.svg)
+![Flask](https://img.shields.io/badge/Flask-2.x-red.svg)
 ![License](https://img.shields.io/badge/License-MIT-yellow.svg)
 ![Status](https://img.shields.io/badge/Status-Active-success.svg)
 
@@ -24,6 +25,7 @@
 - 🔒 **100% Offline** - No internet required, ensuring privacy and security
 - ⚡ **Real-time Processing** - Instant recognition with sub-second response times
 - 🎯 **High Accuracy** - Advanced LBPH algorithm with configurable confidence thresholds
+- 🌐 **Web Interface** - Modern, professional GUI accessible via localhost
 - 🎨 **Stunning UI** - Cyberpunk-inspired terminal interface with neon themes
 - 📊 **Smart Reports** - Automated PDF generation with detailed attendance analytics
 - 🔧 **Modular Design** - Clean, maintainable codebase with extensible architecture
@@ -41,6 +43,7 @@
 
 ### Advanced Features
 - **Multi-Camera Support** - Automatic camera detection and selection
+- **Web Dashboard** - Professional GUI with real-time status updates
 - **Theme System** - Multiple UI themes (Neon, Matrix, Phantom, Abyss)
 - **HUD Display** - Live system status with real-time metrics
 - **Error Handling** - Robust error recovery and user-friendly messages
@@ -95,18 +98,83 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
+**Windows Users**: After installation, you can simply double-click `run.bat` or run `.\run.bat` in PowerShell to start the application.
+
+---
+
+## 🌐 Web Interface
+
+The system now includes a modern, professional web interface accessible via localhost. This provides an attractive GUI alternative to the terminal interface while maintaining all functionality.
+
+### Starting the Web Interface
+
+```bash
+# Make sure you're in the project directory
+cd NIAT_MK
+
+# Activate virtual environment (if using one)
+venv\Scripts\activate  # Windows
+# or
+source venv/bin/activate  # Linux/Mac
+
+# Start the web server
+python web_app.py
+```
+
+### Accessing the Web Interface
+
+1. Open your web browser
+2. Navigate to `http://localhost:5000`
+3. The professional dashboard will load with all system controls
+
+### Web Interface Features
+
+- **Real-time Status Updates** - Live progress tracking for all operations
+- **Professional Design** - Modern UI with gradient backgrounds and smooth animations
+- **Responsive Layout** - Works on desktop and mobile devices
+- **Interactive Controls** - Click buttons to perform all system operations
+- **System Dashboard** - View student counts, training images, and attendance records
+- **Settings Management** - Configure system parameters through the web interface
+- **Data Management** - Add, view, and manage student records
+- **Live Recognition Control** - Start/stop attendance recognition with visual feedback
+
 ---
 
 ## 🚀 Quick Start
 
-1. **Launch the System**
-   ```bash
-   python main.py
-   ```
+### Using the Launcher (Recommended)
 
-2. **Initial Setup**
-   - The system will automatically create necessary directories
-   - Configure camera settings if needed
+**Windows Users:**
+```bash
+# Double-click the run.bat file or run in Command Prompt:
+run.bat
+
+# Or in PowerShell, use:
+.\run.bat
+```
+
+**Linux/Mac Users:**
+```bash
+python launcher.py
+```
+
+### Direct Commands (Alternative)
+
+If you prefer to run interfaces directly:
+
+- **Terminal Interface**: `python main.py`
+- **Web Interface**: `python web_app.py`
+
+### Basic Workflow
+
+Regardless of interface choice, the workflow remains the same:
+
+1. **Check Camera** - Verify camera functionality
+2. **Capture Faces** - Take photos of students for training
+3. **Train Model** - Process captured images to create recognition model
+4. **Live Recognition** - Start real-time attendance tracking
+
+---
 
 3. **Add Students**
    - Select "Capture Faces" from the main menu
