@@ -46,6 +46,32 @@ def takeImages(storage_paths, data_manager=None, camera_index=0, max_samples=100
             print("Enter Alphabetical Name")
         return
 
+    # Check if student exists in database
+    student_exists = False
+    if data_manager is not None:
+        student_exists = data_manager.student_exists(str(Id))
+    else:
+        # Check CSV directly
+        if os.path.exists(student_csv_file):
+            try:
+                with open(student_csv_file, 'r') as csvFile:
+                    reader = csv.reader(csvFile)
+                    next(reader, None)  # Skip header
+                    for row in reader:
+                        if row and str(row[0]).strip() == str(Id):
+                            student_exists = True
+                            break
+            except Exception:
+                pass
+
+    if not student_exists:
+        print(f"✗ Student with ID {Id} does not exist in the database.")
+        print("Please add the student first using the Data Management menu.")
+        return
+
+    print(f"✓ Student found: {name} (ID: {Id})")
+    print("Starting face capture...")
+
     cam = cv2.VideoCapture(int(camera_index))
     if not cam.isOpened():
         print(f"✗ Failed to open camera at index {camera_index}")
@@ -53,7 +79,7 @@ def takeImages(storage_paths, data_manager=None, camera_index=0, max_samples=100
 
     # Haarcascade path: prefer the one bundled in project folder
     base_dir = os.path.dirname(__file__)
-    cascade_path = os.path.join(base_dir, "haarcascade_default.xml")
+    cascade_path = os.path.join(base_dir, "..", "models", "haarcascade_default.xml")
     if not os.path.exists(cascade_path):
         # fallback to OpenCV default cascade location (if available)
         cascade_path = cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
@@ -95,21 +121,30 @@ def takeImages(storage_paths, data_manager=None, camera_index=0, max_samples=100
         cam.release()
         cv2.destroyAllWindows()
 
-    # Save student details
+    # Save student details (only if not already exists)
     try:
         if data_manager is not None:
-            # Attempt to use data_manager API if available
-            try:
+            # Check if student already exists before adding
+            if not data_manager.student_exists(str(Id)):
                 data_manager.add_student(str(Id), name)
-            except Exception:
-                # fallback to CSV append
+        else:
+            # Check CSV before appending
+            exists_in_csv = False
+            if os.path.exists(student_csv_file):
+                try:
+                    with open(student_csv_file, 'r') as csvFile:
+                        reader = csv.reader(csvFile)
+                        next(reader, None)  # Skip header
+                        for row in reader:
+                            if row and str(row[0]).strip() == str(Id):
+                                exists_in_csv = True
+                                break
+                except Exception:
+                    pass
+            if not exists_in_csv:
                 with open(student_csv_file, 'a+', newline='') as csvFile:
                     writer = csv.writer(csvFile)
                     writer.writerow([Id, name])
-        else:
-            with open(student_csv_file, 'a+', newline='') as csvFile:
-                writer = csv.writer(csvFile)
-                writer.writerow([Id, name])
     except Exception as e:
         print(f"⚠ Failed to record student details: {e}")
 

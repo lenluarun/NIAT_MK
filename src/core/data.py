@@ -5,7 +5,7 @@ import os
 import csv
 import json
 from datetime import datetime
-from colors import success, error, warning, info, bold, separator
+from ..utils.colors import success, error, warning, info, bold, separator
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 from reportlab.lib import colors
@@ -58,12 +58,12 @@ class DataManager:
                 reader = csv.reader(f)
                 next(reader)  # Skip header
                 for row in reader:
-                    if row:
+                    if row and len(row) >= 2:
                         students.append({
-                            'id': row[0],
-                            'name': row[1],
-                            'email': row[2] if len(row) > 2 else '',
-                            'date_added': row[3] if len(row) > 3 else ''
+                            'id': str(row[0]).strip(),
+                            'name': row[1].strip(),
+                            'email': row[2].strip() if len(row) > 2 else '',
+                            'date_added': row[3].strip() if len(row) > 3 else ''
                         })
         except:
             pass
@@ -434,12 +434,21 @@ class DataManager:
                     print(f"[{idx}] {file} - (Error reading)")
             
             print(separator("─", 80))
-            print(f"{info('[D]')} Delete a record  |  {info('[E]')} Export to PDF  |  {info('[Q]')} Go Back")
+            print(f"{info('[V]')} View a record  |  {info('[D]')} Delete a record  |  {info('[E]')} Export to PDF  |  {info('[Q]')} Go Back")
             
-            choice = input(f"\n{info('➤')} Enter choice (D/E/Q): ").strip().upper()
+            choice = input(f"\n{info('➤')} Enter choice (V/D/E/Q): ").strip().upper()
             
             if choice == 'Q':
                 break
+                
+            elif choice == 'V':
+                sel = input(f"{info('➤')} Enter record number to view: ").strip()
+                if sel.isdigit() and 1 <= int(sel) <= len(sorted_files):
+                    file_to_view = sorted_files[int(sel) - 1]
+                    self._view_attendance_report(file_to_view)
+                else:
+                    print(error("✗ Invalid selection."))
+                input("Press ENTER to continue...")
                 
             elif choice == 'D':
                 sel = input(f"{info('➤')} Enter record number to delete: ").strip()
@@ -465,6 +474,106 @@ class DataManager:
                     print(error("✗ Invalid selection."))
                 input("Press ENTER to continue...")
 
+    def _show_attendance_preview(self, csv_filename, marked_list, unmarked_list, attendance_records):
+        """Show attendance report preview in terminal"""
+        os.system('cls')
+        print("\n")
+        print(bold("═" * 80))
+        print(bold(f"\n  📊 ATTENDANCE REPORT PREVIEW\n"))
+        print(bold("═" * 80))
+        
+        session_name = csv_filename.replace('Attendance_', '').replace('.csv', '').replace('_', ' ')
+        print(f"Session: {bold(session_name)}")
+        print(f"Total Students: {bold(len(marked_list) + len(unmarked_list))}")
+        print(f"Present: {bold(len(marked_list))} | Absent: {bold(len(unmarked_list))}")
+        print(separator("─", 80))
+        
+        # Show attendance records with timestamps
+        if attendance_records:
+            print(f"\n{info('✓ ATTENDANCE RECORDS (Present Students):')}")
+            print(separator("─", 80))
+            print(f"{'ID':<10} {'Name':<25} {'Time':<12} {'Date'}")
+            print(separator("─", 80))
+            for record in attendance_records:
+                print(f"{record['id']:<10} {record['name']:<25} {record['time']:<12} {record['date']}")
+        
+        # Show present students
+        if marked_list:
+            print(f"\n{info('✓ PRESENT STUDENTS:')}")
+            print(separator("─", 80))
+            print(f"{'ID':<10} {'Name'}")
+            print(separator("─", 80))
+            for student in marked_list:
+                print(f"{student[0]:<10} {student[1]}")
+        else:
+            print(f"\n{warning('⚠ No students marked as present.')}")
+        
+        # Show absent students
+        if unmarked_list:
+            print(f"\n{error('✗ ABSENT STUDENTS:')}")
+            print(separator("─", 80))
+            print(f"{'ID':<10} {'Name'}")
+            print(separator("─", 80))
+            for student in unmarked_list:
+                print(f"{student[0]:<10} {student[1]}")
+        else:
+            print(f"\n{success('🎉 All students are present!')}")
+        
+        print(separator("═", 80))
+
+    def _view_attendance_report(self, csv_filename):
+        """View attendance report in terminal"""
+        attendance_path = self.storage_paths['AttendanceRecords']
+        file_path = os.path.join(attendance_path, csv_filename)
+        
+        all_students = self.get_all_students()
+        
+        marked_ids = set()
+        attendance_records = []
+        try:
+            with open(file_path, 'r') as f:
+                reader = csv.reader(f)
+                next(reader) # skip header
+                for row in reader:
+                    if row and len(row) >= 4:
+                        id_val = str(row[0]).strip().lstrip('0')
+                        marked_ids.add(id_val)
+                        if len(row) >= 5:
+                            # New format: Id,Name,Email,Date,Time
+                            attendance_records.append({
+                                'id': id_val,
+                                'name': row[1].strip(),
+                                'email': row[2].strip(),
+                                'date': row[3].strip(),
+                                'time': row[4].strip()
+                            })
+                        else:
+                            # Old format: Id,Name,Date,Time
+                            attendance_records.append({
+                                'id': id_val,
+                                'name': row[1].strip(),
+                                'email': '',
+                                'date': row[2].strip(),
+                                'time': row[3].strip()
+                            })
+        except Exception as e:
+            print(error(f"✗ Failed to read CSV: {e}"))
+            return
+        
+        marked_list = []
+        unmarked_list = []
+        
+        for student in all_students:
+            s_id = str(student['id']).strip().lstrip('0')  # Remove leading zeros
+            row_data = [student['id'], student['name']]
+            if s_id in marked_ids:
+                marked_list.append(row_data)
+            else:
+                unmarked_list.append(row_data)
+        
+        # Show preview in terminal
+        self._show_attendance_preview(csv_filename, marked_list, unmarked_list, attendance_records)
+
     def _export_attendance_pdf(self, csv_filename):
         """Generates a PDF format with Marked & Unmarked students"""
         print(info(f"⏳ Generating PDF for {csv_filename}..."))
@@ -477,28 +586,68 @@ class DataManager:
         all_students = self.get_all_students()
         
         marked_ids = set()
+        attendance_records = []
         try:
             with open(file_path, 'r') as f:
                 reader = csv.reader(f)
                 next(reader) # skip header
                 for row in reader:
-                    if row:
-                        marked_ids.add(str(row[0]).strip())
+                    if row and len(row) >= 4:
+                        id_val = str(row[0]).strip().lstrip('0')
+                        marked_ids.add(id_val)
+                        if len(row) >= 5:
+                            # New format: Id,Name,Email,Date,Time
+                            attendance_records.append({
+                                'id': id_val,
+                                'name': row[1].strip(),
+                                'email': row[2].strip(),
+                                'date': row[3].strip(),
+                                'time': row[4].strip()
+                            })
+                        else:
+                            # Old format: Id,Name,Date,Time
+                            attendance_records.append({
+                                'id': id_val,
+                                'name': row[1].strip(),
+                                'email': '',
+                                'date': row[2].strip(),
+                                'time': row[3].strip()
+                            })
         except Exception as e:
             print(error(f"✗ Failed to read CSV: {e}"))
             return
+        
+        print(f"\n🔍 Debug Info:")
+        print(f"   Students in database: {len(all_students)}")
+        for student in all_students:
+            print(f"     - ID: '{student['id']}' Name: '{student['name']}'")
+        print(f"   Marked IDs from attendance: {len(marked_ids)}")
+        for mid in marked_ids:
+            print(f"     - ID: '{mid}'")
+        print(f"   Attendance records: {len(attendance_records)}")
+        for record in attendance_records:
+            print(f"     - {record['id']}: {record['name']} at {record['time']}")
             
         marked_list = []
         unmarked_list = []
         
         for student in all_students:
-            s_id = str(student['id']).strip()
+            s_id = str(student['id']).strip().lstrip('0')  # Remove leading zeros
             row_data = [student['id'], student['name']]
             if s_id in marked_ids:
                 marked_list.append(row_data)
             else:
                 unmarked_list.append(row_data)
-                
+        
+        # Show preview in terminal
+        self._show_attendance_preview(csv_filename, marked_list, unmarked_list, attendance_records)
+        
+        # Ask for confirmation before generating PDF
+        confirm = input(f"\n{info('➤')} Generate PDF report? (Y/N): ").strip().upper()
+        if confirm != 'Y':
+            print(info("PDF generation cancelled."))
+            return
+        
         try:
             doc = SimpleDocTemplate(pdf_path, pagesize=letter, rightMargin=40, leftMargin=40, topMargin=40, bottomMargin=40)
             elements = []

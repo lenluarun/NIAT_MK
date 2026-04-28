@@ -4,7 +4,7 @@ def camer(camera_index=0):
 
     # Haarcascade path resolution
     base_dir = os.path.dirname(__file__)
-    cascade_path = os.path.join(base_dir, 'haarcascade_default.xml')
+    cascade_path = os.path.join(base_dir, '..', 'models', 'haarcascade_default.xml')
     if not os.path.exists(cascade_path):
         cascade_path = cv2.data.haarcascades + 'haarcascade_frontalface_default.xml'
 

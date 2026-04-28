@@ -3,7 +3,12 @@ Terminal UI helpers for cinematic cyber-style interface.
 """
 import os
 import time
-from colors import Colors, colored, separator
+from .colors import Colors, colored, separator, get_theme, themed_colored
+from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TimeElapsedColumn
+from rich.console import Console
+from tqdm import tqdm
+
+console = Console()
 
 
 THEME_BANNERS = {
@@ -43,6 +48,30 @@ THEME_BANNERS = {
         ("  ██████╔╝███████║███████║██╔██╗ ██║   ██║   ██║   ██║██╔████╔██║", Colors.BRIGHT_YELLOW),
         ("  ██╔═══╝ ██╔══██║██╔══██║██║╚██╗██║   ██║   ██║   ██║██║╚██╔╝██║", Colors.BRIGHT_CYAN),
         ("  ██║     ██║  ██║██║  ██║██║ ╚████║   ██║   ╚██████╔╝██║ ╚═╝ ██║", Colors.BRIGHT_GREEN),
+    ],
+    "sunset": [
+        ("  ███████╗██╗   ██╗███╗   ██╗███████╗███████╗████████╗", Colors.BRIGHT_YELLOW),
+        ("  ██╔════╝██║   ██║████╗  ██║██╔════╝██╔════╝╚══██╔══╝", Colors.BRIGHT_RED),
+        ("  ███████╗██║   ██║██╔██╗ ██║███████╗█████╗     ██║   ", Colors.BRIGHT_MAGENTA),
+        ("  ╚════██║██║   ██║██║╚██╗██║╚════██║██╔══╝     ██║   ", Colors.BRIGHT_YELLOW),
+        ("  ███████║╚██████╔╝██║ ╚████║███████║███████╗   ██║   ", Colors.BRIGHT_RED),
+        ("  ╚══════╝ ╚═════╝ ╚═╝  ╚═══╝╚══════╝╚══════╝   ╚═╝   ", Colors.BRIGHT_MAGENTA),
+    ],
+    "ocean": [
+        ("   ██████╗  ██████╗███████╗ █████╗ ███╗   ██╗", Colors.BRIGHT_CYAN),
+        ("  ██╔═══██╗██╔════╝██╔════╝██╔══██╗████╗  ██║", Colors.BRIGHT_BLUE),
+        ("  ██║   ██║██║     █████╗  ███████║██╔██╗ ██║", Colors.BRIGHT_MAGENTA),
+        ("  ██║   ██║██║     ██╔══╝  ██╔══██║██║╚██╗██║", Colors.BRIGHT_CYAN),
+        ("  ╚██████╔╝╚██████╗███████╗██║  ██║██║ ╚████║", Colors.BRIGHT_BLUE),
+        ("   ╚═════╝  ╚═════╝╚══════╝╚═╝  ╚═╝╚═╝  ╚═══╝", Colors.BRIGHT_MAGENTA),
+    ],
+    "fire": [
+        ("  ███████╗██╗██████╗ ███████╗", Colors.BRIGHT_RED),
+        ("  ██╔════╝██║██╔══██╗██╔════╝", Colors.BRIGHT_YELLOW),
+        ("  █████╗  ██║██████╔╝█████╗  ", Colors.BRIGHT_MAGENTA),
+        ("  ██╔══╝  ██║██╔══██╗██╔══╝  ", Colors.BRIGHT_RED),
+        ("  ██║     ██║██║  ██║███████╗", Colors.BRIGHT_YELLOW),
+        ("  ╚═╝     ╚═╝╚═╝  ╚═╝╚══════╝", Colors.BRIGHT_MAGENTA),
     ],
 }
 
@@ -102,9 +131,30 @@ def render_symbol_wall(theme="neon"):
             "  │  ▀▀▀ ▀▀▀ ▀▀▀        |   ░░░░░░░░░░   |   ▓▓▓▓▓▓▓▓▓▓▓▓             │",
             "  ╰─────────────────────────────────────────────────────────────────────╯",
         ],
+        "sunset": [
+            "  ┌───────────────────────[ SUNSET HORIZON ]───────────────────────┐",
+            "  │  🌅 SUNRISE PROTOCOL   |   🔥 FACE DETECTION   |   🌇 ATTENDANCE  │",
+            "  │  ████████              |   ██████████████     |   ██████████████  │",
+            "  │  ▓▓▓▓▓▓▓▓              |   ▒▒▒▒▒▒▒▒▒▒▒▒▒▒     |   ░░░░░░░░░░░░░░  │",
+            "  └───────────────────────────────────────────────────────────────────┘",
+        ],
+        "ocean": [
+            "  ╭───────────────────────[ OCEAN DEPTHS ]───────────────────────╮",
+            "  │  🌊 WAVE ANALYSIS      |   🐟 FACE RECOGNITION |   🐳 ATTENDANCE  │",
+            "  │  ~~~~~~~~              |   ███████████████    |   ██████████████ │",
+            "  │  ░░░░░░░░              |   ▒▒▒▒▒▒▒▒▒▒▒▒▒▒    |   ▓▓▓▓▓▓▓▓▓▓▓▓▓▓ │",
+            "  ╰─────────────────────────────────────────────────────────────────╯",
+        ],
+        "fire": [
+            "  ┏━━━━━━━━━━━━━━━━━━━━━━━[ FIRESTORM CORE ]━━━━━━━━━━━━━━━━━━━━━━━┓",
+            "  ┃   🔥 FLAME DETECTOR     |   💥 FACE IGNITION    |   🌋 ATTENDANCE ┃",
+            "  ┃  ██████████████         |   ████████████████   |   ██████████████ ┃",
+            "  ┃  ▒▒▒▒▒▒▒▒▒▒▒▒▒▒         |   ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓   |   ░░░░░░░░░░░░░░ ┃",
+            "  ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛",
+        ],
     }
     for line in art_by_theme.get(theme, art_by_theme["neon"]):
-        print(colored(line, Colors.BRIGHT_CYAN))
+        print(themed_colored(line, "primary", theme))
     print("")
 
 
@@ -152,5 +202,107 @@ def boot_sequence(enabled=True):
         "System ready.",
     ]
     for idx, stage in enumerate(stages, 1):
-        print(colored(f"[{idx}/5] {stage}", Colors.BRIGHT_GREEN))
+        print(themed_colored(f"[{idx}/5] {stage}", "success"))
         time.sleep(0.15)
+
+
+def show_spinner(message, duration=2, theme="neon"):
+    """Show an animated spinner for a task."""
+    theme_colors = get_theme(theme)
+    with console.status(f"[{theme_colors['primary']}] {message}", spinner="dots"):
+        time.sleep(duration)
+
+
+def show_progress_bar(total, description="Processing", theme="neon"):
+    """Show a progress bar for a task."""
+    theme_colors = get_theme(theme)
+    # Convert ANSI colors to Rich colors
+    rich_colors = {
+        "neon": {"complete": "bright_cyan", "finished": "bright_green"},
+        "matrix": {"complete": "green", "finished": "bright_green"},
+        "abyss": {"complete": "bright_blue", "finished": "bright_cyan"},
+        "phantom": {"complete": "bright_red", "finished": "bright_magenta"},
+        "sunset": {"complete": "bright_yellow", "finished": "bright_red"},
+        "ocean": {"complete": "bright_cyan", "finished": "bright_blue"},
+        "fire": {"complete": "bright_red", "finished": "bright_yellow"},
+        "e2c": {"complete": "bright_green", "finished": "bright_cyan"},
+    }
+    colors = rich_colors.get(theme, rich_colors["neon"])
+    
+    with Progress(
+        SpinnerColumn(),
+        TextColumn(f"[{colors['complete']}]{description}"),
+        BarColumn(complete_style=colors['complete'], finished_style=colors['finished']),
+        TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
+        TimeElapsedColumn(),
+        console=console,
+    ) as progress:
+        task = progress.add_task(description, total=total)
+        for i in range(total):
+            time.sleep(0.1)  # Simulate work
+            progress.update(task, advance=1)
+
+
+def show_tqdm_progress(total, description="Processing"):
+    """Show a tqdm progress bar."""
+    for i in tqdm(range(total), desc=description, unit="item", ncols=80, colour="green"):
+        time.sleep(0.05)  # Simulate work
+
+
+def print_separator(char="═", length=60, theme="neon"):
+    """Print a themed separator line with Unicode symbols."""
+    theme_colors = get_theme(theme)
+    symbols = {
+        "neon": "✦",
+        "matrix": "█",
+        "abyss": "◍",
+        "phantom": "▲",
+        "sunset": "🌅",
+        "ocean": "🌊",
+        "fire": "🔥",
+        "e2c": "◉",
+    }
+    symbol = symbols.get(theme, "✦")
+    sep = f"{symbol} {char * (length - 4)} {symbol}"
+    print(themed_colored(sep, "highlight", theme))
+
+
+def print_menu_item(number, text, theme="neon"):
+    """Print a menu item with Unicode symbols."""
+    theme_colors = get_theme(theme)
+    symbols = {
+        "neon": "►",
+        "matrix": "▣",
+        "abyss": "◍",
+        "phantom": "◆",
+        "sunset": "🔥",
+        "ocean": "🌊",
+        "fire": "💥",
+        "e2c": "✦",
+    }
+    symbol = symbols.get(theme, "►")
+    print(themed_colored(f"[{number}] {symbol} {text}", "info", theme))
+
+
+def print_status_box(title, items, theme="neon"):
+    """Print a status box with Unicode borders."""
+    theme_colors = get_theme(theme)
+    width = 60
+    borders = {
+        "neon": ("╔", "╗", "╚", "╝", "║", "═"),
+        "matrix": ("┌", "┐", "└", "┘", "│", "─"),
+        "abyss": ("╓", "╖", "╙", "╜", "║", "─"),
+        "phantom": ("┏", "┓", "┗", "┛", "┃", "━"),
+        "sunset": ("╔", "╗", "╚", "╝", "║", "═"),
+        "ocean": ("╭", "╮", "╰", "╯", "│", "─"),
+        "fire": ("┏", "┓", "┗", "┛", "┃", "━"),
+        "e2c": ("╔", "╗", "╚", "╝", "║", "═"),
+    }
+    tl, tr, bl, br, vert, horiz = borders.get(theme, borders["neon"])
+    
+    print(themed_colored(f"{tl}{horiz * width}{tr}", "primary", theme))
+    print(themed_colored(f"{vert} {title.center(width - 2)} {vert}", "primary", theme))
+    print(themed_colored(f"{tl}{horiz * width}{tr}", "primary", theme))
+    for item in items:
+        print(themed_colored(f"{vert} {str(item).ljust(width - 2)} {vert}", "info", theme))
+    print(themed_colored(f"{bl}{horiz * width}{br}", "primary", theme))

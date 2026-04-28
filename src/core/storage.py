@@ -5,10 +5,10 @@ import os
 import json
 import shutil
 from pathlib import Path
-from colors import success, error, warning, info, bold, separator, highlight
+from ..utils.colors import success, error, warning, info, bold, separator, highlight
 
 
-CONFIG_FILE = "storage_config.json"
+CONFIG_FILE = os.path.join(os.path.dirname(__file__), '..', '..', 'config', 'storage_config.json')
 
 
 def get_available_disks():
@@ -107,22 +107,27 @@ def get_storage_path():
         except:
             pass
     
-    return select_storage_location()
+    # Default to src directory
+    return os.path.join(os.path.dirname(__file__), '..', '..', 'src')
 
 
 def create_storage_folders(base_path):
     """Create necessary storage folders"""
     folders = [
-        'TrainingImages',
-        'StudentData',
-        'TrainedModels',
-        'AttendanceRecords',
-        'Reports',
-        'Backups'
+        'models',
+        'data',
+        'reports'
     ]
     
     for folder in folders:
         folder_path = os.path.join(base_path, folder)
         os.makedirs(folder_path, exist_ok=True)
     
-    return {folder: os.path.join(base_path, folder) for folder in folders}
+    return {
+        'TrainingImage': os.path.join(base_path, 'models', 'TrainingImage'),
+        'TrainingImageLabel': os.path.join(base_path, 'models', 'TrainingImageLabel'),
+        'StudentData': os.path.join(base_path, 'data', 'StudentDetails'),
+        'Attendance': os.path.join(base_path, 'data', 'Attendance'),
+        'Models': os.path.join(base_path, 'models'),
+        'Reports': os.path.join(base_path, 'reports')
+    }

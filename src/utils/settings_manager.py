@@ -5,12 +5,12 @@ import json
 import os
 
 
-SETTINGS_FILE = "app_settings.json"
+SETTINGS_FILE = os.path.join(os.path.dirname(__file__), '..', '..', 'config', 'app_settings.json')
 DEFAULT_SETTINGS = {
     "camera_index": 0,
     "camera_scan_range": 5,
     "max_capture_samples": 120,
-    "recognition_pass_mark": 45,
+    "recognition_pass_mark": 80,  # Lower confidence = better match
     "recognition_mode": "fast",
     "ui_theme": "e2c",
     "boot_animation": True,
