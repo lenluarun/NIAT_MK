@@ -75,7 +75,7 @@
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/NIAT_MK.git
+git clone https://github.com/lenluarun/NIAT_MK.git
 cd NIAT_MK
 
 # Install dependencies
