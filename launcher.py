@@ -8,6 +8,8 @@ import sys
 import subprocess
 import time
 
+from src.core.updater import update_system_from_github
+
 def clear_screen():
     """Clear the terminal screen"""
     os.system('cls' if os.name == 'nt' else 'clear')
@@ -36,8 +38,31 @@ def print_menu():
     print("   • Real-time status updates")
     print("   • Mobile and desktop friendly")
     print()
-    print("3. ❌ Exit")
+    print("3. ⬆️ Update System From GitHub")
+    print("   • Pull the latest code and refresh dependencies")
+    print("   • Best used after committing local changes")
+    print()
+    print("4. ❌ Exit")
     print("─"*50)
+
+
+def update_system():
+    """Update the project from GitHub."""
+    print("\n⬆️ Checking for updates from GitHub...")
+    print("─"*50)
+    result = update_system_from_github()
+
+    if result["success"]:
+        print("✅ " + result["message"])
+        if result.get("details"):
+            print(result["details"])
+        print("\n💡 Restart the launcher or web server to use the updated code.")
+    else:
+        print("❌ " + result["message"])
+        if result.get("details"):
+            print(result["details"])
+
+    input("\nPress ENTER to return to launcher...")
 
 def launch_terminal_interface():
     """Launch the terminal interface"""
@@ -100,11 +125,13 @@ def main():
             elif choice == "2":
                 launch_web_interface()
             elif choice == "3":
+                update_system()
+            elif choice == "4":
                 print("\n👋 Thank you for using Smart Attendance System!")
                 print("🚀 Powered by E2C TEAM\n")
                 sys.exit(0)
             else:
-                print("\n❌ Invalid choice! Please enter 1, 2, or 3.")
+                print("\n❌ Invalid choice! Please enter 1, 2, 3, or 4.")
                 input("Press ENTER to continue...")
 
         except KeyboardInterrupt:

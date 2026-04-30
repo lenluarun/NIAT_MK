@@ -309,6 +309,7 @@
         .data-icon { background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%); }
         .reports-icon { background: linear-gradient(135deg, #607D8B 0%, #455A64 100%); }
         .settings-icon { background: linear-gradient(135deg, #795548 0%, #5D4037 100%); }
+        .update-icon { background: linear-gradient(135deg, #009688 0%, #00695C 100%); }
 
         @media (max-width: 768px) {
             .container {
@@ -434,6 +435,20 @@
                 <p>Configure system settings and preferences</p>
                 <button class="btn btn-primary" onclick="showSettings()">
                     <i class="fas fa-sliders-h"></i> System Settings
+                </button>
+            </div>
+
+            <!-- Update System -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-icon update-icon">
+                        <i class="fas fa-cloud-arrow-down"></i>
+                    </div>
+                    <div class="card-title">Update System</div>
+                </div>
+                <p>Pull the latest code and dependencies from GitHub</p>
+                <button class="btn btn-success" onclick="updateSystem()">
+                    <i class="fas fa-download"></i> Update from GitHub
                 </button>
             </div>
 
@@ -621,6 +636,18 @@
                 }
             } catch (error) {
                 updateStatus('error', 'Failed to start training', 0);
+            }
+        }
+
+        async function updateSystem() {
+            try {
+                const response = await fetch('/api/system/update', { method: 'POST' });
+                const data = await response.json();
+                if (data.status === 'started') {
+                    updateStatus('running', 'Updating system from GitHub...', 0);
+                }
+            } catch (error) {
+                updateStatus('error', 'Failed to start system update', 0);
             }
         }
 

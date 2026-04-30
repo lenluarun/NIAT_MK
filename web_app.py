@@ -21,6 +21,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 from src.utils import camera_check as check_camera
 from src.core import capture as capture_image
 from src.core import training as train_image
+from src.core.updater import update_system_from_github
 from src.utils.camera_utils import detect_available_cameras
 from src.core.storage import get_storage_path, create_storage_folders
 from src.core.data import DataManager
@@ -255,6 +256,32 @@ def settings():
             app_settings = update_setting(key, value)
         emit_status("Settings updated successfully!", 100, "success")
         return jsonify({"status": "success"})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+@app.route('/api/system/update', methods=['POST'])
+def update_system():
+    """Update the system from GitHub."""
+    try:
+        emit_status("Updating system from GitHub...", 0)
+
+        def run_update():
+            try:
+                emit_status("Pulling latest code...", 25)
+                result = update_system_from_github()
+                if result.get("success"):
+                    emit_status("System updated successfully from GitHub. Restart the server to use the changes.", 100, "success")
+                else:
+                    emit_status(f"Update failed: {result.get('message', 'Unknown error')}", 0, "error")
+            except Exception as e:
+                emit_status(f"Update failed: {str(e)}", 0, "error")
+
+        thread = threading.Thread(target=run_update)
+        thread.daemon = True
+        thread.start()
+
+        return jsonify({"status": "started"})
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
 
