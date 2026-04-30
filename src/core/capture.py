@@ -29,8 +29,11 @@ def takeImages(storage_paths, data_manager=None, camera_index=0, max_samples=100
       max_samples: maximum number of face samples to capture
     """
     # Validate storage_paths
-    training_dir = storage_paths.get('TrainingImages') if isinstance(storage_paths, dict) else None
-    student_csv_dir = storage_paths.get('StudentDetails') if isinstance(storage_paths, dict) else None
+    training_dir = None
+    student_csv_dir = None
+    if isinstance(storage_paths, dict):
+        training_dir = storage_paths.get('TrainingImages') or storage_paths.get('TrainingImage')
+        student_csv_dir = storage_paths.get('StudentDetails') or storage_paths.get('StudentData')
 
     if not training_dir:
         raise ValueError("storage_paths must contain 'TrainingImages' path")
@@ -39,10 +42,11 @@ def takeImages(storage_paths, data_manager=None, camera_index=0, max_samples=100
     Id = input("Enter Your Id: ").strip()
     name = input("Enter Your Name: ").strip()
 
-    if not (is_number(Id) and name.isalpha()):
+    valid_name = all(part.isalpha() for part in name.split())
+    if not (is_number(Id) and valid_name):
         if not is_number(Id):
             print("Enter Numeric ID")
-        if not name.isalpha():
+        if not valid_name:
             print("Enter Alphabetical Name")
         return
 
@@ -52,6 +56,7 @@ def takeImages(storage_paths, data_manager=None, camera_index=0, max_samples=100
         student_exists = data_manager.student_exists(str(Id))
     else:
         # Check CSV directly
+        student_csv_file = os.path.join(student_csv_dir or base_dir, "StudentDetails.csv")
         if os.path.exists(student_csv_file):
             try:
                 with open(student_csv_file, 'r') as csvFile:
@@ -102,13 +107,14 @@ def takeImages(storage_paths, data_manager=None, camera_index=0, max_samples=100
                 break
             gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
             faces = detector.detectMultiScale(gray, 1.3, 5, minSize=(30, 30), flags=cv2.CASCADE_SCALE_IMAGE)
+            cv2.putText(img, f"Samples: {sampleNum}/{max_samples}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
+            cv2.imshow('frame', img)
             for (x, y, w, h) in faces:
                 cv2.rectangle(img, (x, y), (x + w, y + h), (10, 159, 255), 2)
                 sampleNum += 1
                 filename = f"{name}.{Id}.{sampleNum}.jpg"
                 filepath = os.path.join(training_dir, filename)
                 cv2.imwrite(filepath, gray[y:y + h, x:x + w])
-                cv2.imshow('frame', img)
             # Break conditions
             if cv2.waitKey(100) & 0xFF == ord('q'):
                 break

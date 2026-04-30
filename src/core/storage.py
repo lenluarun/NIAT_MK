@@ -125,9 +125,13 @@ def create_storage_folders(base_path):
     
     return {
         'TrainingImage': os.path.join(base_path, 'models', 'TrainingImage'),
+        'TrainingImages': os.path.join(base_path, 'models', 'TrainingImage'),
         'TrainingImageLabel': os.path.join(base_path, 'models', 'TrainingImageLabel'),
+        'TrainedModels': os.path.join(base_path, 'models', 'TrainingImageLabel'),
         'StudentData': os.path.join(base_path, 'data', 'StudentDetails'),
+        'StudentDetails': os.path.join(base_path, 'data', 'StudentDetails'),
         'Attendance': os.path.join(base_path, 'data', 'Attendance'),
+        'AttendanceRecords': os.path.join(base_path, 'data', 'Attendance'),
         'Models': os.path.join(base_path, 'models'),
         'Reports': os.path.join(base_path, 'reports')
     }
