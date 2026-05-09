@@ -25,7 +25,7 @@
 - 🔒 **100% Offline** - No internet required, ensuring privacy and security
 - ⚡ **Real-time Processing** - Instant recognition with sub-second response times
 - 🎯 **High Accuracy** - Advanced LBPH algorithm with configurable confidence thresholds
-- 🌐 **Web Interface** - Modern, professional GUI accessible via localhost
+- 🌐 **Web Interface** - Modern, professional GUI accessible via localhost   (under progress)
 - 🎨 **Stunning UI** - Cyberpunk-inspired terminal interface with neon themes
 - 📊 **Smart Reports** - Automated PDF generation with detailed attendance analytics
 - 🔧 **Modular Design** - Clean, maintainable codebase with extensible architecture
@@ -102,7 +102,7 @@ pip install -r requirements.txt
 
 ---
 
-## 🌐 Web Interface
+## 🌐 Web Interface  (Not a complete version)
 
 The system now includes a modern, professional web interface accessible via localhost. This provides an attractive GUI alternative to the terminal interface while maintaining all functionality.
 
@@ -283,11 +283,6 @@ We welcome contributions! Please follow these steps:
 - Update documentation as needed
 
 ---
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
 ---
 
 ## 🙏 Acknowledgments
@@ -302,7 +297,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 - **Issues**: [GitHub Issues](https://github.com/yourusername/NIAT_MK/issues)
 - **Discussions**: [GitHub Discussions](https://github.com/yourusername/NIAT_MK/discussions)
-- **Email**: support@e2c-team.com
+- **Email**: arunesh12307@gmail.com
 
 ---
 
