@@ -1,323 +1,331 @@
-# 🤖 Smart Face Recognition Attendance System
+# NIAT MK Smart Face Recognition Attendance System
 
 <div align="center">
 
-![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)
-![OpenCV](https://img.shields.io/badge/OpenCV-4.x-green.svg)
-![Flask](https://img.shields.io/badge/Flask-2.x-red.svg)
-![License](https://img.shields.io/badge/License-MIT-yellow.svg)
-![Status](https://img.shields.io/badge/Status-Active-success.svg)
+[![Python](https://img.shields.io/badge/Python-3.11%2B-blue.svg)](https://www.python.org/)
+[![OpenCV](https://img.shields.io/badge/OpenCV-Contrib-green.svg)](https://opencv.org/)
+[![Flask](https://img.shields.io/badge/Flask-Web%20Dashboard-red.svg)](https://flask.palletsprojects.com/)
+[![ReportLab](https://img.shields.io/badge/ReportLab-PDF%20Reports-orange.svg)](https://www.reportlab.com/)
+[![Status](https://img.shields.io/badge/Status-Active-success.svg)]()
 
-**⚡ Completely Offline | Real-time Face Recognition | Automated Attendance Tracking**
+Offline face recognition attendance with a modern terminal experience, editable settings, local reports, and a browser dashboard.
 
-[📥 Download](#installation) • [🚀 Quick Start](#quick-start) • [📖 Documentation](#features) • [🤝 Contributing](#contributing)
+[Download](#download-and-setup) • [How to Use](#how-to-use) • [Settings](#settings) • [Project Structure](#project-structure) • [Troubleshooting](#troubleshooting)
 
 </div>
 
 ---
 
-## 🌟 Overview
+## Overview
 
-**Smart Face Recognition Attendance System** is a cutting-edge, completely offline solution for automated attendance tracking using advanced computer vision and machine learning. Built with Python and OpenCV, this system provides real-time face detection, recognition, and attendance marking with military-grade accuracy.
+NIAT MK is a fully offline attendance system built for local classrooms, labs, and small organizations. It uses webcam-based face capture and recognition to mark attendance, stores everything on the machine, and generates attendance reports without depending on cloud services.
 
-### ✨ Key Highlights
+The current version includes:
 
-- 🔒 **100% Offline** - No internet required, ensuring privacy and security
-- ⚡ **Real-time Processing** - Instant recognition with sub-second response times
-- 🎯 **High Accuracy** - Advanced LBPH algorithm with configurable confidence thresholds
-- 🌐 **Web Interface** - Modern, professional GUI accessible via localhost   (under progress)
-- 🎨 **Stunning UI** - Cyberpunk-inspired terminal interface with neon themes
-- 📊 **Smart Reports** - Automated PDF generation with detailed attendance analytics
-- 🔧 **Modular Design** - Clean, maintainable codebase with extensible architecture
-
----
-
-## 🚀 Features
-
-### Core Functionality
-- **Face Detection & Recognition** - Haar Cascade + LBPH Face Recognition
-- **Automated Attendance** - Real-time marking with student name display
-- **Training System** - Easy model training with captured face data
-- **Data Management** - Comprehensive student and attendance database
-- **Report Generation** - Beautiful PDF reports with attendance statistics
-
-### Advanced Features
-- **Multi-Camera Support** - Automatic camera detection and selection
-- **Web Dashboard** - Professional GUI with real-time status updates
-- **Theme System** - Multiple UI themes (Neon, Matrix, Phantom, Abyss)
-- **HUD Display** - Live system status with real-time metrics
-- **Error Handling** - Robust error recovery and user-friendly messages
-- **Configuration Management** - Persistent settings with easy customization
-
-### Security & Performance
-- **Offline Operation** - Zero external dependencies or cloud services
-- **Local Storage** - Secure data storage with configurable paths
-- **Optimized Processing** - GPU-accelerated face detection and recognition
-- **Memory Efficient** - Low resource consumption for continuous operation
+- A launcher-driven workflow through `launcher.py`
+- A stylish mouse-based terminal interface
+- A normal keyboard-style terminal mode that you can switch to from the mouse UI
+- A switch-back option to return to the mouse interface
+- Editable system settings instead of a read-only settings page
+- Student detail management from the settings console
+- Local CSV attendance logs and PDF report generation
+- A Flask web dashboard for browser-based use
 
 ---
 
-## 📋 Requirements
+## What Is New
 
-- **Python** 3.8 or higher
-- **OpenCV** 4.x with contrib modules
-- **NumPy** for matrix operations
-- **Pandas** for data processing
-- **ReportLab** for PDF generation
-- **Rich** for enhanced terminal UI
-- **Pillow** for image processing
+This release updates the original project into a cleaner and more usable system.
+
+- The launcher now prefers the project `.venv` so the app uses the correct dependencies.
+- The enhanced terminal interface no longer falls back to the old classic flow.
+- The settings screen now lets you change real values such as camera index, pass mark, sample count, theme, and HUD options.
+- Report generation now includes richer attendance details and a daily text report.
+- Student records can be added from the enhanced settings console.
 
 ---
 
-## 🛠️ Installation
+## Core Features
 
-### Option 1: Direct Installation
+### Attendance and Recognition
+
+- Real-time face detection and recognition
+- Student attendance marking during live camera sessions
+- Capture workflow for collecting training images
+- Model training from stored face samples
+- Attendance CSV output plus PDF and text report generation
+
+### Interface Modes
+
+- Mouse-friendly enhanced terminal interface
+- Normal stylish terminal mode for keyboard users
+- Bidirectional switching between mouse and terminal modes
+- Web dashboard access for browser-based control
+
+### Administration
+
+- Add and manage student details
+- Update pass mark and capture limits
+- Change camera index and camera scan range
+- Toggle HUD display and boot animation
+- View current settings before applying changes
+
+### Storage and Reports
+
+- Local storage under the project workspace
+- Student CSV database
+- Attendance history by date
+- Human-readable daily reports
+- PDF attendance reports
+
+---
+
+## Download And Setup
+
+### 1. Get the project
+
+Clone the repository to your machine:
 
 ```bash
-# Clone the repository
 git clone https://github.com/lenluarun/NIAT_MK.git
 cd NIAT_MK
-
-# Install dependencies
-pip install opencv-python opencv-contrib-python numpy pandas reportlab rich pillow pyfiglet tqdm
 ```
 
-### Option 2: Virtual Environment (Recommended)
+### 2. Create the virtual environment
+
+Use the project environment the launcher expects:
 
 ```bash
-# Create virtual environment
-python -m venv venv
+python -m venv .venv
+```
 
-# Activate environment
-# Windows
-venv\Scripts\activate
-# Linux/Mac
-source venv/bin/activate
+### 3. Activate it on Windows
 
-# Install dependencies
+```powershell
+.\.venv\Scripts\Activate.ps1
+```
+
+If PowerShell blocks activation, run:
+
+```powershell
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy RemoteSigned
+.\.venv\Scripts\Activate.ps1
+```
+
+### 4. Install dependencies
+
+```bash
 pip install -r requirements.txt
 ```
 
-**Windows Users**: After installation, you can simply double-click `run.bat` or run `.\run.bat` in PowerShell to start the application.
+The important packages include:
 
----
+- `opencv-contrib-python`
+- `numpy`
+- `pandas`
+- `Pillow`
+- `scikit-learn`
+- `Flask`
+- `Flask-CORS`
+- `prompt_toolkit`
+- `reportlab`
 
-## 🌐 Web Interface  (Not a complete version)
+### 5. Start the app
 
-The system now includes a modern, professional web interface accessible via localhost. This provides an attractive GUI alternative to the terminal interface while maintaining all functionality.
+On Windows, the simplest option is:
 
-### Starting the Web Interface
-
-```bash
-# Make sure you're in the project directory
-cd NIAT_MK
-
-# Activate virtual environment (if using one)
-venv\Scripts\activate  # Windows
-# or
-source venv/bin/activate  # Linux/Mac
-
-# Start the web server
-python web_app.py
-```
-
-### Accessing the Web Interface
-
-1. Open your web browser
-2. Navigate to `http://localhost:5000`
-3. The professional dashboard will load with all system controls
-
-### Web Interface Features
-
-- **Real-time Status Updates** - Live progress tracking for all operations
-- **Professional Design** - Modern UI with gradient backgrounds and smooth animations
-- **Responsive Layout** - Works on desktop and mobile devices
-- **Interactive Controls** - Click buttons to perform all system operations
-- **System Dashboard** - View student counts, training images, and attendance records
-- **Settings Management** - Configure system parameters through the web interface
-- **Data Management** - Add, view, and manage student records
-- **Live Recognition Control** - Start/stop attendance recognition with visual feedback
-
----
-
-## 🚀 Quick Start
-
-### Using the Launcher (Recommended)
-
-**Windows Users:**
-```bash
-# Double-click the run.bat file or run in Command Prompt:
-run.bat
-
-# Or in PowerShell, use:
+```powershell
 .\run.bat
 ```
 
-**Linux/Mac Users:**
+You can also launch directly:
+
 ```bash
 python launcher.py
 ```
 
-### Direct Commands (Web Interface Only)
-
-If you prefer to run the web interface directly without the launcher menu:
-
-- **Web Interface**: `python web_app.py`
-
-### Important: Entry Points
-
-⚠️ **DO NOT run `python main.py` directly** - This is no longer a standalone interface.
-
-The **launcher.py** is the single unified entry point for the E2C system:
-- Terminal Interface (Professional E2C UI)
-- Web Interface (Browser-based)
-- System Updates
-- Settings and Configuration
-
-See `ENTRY_POINTS.md` for detailed documentation.
-
-### Basic Workflow
-
-Regardless of interface choice, the workflow remains the same:
-
-1. **Check Camera** - Verify camera functionality
-2. **Capture Faces** - Take photos of students for training
-3. **Train Model** - Process captured images to create recognition model
-4. **Live Recognition** - Start real-time attendance tracking
-
 ---
 
-3. **Add Students**
-   - Select "Capture Faces" from the main menu
-   - Enter student ID and capture face samples
+## How To Use
 
-4. **Train the Model**
-   - Choose "Train Images" to build the recognition model
-   - Wait for training completion
+### Recommended startup flow
 
-5. **Start Recognition**
-   - Select "Recognize & Attendance"
-   - The system will mark attendance automatically
+1. Run `run.bat` or `python launcher.py`.
+2. Choose the terminal interface or the web interface.
+3. Check the camera first.
+4. Add student details and capture face samples.
+5. Train the recognizer.
+6. Start attendance recognition.
+7. Review the generated attendance reports.
 
----
+### Mouse Interface
 
-## 📖 Usage Guide
+Use this if you want a visual terminal menu with buttons.
 
-### Main Menu Options
+Available actions include:
 
-| Option | Description |
-|--------|-------------|
-| **Camera Check** | Verify camera functionality and face detection |
-| **Capture Faces** | Add new students with face samples |
-| **Train Images** | Build/update the face recognition model |
-| **Recognize & Attendance** | Start real-time attendance marking |
-| **Data Management** | View/edit student and attendance data |
-| **View Reports** | Generate and view attendance reports |
-| **System Settings** | Configure camera, UI, and recognition settings |
+- Camera check
+- Capture faces
+- Train images
+- Recognize and attendance marking
+- Data and reports
+- Settings
+- Switch to normal stylish terminal
 
-### Configuration
+### Normal Stylish Terminal
 
-Edit `config/app_settings.json` to customize:
+Use this if you prefer keyboard input and a simple command-style flow.
 
-```json
-{
-  "camera_index": 0,
-  "max_capture_samples": 120,
-  "recognition_pass_mark": 80,
-  "ui_theme": "neon",
-  "hud_mode": true
-}
+You can switch back to the mouse interface from inside the terminal mode.
+
+### Web Interface
+
+If you want browser-based control, run:
+
+```bash
+python web_app.py
+```
+
+Then open:
+
+```text
+http://localhost:5000
 ```
 
 ---
 
-## 📊 System Architecture
+## Settings
 
-```
+The enhanced settings console is now editable.
+
+You can change:
+
+- Camera index
+- Camera scan range
+- Capture sample limit
+- Recognition pass mark
+- Recognition mode
+- UI theme
+- Boot animation
+- HUD display
+- Student details
+
+Settings are stored locally in the configuration files under `config/` and loaded on startup.
+
+---
+
+## Reports And Data
+
+The system stores and generates data locally.
+
+- Student list: `src/data/StudentDetails/StudentDetails.csv`
+- Attendance logs: `src/data/Attendance/`
+- Daily text summary: `Daily_Report_YYYY-MM-DD.txt`
+- PDF report: `Attendance_YYYY-MM-DD_Report.pdf`
+
+The reports include marked students, timestamps, and summary details.
+
+---
+
+## Project Structure
+
+```text
 NIAT_MK/
+├── launcher.py
+├── main.py
+├── web_app.py
+├── run.bat
+├── requirements.txt
+├── config/
+├── docs/
 ├── src/
-│   ├── core/           # Core functionality
-│   │   ├── recognition.py   # Face recognition engine
-│   │   ├── training.py      # Model training
-│   │   ├── capture.py       # Face capture
-│   │   ├── data.py          # Data management
-│   │   └── storage.py       # Storage handling
-│   ├── utils/          # Utilities
-│   │   ├── colors.py        # Color schemes
-│   │   ├── ui.py            # Terminal UI
-│   │   ├── camera_utils.py  # Camera tools
-│   │   └── settings_manager.py
-│   ├── models/         # ML models & data
-│   └── data/           # Attendance & student data
-├── config/             # Configuration files
-├── docs/               # Documentation
-└── main.py             # Application entry point
+│   ├── core/
+│   ├── data/
+│   ├── models/
+│   ├── reports/
+│   └── utils/
+└── templates/
 ```
 
----
+Key files:
 
-## 🎨 Themes
-
-Choose from multiple stunning themes:
-
-- **Neon** - Cyberpunk neon glow
-- **Matrix** - Green matrix code
-- **Phantom** - Dark phantom aesthetic
-- **Abyss** - Deep blue ocean theme
+- `launcher.py` is the main entry point.
+- `main.py` contains the core business actions.
+- `src/utils/interactive_ui.py` contains the enhanced interface.
+- `src/core/data.py` manages students and reports.
+- `src/core/recognition.py` handles recognition and attendance.
+- `src/utils/settings_manager.py` stores editable settings.
 
 ---
 
-## 📈 Performance
+## Requirements
 
-- **Recognition Speed**: < 1 second per face
-- **Accuracy**: 95%+ with proper training
-- **Memory Usage**: ~200MB during operation
-- **Storage**: Minimal footprint with efficient data structures
+- Python 3.11 or newer is recommended
+- Webcam or camera device
+- Windows PowerShell or Command Prompt for the main launcher flow
+- OpenCV contrib build for face recognition support
 
----
-
-## 🤝 Contributing
-
-We welcome contributions! Please follow these steps:
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-### Development Guidelines
-
-- Follow PEP 8 style guidelines
-- Add docstrings to all functions
-- Write tests for new features
-- Update documentation as needed
-
----
----
-
-## 🙏 Acknowledgments
-
-- **OpenCV** for computer vision capabilities
-- **E2C TEAM** for the original concept and development
-- **Python Community** for excellent libraries and tools
+If face recognition fails to import, make sure `opencv-contrib-python` is installed instead of only the base OpenCV package.
 
 ---
 
-## 📞 Support
+## Troubleshooting
 
-- **Issues**: [GitHub Issues](https://github.com/yourusername/NIAT_MK/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/yourusername/NIAT_MK/discussions)
-- **Email**: arunesh12307@gmail.com
+### `No module named prompt_toolkit`
+
+Install the dependencies inside the project environment:
+
+```bash
+pip install -r requirements.txt
+```
+
+Make sure the launcher is using `.venv`, not a system Python install.
+
+### Camera does not open
+
+- Check Windows camera permissions.
+- Try a different camera index in Settings.
+- Close other apps that may already be using the webcam.
+
+### Recognition does not work
+
+- Capture new face samples first.
+- Train the model before starting recognition.
+- Confirm the trained model file exists in the models folder.
+
+### Terminal text looks broken
+
+- Use Windows Terminal or modern PowerShell.
+- Keep the project launcher and terminal on UTF-8 capable settings.
+
+---
+
+## Notes For Developers
+
+- `launcher.py` is the preferred entry point.
+- Do not run `main.py` directly unless you are debugging internals.
+- Keep changes aligned with the enhanced interface flow.
+- Update the README whenever you add a new mode, action, or report format.
+
+---
+
+## License
+
+This project is provided under the MIT License.
+
+---
+
+## Acknowledgments
+
+- OpenCV for the face detection and recognition tooling
+- Flask for the web dashboard
+- ReportLab for PDF generation
+- The contributors and maintainers of this project
 
 ---
 
 <div align="center">
 
-**Made with ❤️ by E2C TEAM**
-
-⭐ Star this repo if you find it useful!
-
-[⬆️ Back to Top](#-smart-face-recognition-attendance-system)
+If you want the next update, I can also rewrite the docs in `docs/` so they match this README exactly.
 
 </div>
