@@ -123,7 +123,7 @@ def create_storage_folders(base_path):
         folder_path = os.path.join(base_path, folder)
         os.makedirs(folder_path, exist_ok=True)
     
-    return {
+    paths = {
         'TrainingImage': os.path.join(base_path, 'models', 'TrainingImage'),
         'TrainingImages': os.path.join(base_path, 'models', 'TrainingImage'),
         'TrainingImageLabel': os.path.join(base_path, 'models', 'TrainingImageLabel'),
@@ -135,3 +135,13 @@ def create_storage_folders(base_path):
         'Models': os.path.join(base_path, 'models'),
         'Reports': os.path.join(base_path, 'reports')
     }
+
+    # Ensure each specific storage subfolder exists (creates StudentDetails folder too)
+    for p in paths.values():
+        try:
+            os.makedirs(p, exist_ok=True)
+        except Exception:
+            pass
+
+    return paths
+

@@ -7,5 +7,11 @@ echo ================================================
 echo.
 echo [INFO] Initializing E2C Control Center...
 echo.
-python launcher.py
+if exist ".venv\Scripts\python.exe" (
+	echo [INFO] Using project virtual environment: .venv
+	.venv\Scripts\python.exe launcher.py
+) else (
+	echo [WARN] .venv not found. Using system Python.
+	python launcher.py
+)
 pause

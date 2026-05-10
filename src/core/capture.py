@@ -107,14 +107,46 @@ def takeImages(storage_paths, data_manager=None, camera_index=0, max_samples=100
                 break
             gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
             faces = detector.detectMultiScale(gray, 1.3, 5, minSize=(30, 30), flags=cv2.CASCADE_SCALE_IMAGE)
-            cv2.putText(img, f"Samples: {sampleNum}/{max_samples}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
-            cv2.imshow('frame', img)
+            
+            # Check number of faces detected
+            num_faces = len(faces)
+            
+            # Display status text
+            status_text = f"Samples: {sampleNum}/{max_samples}"
+            status_color = (0, 255, 0)  # Green
+            
+            if num_faces == 0:
+                status_text += " | Waiting for 1 face..."
+                status_color = (0, 165, 255)  # Orange
+            elif num_faces == 1:
+                status_text += " | 1 face detected ✓"
+                status_color = (0, 255, 0)  # Green
+            else:
+                status_text += f" | {num_faces} faces detected - STOP!"
+                status_color = (0, 0, 255)  # Red
+            
+            cv2.putText(img, status_text, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, status_color, 2)
+            
+            # Draw rectangles around all detected faces
             for (x, y, w, h) in faces:
-                cv2.rectangle(img, (x, y), (x + w, y + h), (10, 159, 255), 2)
-                sampleNum += 1
-                filename = f"{name}.{Id}.{sampleNum}.jpg"
-                filepath = os.path.join(training_dir, filename)
-                cv2.imwrite(filepath, gray[y:y + h, x:x + w])
+                if num_faces == 1:
+                    cv2.rectangle(img, (x, y), (x + w, y + h), (0, 255, 0), 2)  # Green for single face
+                else:
+                    cv2.rectangle(img, (x, y), (x + w, y + h), (0, 0, 255), 2)  # Red for multiple faces
+            
+            cv2.imshow('frame', img)
+            
+            # Only capture if exactly 1 face is detected
+            if num_faces == 1:
+                for (x, y, w, h) in faces:
+                    sampleNum += 1
+                    filename = f"{name}.{Id}.{sampleNum}.jpg"
+                    filepath = os.path.join(training_dir, filename)
+                    cv2.imwrite(filepath, gray[y:y + h, x:x + w])
+            elif num_faces > 1:
+                print(f"⚠ WARNING: {num_faces} faces detected! Please ensure only 1 person is in the frame.")
+                print("Capture paused until a single face is detected.")
+            
             # Break conditions
             if cv2.waitKey(100) & 0xFF == ord('q'):
                 break

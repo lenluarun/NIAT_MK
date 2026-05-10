@@ -169,17 +169,20 @@ def main_menu():
             main_menu()
 
 
-def check_camera_option():
+def check_camera_option(return_to_menu=True):
     """Check camera option"""
     try:
         check_camera.camer(app_settings['camera_index'])
     except KeyboardInterrupt:
         print(warning("\n⚠ Camera check canceled by user."))
-    input(f"\n{success('✓')} Press ENTER to return to Main Menu...")
-    main_menu()
+    if return_to_menu:
+        input(f"\n{success('✓')} Press ENTER to return to Main Menu...")
+        main_menu()
+    else:
+        input(f"\n{success('✓')} Press ENTER to return to Enhanced Menu...")
 
 
-def capture_faces_option():
+def capture_faces_option(return_to_menu=True):
     """Capture faces option"""
     try:
         print_separator("═", 60, app_settings.get("ui_theme", "neon"))
@@ -194,11 +197,14 @@ def capture_faces_option():
         print(success("✓ Face capture completed successfully!"))
     except KeyboardInterrupt:
         print(warning("\n⚠ Face capture canceled by user."))
-    input(f"\n{success('✓')} Press ENTER to return to Main Menu...")
-    main_menu()
+    if return_to_menu:
+        input(f"\n{success('✓')} Press ENTER to return to Main Menu...")
+        main_menu()
+    else:
+        input(f"\n{success('✓')} Press ENTER to return to Enhanced Menu...")
 
 
-def train_images_option():
+def train_images_option(return_to_menu=True):
     """Train images option"""
     try:
         print_separator("═", 60, app_settings.get("ui_theme", "neon"))
@@ -208,17 +214,23 @@ def train_images_option():
         print(success("✓ Training completed successfully!"))
     except KeyboardInterrupt:
         print(warning("\n⚠ Training canceled by user."))
-    input(f"\n{success('✓')} Press ENTER to return to Main Menu...")
-    main_menu()
+    if return_to_menu:
+        input(f"\n{success('✓')} Press ENTER to return to Main Menu...")
+        main_menu()
+    else:
+        input(f"\n{success('✓')} Press ENTER to return to Enhanced Menu...")
 
 
-def recognize_faces_option():
+def recognize_faces_option(return_to_menu=True):
     """Recognize faces option"""
     if not RECOGNITION_AVAILABLE:
         print(error("✗ Recognition is disabled because required dependency failed to load."))
         print(warning(f"⚠ Details: {RECOGNITION_IMPORT_ERROR}"))
-        input("\nPress ENTER to return to Main Menu...")
-        main_menu()
+        if return_to_menu:
+            input("\nPress ENTER to return to Main Menu...")
+            main_menu()
+        else:
+            input("\nPress ENTER to return to Enhanced Menu...")
         return
     try:
         recognize.recognize_attendence(
@@ -230,8 +242,11 @@ def recognize_faces_option():
         )
     except KeyboardInterrupt:
         print(warning("\n⚠ Recognition canceled by user."))
-    input(f"\n{success('✓')} Press ENTER to return to Main Menu...")
-    main_menu()
+    if return_to_menu:
+        input(f"\n{success('✓')} Press ENTER to return to Main Menu...")
+        main_menu()
+    else:
+        input(f"\n{success('✓')} Press ENTER to return to Enhanced Menu...")
 
 
 def camera_studio_menu():
@@ -608,6 +623,13 @@ def system_settings_menu():
                 print(error("⚠ Invalid Choice!"))
         except ValueError:
             print(error("⚠ Invalid Input!"))
+
+
+def launch_from_launcher():
+    """Entry point used by launcher for classic terminal mode."""
+    configure_console_encoding()
+    init_system()
+    main_menu()
 
 
 if __name__ == "__main__":

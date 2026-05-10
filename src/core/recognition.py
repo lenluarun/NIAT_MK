@@ -205,15 +205,20 @@ def recognize_attendence(storage_paths=None, data_manager=None, camera_index=0, 
                         print(f"\n{Colors.BRIGHT_MAGENTA}{figlet_cache[name]}{Colors.RESET}")
 
                         print(f"\n{Colors.BRIGHT_GREEN}✓ STUDENT RECOGNIZED & MARKED PRESENT{Colors.RESET}")
-                        print(f"{Colors.BRIGHT_CYAN}{'═' * 50}{Colors.RESET}")
-                        print(f"  {Colors.BRIGHT_WHITE}ID:{Colors.RESET} {Colors.BRIGHT_YELLOW}{Id_str}{Colors.RESET}")
-                        print(f"  {Colors.BRIGHT_WHITE}Name:{Colors.RESET} {Colors.BRIGHT_YELLOW}{name}{Colors.RESET}")
+                        print(f"{Colors.BRIGHT_CYAN}{'═' * 60}{Colors.RESET}")
+                        print(f"  {Colors.BOLD}{Colors.BRIGHT_WHITE}ID:{Colors.RESET} {Colors.BOLD}{Colors.BRIGHT_YELLOW}{Id_str}{Colors.RESET}")
+                        print(f"  {Colors.BOLD}{Colors.BRIGHT_WHITE}Name:{Colors.RESET} {Colors.BOLD}{Colors.BRIGHT_YELLOW}{name}{Colors.RESET}")
                         if student_details['email']:
-                            print(f"  {Colors.BRIGHT_WHITE}Email:{Colors.RESET} {Colors.BRIGHT_YELLOW}{student_details['email']}{Colors.RESET}")
-                        print(f"  {Colors.BRIGHT_WHITE}Time:{Colors.RESET} {Colors.BRIGHT_YELLOW}{timeStamp}{Colors.RESET}")
-                        print(f"  {Colors.BRIGHT_WHITE}Confidence:{Colors.RESET} {Colors.BRIGHT_YELLOW}{conf:.1f}{Colors.RESET}")
-                        print(f"{Colors.BRIGHT_CYAN}{'═' * 50}{Colors.RESET}")
-                        print(f"{Colors.BRIGHT_GREEN}Total Present: {len(present_students)} students{Colors.RESET}\n")
+                            print(f"  {Colors.BOLD}{Colors.BRIGHT_WHITE}Email:{Colors.RESET} {Colors.BOLD}{Colors.BRIGHT_YELLOW}{student_details['email']}{Colors.RESET}")
+                        else:
+                            print(f"  {Colors.BOLD}{Colors.BRIGHT_WHITE}Email:{Colors.RESET} {Colors.BOLD}{Colors.BRIGHT_YELLOW}N/A{Colors.RESET}")
+                        if student_details['date_added']:
+                            print(f"  {Colors.BOLD}{Colors.BRIGHT_WHITE}Date Added:{Colors.RESET} {Colors.BOLD}{Colors.BRIGHT_YELLOW}{student_details['date_added']}{Colors.RESET}")
+                        print(f"  {Colors.BOLD}{Colors.BRIGHT_WHITE}Date:{Colors.RESET} {Colors.BOLD}{Colors.BRIGHT_YELLOW}{date}{Colors.RESET}")
+                        print(f"  {Colors.BOLD}{Colors.BRIGHT_WHITE}Time:{Colors.RESET} {Colors.BOLD}{Colors.BRIGHT_YELLOW}{timeStamp}{Colors.RESET}")
+                        print(f"  {Colors.BOLD}{Colors.BRIGHT_WHITE}Confidence Score:{Colors.RESET} {Colors.BOLD}{Colors.BRIGHT_YELLOW}{conf:.1f}%{Colors.RESET}")
+                        print(f"{Colors.BRIGHT_CYAN}{'═' * 60}{Colors.RESET}")
+                        print(f"{Colors.BOLD}{Colors.BRIGHT_GREEN}✓ Total Present: {len(present_students)} student(s){Colors.RESET}\n")
 
                         last_display_update = current_time
 
@@ -292,15 +297,58 @@ def recognize_attendence(storage_paths=None, data_manager=None, camera_index=0, 
         else:
             attendance.to_csv(fileName, index=False)
 
+        # Create a detailed daily report file
+        report_fileName = os.path.join(att_dir, f"Daily_Report_{date}.txt")
+        report_time = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
+        
+        with open(report_fileName, 'w', encoding='utf-8') as report_file:
+            report_file.write("=" * 100 + "\n")
+            report_file.write("DAILY ATTENDANCE REPORT\n")
+            report_file.write("=" * 100 + "\n\n")
+            report_file.write(f"Date: {date}\n")
+            report_file.write(f"Report Generated: {report_time}\n")
+            report_file.write(f"Total Students Marked: {len(present_students)}\n")
+            report_file.write("-" * 100 + "\n\n")
+            
+            report_file.write("MARKED ATTENDANCE DETAILS:\n")
+            report_file.write("-" * 100 + "\n")
+            report_file.write(f"{'S.No':<8} {'ID':<12} {'Name':<25} {'Email':<30} {'Time Marked':<15}\n")
+            report_file.write("-" * 100 + "\n")
+            
+            for i, (student_id, details) in enumerate(present_students.items(), 1):
+                email = details.get('email', 'N/A') if details.get('email') else 'N/A'
+                time_marked = details.get('time', 'N/A') if details.get('time') else 'N/A'
+                report_file.write(f"{i:<8} {student_id:<12} {details['name']:<25} {email:<30} {time_marked:<15}\n")
+            
+            report_file.write("-" * 100 + "\n\n")
+            
+            # Summary section
+            report_file.write("SUMMARY\n")
+            report_file.write("-" * 100 + "\n")
+            report_file.write(f"Total Students Recognized: {len(present_students)}\n")
+            if present_students:
+                times_list = [details.get('time', '') for details in present_students.values() if details.get('time')]
+                if times_list:
+                    report_file.write(f"First Attendance Time: {min(times_list)}\n")
+                    report_file.write(f"Last Attendance Time: {max(times_list)}\n")
+            report_file.write(f"Report Generated At: {report_time}\n")
+            report_file.write("=" * 100 + "\n")
+
         print(f"\n📊 Attendance Summary:")
         print(f"   Total students marked: {len(attendance)}")
         print(f"\n{Colors.BRIGHT_GREEN}✓ PRESENT STUDENTS LIST:{Colors.RESET}")
-        print(f"{Colors.BRIGHT_CYAN}{'─' * 60}{Colors.RESET}")
-        for student_id, details in present_students.items():
-            email_str = f" ({details['email']})" if details.get('email') else ""
-            print(f"   {Colors.BRIGHT_YELLOW}{student_id:<10}{Colors.RESET} {Colors.BRIGHT_WHITE}{details['name']:<20}{Colors.RESET}{Colors.BRIGHT_MAGENTA}{email_str:<25}{Colors.RESET} {Colors.BRIGHT_CYAN}{details['time']}{Colors.RESET}")
-        print(f"{Colors.BRIGHT_CYAN}{'─' * 60}{Colors.RESET}")
-        print(f"   Saved to: {fileName}")
+        print(f"{Colors.BRIGHT_CYAN}{'═' * 80}{Colors.RESET}")
+        for i, (student_id, details) in enumerate(present_students.items(), 1):
+            print(f"\n{Colors.BOLD}{Colors.BRIGHT_YELLOW}Student {i}:{Colors.RESET}")
+            print(f"  {Colors.BOLD}{Colors.BRIGHT_WHITE}ID:{Colors.RESET} {Colors.BOLD}{Colors.BRIGHT_CYAN}{student_id}{Colors.RESET}")
+            print(f"  {Colors.BOLD}{Colors.BRIGHT_WHITE}Name:{Colors.RESET} {Colors.BOLD}{Colors.BRIGHT_CYAN}{details['name']}{Colors.RESET}")
+            if details.get('email'):
+                print(f"  {Colors.BOLD}{Colors.BRIGHT_WHITE}Email:{Colors.RESET} {Colors.BOLD}{Colors.BRIGHT_CYAN}{details['email']}{Colors.RESET}")
+            print(f"  {Colors.BOLD}{Colors.BRIGHT_WHITE}Time Marked:{Colors.RESET} {Colors.BOLD}{Colors.BRIGHT_CYAN}{details['time']}{Colors.RESET}")
+            print(f"  {Colors.BOLD}{Colors.BRIGHT_WHITE}Confidence Score:{Colors.RESET} {Colors.BOLD}{Colors.BRIGHT_CYAN}{details['confidence']:.1f}%{Colors.RESET}")
+        print(f"\n{Colors.BRIGHT_CYAN}{'═' * 80}{Colors.RESET}")
+        print(f"   {Colors.BOLD}{Colors.BRIGHT_WHITE}CSV File:{Colors.RESET} {Colors.BOLD}{Colors.BRIGHT_YELLOW}{fileName}{Colors.RESET}")
+        print(f"   {Colors.BOLD}{Colors.BRIGHT_WHITE}Report File:{Colors.RESET} {Colors.BOLD}{Colors.BRIGHT_YELLOW}{report_fileName}{Colors.RESET}")
 
         ui_console.clear_screen()
         print(f"{Colors.BRIGHT_GREEN}")

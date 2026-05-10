@@ -560,12 +560,16 @@ class DataManager:
             print(error(f"✗ Failed to read CSV: {e}"))
             return
         
+        # Map attendance records by id to include their marked time in the report
+        attendance_time_map = {rec['id']: rec.get('time', '') for rec in attendance_records}
+
         marked_list = []
         unmarked_list = []
-        
+
         for student in all_students:
             s_id = str(student['id']).strip().lstrip('0')  # Remove leading zeros
-            row_data = [student['id'], student['name']]
+            time_str = attendance_time_map.get(s_id, '')
+            row_data = [student['id'], student['name'], time_str]
             if s_id in marked_ids:
                 marked_list.append(row_data)
             else:
@@ -628,15 +632,24 @@ class DataManager:
         for record in attendance_records:
             print(f"     - {record['id']}: {record['name']} at {record['time']}")
             
+        # Create a mapping of student IDs to their time data from attendance records
+        attendance_time_map = {}
+        for record in attendance_records:
+            attendance_time_map[record['id']] = record['time']
+        
         marked_list = []
         unmarked_list = []
         
         for student in all_students:
             s_id = str(student['id']).strip().lstrip('0')  # Remove leading zeros
-            row_data = [student['id'], student['name']]
             if s_id in marked_ids:
+                # Include time for marked students
+                time_marked = attendance_time_map.get(s_id, 'N/A')
+                row_data = [student['id'], student['name'], time_marked]
                 marked_list.append(row_data)
             else:
+                # Empty time for unmarked students
+                row_data = [student['id'], student['name'], '']
                 unmarked_list.append(row_data)
         
         # Show preview in terminal
@@ -721,8 +734,8 @@ class DataManager:
             elements.append(Paragraph("<b>✓ MARKED STUDENTS (PRESENT)</b>", styles['Heading2']))
             elements.append(Spacer(1, 5))
             if marked_list:
-                m_data = [['Student ID', 'Student Name']] + marked_list
-                m_table = Table(m_data, colWidths=[150, 300])
+                m_data = [['Student ID', 'Student Name', 'Time']] + marked_list
+                m_table = Table(m_data, colWidths=[120, 260, 100])
                 m_table.setStyle(get_data_table_style("#4CAF50", False))
                 elements.append(m_table)
             else:
@@ -734,8 +747,8 @@ class DataManager:
             elements.append(Paragraph("<b>✗ UNMARKED STUDENTS (ABSENT)</b>", styles['Heading2']))
             elements.append(Spacer(1, 5))
             if unmarked_list:
-                u_data = [['Student ID', 'Student Name']] + unmarked_list
-                u_table = Table(u_data, colWidths=[150, 300])
+                u_data = [['Student ID', 'Student Name', 'Time']] + unmarked_list
+                u_table = Table(u_data, colWidths=[120, 260, 100])
                 u_table.setStyle(get_data_table_style("#F44336", False))
                 elements.append(u_table)
             else:

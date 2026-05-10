@@ -28,10 +28,10 @@ def print_menu():
     print(">>> SELECT YOUR PREFERRED INTERFACE")
     print("-"*50)
     print("1. [T] Terminal Interface (Console-based)")
-    print("   + Classic command-line interface")
-    print("   + Direct keyboard interaction")
-    print("   + Cyberpunk-style terminal UI")
-    print("   + Best for keyboard-focused users")
+    print("   + Enhanced terminal UI (mouse + keyboard)")
+    print("   + Stylish visual dashboard and controls")
+    print("   + Includes optional keyboard-only stylish mode")
+    print("   + Best for local operation and fast workflows")
     print()
     print("2. [W] Web Interface (Browser-based)")
     print("   + Modern graphical user interface")
@@ -67,7 +67,7 @@ def update_system():
 
 def launch_terminal_interface():
     """Launch the terminal interface"""
-    print("\n[START] Launching Terminal Interface (enhanced if available)...")
+    print("\n[START] Launching Enhanced Terminal Interface...")
     print("[INFO] Use mouse or keyboard to interact with enhanced console if supported")
     print("[INFO] Use Ctrl+C to stop any running operation")
     print("\n" + "-"*50)
@@ -75,6 +75,15 @@ def launch_terminal_interface():
         # Use the enhanced interactive UI with mouse support
         from src.utils import interactive_ui
         interactive_ui.launch_interactive()
+    except ModuleNotFoundError as e:
+        # Do not fall back to classic mode; keep UI style consistent.
+        missing_module = getattr(e, "name", "") or str(e)
+        if "prompt_toolkit" in missing_module:
+            print("\n[WARN] Enhanced console dependency is missing: prompt_toolkit")
+            print("[INFO] Install it with: pip install prompt-toolkit")
+            print("[INFO] Enhanced interface launch canceled. Please install dependency and retry.")
+        else:
+            print(f"\n[ERROR] Missing dependency: {e}")
     except KeyboardInterrupt:
         print("\n[WARN] Terminal interface interrupted by user")
     except Exception as e:
