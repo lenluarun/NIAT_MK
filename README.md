@@ -158,12 +158,23 @@ run.bat
 python launcher.py
 ```
 
-### Direct Commands (Alternative)
+### Direct Commands (Web Interface Only)
 
-If you prefer to run interfaces directly:
+If you prefer to run the web interface directly without the launcher menu:
 
-- **Terminal Interface**: `python main.py`
 - **Web Interface**: `python web_app.py`
+
+### Important: Entry Points
+
+⚠️ **DO NOT run `python main.py` directly** - This is no longer a standalone interface.
+
+The **launcher.py** is the single unified entry point for the E2C system:
+- Terminal Interface (Professional E2C UI)
+- Web Interface (Browser-based)
+- System Updates
+- Settings and Configuration
+
+See `ENTRY_POINTS.md` for detailed documentation.
 
 ### Basic Workflow
 

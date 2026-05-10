@@ -1,10 +1,11 @@
 @echo off
 echo ================================================
-echo SMART FACE RECOGNITION ATTENDANCE SYSTEM
+echo E2C FACE RECOGNITION & ATTENDANCE SYSTEM
 echo    Completely Offline ^| Real-time Processing
+echo    Powered by E2C TEAM
 echo ================================================
 echo.
-echo Starting launcher...
+echo [INFO] Initializing E2C Control Center...
 echo.
 python launcher.py
 pause
