@@ -72,13 +72,9 @@ def launch_terminal_interface():
     print("[INFO] Use Ctrl+C to stop any running operation")
     print("\n" + "-"*50)
     try:
-        # Try to use the enhanced interactive UI with mouse support
-        try:
-            from src.utils import interactive_ui
-            interactive_ui.launch_interactive()
-        except Exception:
-            # Fallback to legacy main.py launcher
-            subprocess.run([sys.executable, "main.py"], cwd=os.path.dirname(__file__))
+        # Use the enhanced interactive UI with mouse support
+        from src.utils import interactive_ui
+        interactive_ui.launch_interactive()
     except KeyboardInterrupt:
         print("\n[WARN] Terminal interface interrupted by user")
     except Exception as e:

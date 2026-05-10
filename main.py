@@ -611,15 +611,6 @@ def system_settings_menu():
 
 
 if __name__ == "__main__":
-    try:
-        configure_console_encoding()
-        init_system()
-        main_menu()
-    except KeyboardInterrupt:
-        print(f"\n\n{warning('⚠')} System interrupted by user.")
-        print(f"{info('═')} Powered by E2C TEAM {info('═')}\n")
-        sys.exit(0)
-    except Exception as e:
-        print(error(f"\n✗ An error occurred: {e}"))
-        print(f"{info('═')} Powered by E2C TEAM {info('═')}\n")
-        sys.exit(1)
+    print("This module should be run via the launcher: python launcher.py")
+    print("Please use 'python launcher.py' to start the system.")
+
