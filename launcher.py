@@ -8,6 +8,7 @@ import os
 import sys
 import subprocess
 import time
+import importlib.util
 
 from src.core.updater import update_system_from_github
 
@@ -72,18 +73,34 @@ def launch_terminal_interface():
     print("[INFO] Use Ctrl+C to stop any running operation")
     print("\n" + "-"*50)
     try:
-        # Use the enhanced interactive UI with mouse support
+        if importlib.util.find_spec("prompt_toolkit") is None:
+            print("\n[WARN] Enhanced console dependency is missing: prompt_toolkit")
+            print("[INFO] You can install all project dependencies automatically.")
+            install_choice = input("[PROMPT] Install all dependencies now? (Y/n): ").strip().lower()
+
+            if install_choice in ("", "y", "yes"):
+                print("\n[SETUP] Installing dependencies from requirements.txt...")
+                install_result = subprocess.run(
+                    [sys.executable, "-m", "pip", "install", "-r", "requirements.txt"],
+                    cwd=os.path.dirname(__file__),
+                    check=False,
+                )
+
+                if install_result.returncode == 0:
+                    print("[OK] Dependencies installed successfully.")
+                    print("[INFO] Continuing with terminal interface...")
+                else:
+                    print("[WARN] Automatic dependency installation failed.")
+                    print("[INFO] Continuing in keyboard stylish mode without prompt_toolkit.")
+            else:
+                print("[INFO] Continuing in keyboard stylish mode without prompt_toolkit.")
+
+        # Launch interactive UI. It will automatically use mouse dialogs
+        # when prompt_toolkit is available, otherwise keyboard fallback.
         from src.utils import interactive_ui
         interactive_ui.launch_interactive()
     except ModuleNotFoundError as e:
-        # Do not fall back to classic mode; keep UI style consistent.
-        missing_module = getattr(e, "name", "") or str(e)
-        if "prompt_toolkit" in missing_module:
-            print("\n[WARN] Enhanced console dependency is missing: prompt_toolkit")
-            print("[INFO] Install it with: pip install prompt-toolkit")
-            print("[INFO] Enhanced interface launch canceled. Please install dependency and retry.")
-        else:
-            print(f"\n[ERROR] Missing dependency: {e}")
+        print(f"\n[ERROR] Missing dependency: {e}")
     except KeyboardInterrupt:
         print("\n[WARN] Terminal interface interrupted by user")
     except Exception as e:

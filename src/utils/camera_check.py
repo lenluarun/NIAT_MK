@@ -39,7 +39,7 @@ def camer(camera_index=0):
             cv2.imshow('Webcam Check', img)
 
             # Stop if 'q' key is pressed
-            if cv2.waitKey(1) & 0xFF == ord('q'):
+            if cv2.waitKey(1) & 0xFF == ord('q' or 'Q'):
                 break
     except KeyboardInterrupt:
         print("\n⚠ Camera check interrupted by user (Ctrl+C).")

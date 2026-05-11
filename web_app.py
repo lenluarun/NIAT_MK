@@ -7,9 +7,15 @@ import os
 import sys
 import threading
 import time
-from flask import Flask, render_template, request, jsonify
+import csv
+from flask import Flask, render_template, request, jsonify, send_from_directory
 from flask_cors import CORS
 import json
+
+from reportlab.lib import colors as pdf_colors
+from reportlab.lib.pagesizes import letter
+from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.platypus import SimpleDocTemplate, Spacer, Table, TableStyle, Paragraph
 
 # Must run before any module imports cv2 (stabilizes MSMF on Windows setups).
 if os.name == "nt":
@@ -51,12 +57,185 @@ CORS(app)
 
 # Global operation status
 current_operation = {"status": "idle", "message": "", "progress": 0}
+last_recognition_result = {"marked": False, "student_id": None, "student_name": None, "message": ""}
 
 def emit_status(message, progress=0, status="running"):
     """Update status for polling"""
     current_operation["status"] = status
     current_operation["message"] = message
     current_operation["progress"] = progress
+
+
+def _attendance_directory():
+    if not storage_paths:
+        return None
+    return storage_paths.get('Attendance') or storage_paths.get('AttendanceRecords')
+
+
+def _attendance_files():
+    attendance_dir = _attendance_directory()
+    if not attendance_dir or not os.path.exists(attendance_dir):
+        return []
+    return sorted([f for f in os.listdir(attendance_dir) if f.lower().endswith('.csv')], reverse=True)
+
+
+def _read_attendance_csv(file_name):
+    attendance_dir = _attendance_directory()
+    if not attendance_dir:
+        return None
+
+    file_path = os.path.join(attendance_dir, file_name)
+    if not os.path.exists(file_path):
+        return None
+
+    records = []
+    with open(file_path, 'r', newline='', encoding='utf-8') as file_handle:
+        reader = csv.reader(file_handle)
+        next(reader, None)
+        for row in reader:
+            if not row or len(row) < 4:
+                continue
+            if len(row) >= 5:
+                student_id, name, email, date_value, time_value = row[:5]
+            else:
+                student_id, name, date_value, time_value = row[:4]
+                email = ''
+            records.append({
+                'student_id': str(student_id).strip().lstrip('0'),
+                'name': str(name).strip(),
+                'email': str(email).strip(),
+                'date': str(date_value).strip(),
+                'time': str(time_value).strip(),
+            })
+
+    all_students = data_manager.get_all_students() if data_manager else []
+    marked_ids = {record['student_id'] for record in records}
+    present_students = [record for record in records]
+    absent_students = [
+        student for student in all_students
+        if str(student.get('id', '')).strip().lstrip('0') not in marked_ids
+    ]
+
+    return {
+        'file_name': file_name,
+        'file_path': file_path,
+        'date': file_name.replace('Attendance_', '').replace('.csv', ''),
+        'total_students': len(all_students),
+        'present_count': len(present_students),
+        'absent_count': len(absent_students),
+        'records': present_students,
+        'absent_students': absent_students,
+    }
+
+
+def _recognition_snapshot():
+    files = _attendance_files()
+    if not files:
+        return {'file_name': None, 'record_count': 0, 'last_record': None}
+
+    latest = _read_attendance_csv(files[0])
+    if not latest:
+        return {'file_name': None, 'record_count': 0, 'last_record': None}
+
+    return {
+        'file_name': latest['file_name'],
+        'record_count': latest['present_count'],
+        'last_record': latest['records'][-1] if latest['records'] else None,
+    }
+
+
+def _build_recognition_result(before_snapshot):
+    after_snapshot = _recognition_snapshot()
+    if after_snapshot['record_count'] > before_snapshot.get('record_count', 0) and after_snapshot.get('last_record'):
+        record = after_snapshot['last_record']
+        return {
+            'marked': True,
+            'student_id': record.get('student_id'),
+            'student_name': record.get('name'),
+            'message': f"Recognized and marked: {record.get('name')} ({record.get('student_id')})",
+        }
+
+    return {
+        'marked': False,
+        'student_id': None,
+        'student_name': None,
+        'message': 'No user recognized or attendance was not marked.',
+    }
+
+
+def _export_attendance_pdf_file(report_data):
+    attendance_dir = _attendance_directory()
+    if not attendance_dir:
+        raise FileNotFoundError('Attendance directory is not available')
+
+    pdf_name = report_data['file_name'].replace('.csv', '_Report.pdf')
+    pdf_path = os.path.join(attendance_dir, pdf_name)
+    doc = SimpleDocTemplate(pdf_path, pagesize=letter, rightMargin=36, leftMargin=36, topMargin=36, bottomMargin=36)
+    styles = getSampleStyleSheet()
+    elements = []
+
+    title_style = styles['Heading1']
+    title_style.alignment = 1
+    title_style.textColor = pdf_colors.HexColor('#1D4ED8')
+    elements.append(Paragraph('SMART ATTENDANCE REPORT', title_style))
+    elements.append(Spacer(1, 12))
+    elements.append(Paragraph(f"Session: {report_data['file_name']}", styles['Normal']))
+    elements.append(Paragraph(f"Present: {report_data['present_count']} | Absent: {report_data['absent_count']} | Total: {report_data['total_students']}", styles['Normal']))
+    elements.append(Spacer(1, 16))
+
+    summary_table = Table([
+        ['Session', 'Present', 'Absent', 'Total'],
+        [report_data['file_name'], str(report_data['present_count']), str(report_data['absent_count']), str(report_data['total_students'])]
+    ], colWidths=[220, 80, 80, 80])
+    summary_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), pdf_colors.HexColor('#2563EB')),
+        ('TEXTCOLOR', (0, 0), (-1, 0), pdf_colors.white),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('GRID', (0, 0), (-1, -1), 0.5, pdf_colors.HexColor('#CBD5E1')),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 10),
+        ('TOPPADDING', (0, 0), (-1, 0), 10),
+    ]))
+    elements.append(summary_table)
+    elements.append(Spacer(1, 18))
+
+    if report_data['records']:
+        present_rows = [['ID', 'Name', 'Email', 'Time']]
+        for record in report_data['records']:
+            present_rows.append([record['student_id'], record['name'], record['email'] or '-', record['time'] or '-'])
+        present_table = Table(present_rows, colWidths=[80, 180, 180, 70])
+        present_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), pdf_colors.HexColor('#16A34A')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), pdf_colors.white),
+            ('GRID', (0, 0), (-1, -1), 0.5, pdf_colors.HexColor('#CBD5E1')),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [pdf_colors.white, pdf_colors.HexColor('#F8FAFC')]),
+        ]))
+        elements.append(Paragraph('Present Students', styles['Heading2']))
+        elements.append(present_table)
+        elements.append(Spacer(1, 16))
+
+    if report_data['absent_students']:
+        absent_rows = [['ID', 'Name', 'Email']]
+        for student in report_data['absent_students']:
+            absent_rows.append([
+                str(student.get('id', '')),
+                str(student.get('name', '')),
+                str(student.get('email', '')) or '-',
+            ])
+        absent_table = Table(absent_rows, colWidths=[80, 210, 170])
+        absent_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), pdf_colors.HexColor('#DC2626')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), pdf_colors.white),
+            ('GRID', (0, 0), (-1, -1), 0.5, pdf_colors.HexColor('#CBD5E1')),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [pdf_colors.white, pdf_colors.HexColor('#FEF2F2')]),
+        ]))
+        elements.append(Paragraph('Absent Students', styles['Heading2']))
+        elements.append(absent_table)
+
+    doc.build(elements)
+    return pdf_path
 
 def init_system():
     """Initialize the system and set up storage"""
@@ -182,8 +361,10 @@ def recognize_attendance():
 
     try:
         emit_status("Starting attendance recognition...", 0)
+        before_snapshot = _recognition_snapshot()
 
         def run_recognition():
+            global last_recognition_result
             try:
                 recognize.recognize_attendence(
                     storage_paths,
@@ -192,7 +373,8 @@ def recognize_attendance():
                     pass_mark=app_settings['recognition_pass_mark'],
                     fast_mode=(app_settings.get("recognition_mode", "fast") == "fast")
                 )
-                emit_status("Recognition completed!", 100, "success")
+                last_recognition_result = _build_recognition_result(before_snapshot)
+                emit_status(last_recognition_result['message'], 100, "success")
             except Exception as e:
                 emit_status(f"Recognition failed: {str(e)}", 0, "error")
 
@@ -229,18 +411,154 @@ def add_student():
     """Add a new student"""
     try:
         data = request.json
-        student_id = data.get('student_id')
-        name = data.get('name')
+        student_id = str(data.get('student_id', '')).strip()
+        name = str(data.get('name', '')).strip()
+        email = str(data.get('email', '')).strip()
 
         if not student_id or not name:
             return jsonify({"status": "error", "message": "Student ID and name required"}), 400
 
-        # Add student logic here
-        # This would need to be implemented based on data_manager methods
+        if not data_manager:
+            return jsonify({"status": "error", "message": "Student database is not available"}), 500
+
+        if data_manager.student_exists(student_id):
+            return jsonify({"status": "error", "message": f"Student ID {student_id} already exists"}), 409
+
+        if not data_manager.add_student(student_id, name, email):
+            return jsonify({"status": "error", "message": "Failed to add student"}), 500
+
         emit_status(f"Added student: {name} (ID: {student_id})", 100, "success")
+        return jsonify({"status": "success", "student": {"student_id": student_id, "name": name, "email": email}})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+@app.route('/api/data/delete_student/<student_id>', methods=['POST'])
+def delete_student(student_id):
+    """Delete a student record."""
+    try:
+        if not data_manager:
+            return jsonify({"status": "error", "message": "Student database is not available"}), 500
+
+        if not data_manager.delete_student(student_id):
+            return jsonify({"status": "error", "message": f"Student ID {student_id} not found"}), 404
+
+        emit_status(f"Deleted student: {student_id}", 100, "success")
         return jsonify({"status": "success"})
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
+
+
+@app.route('/api/reports/summary')
+def reports_summary():
+    """Return a simple reports overview for the dashboard."""
+    try:
+        attendance_files = []
+        report_files = []
+
+        if storage_paths:
+            attendance_dir = storage_paths.get('Attendance') or storage_paths.get('AttendanceRecords')
+            reports_dir = storage_paths.get('Reports')
+
+            if attendance_dir and os.path.exists(attendance_dir):
+                for file_name in sorted(os.listdir(attendance_dir), reverse=True):
+                    if file_name.lower().endswith('.csv'):
+                        file_path = os.path.join(attendance_dir, file_name)
+                        attendance_files.append({
+                            'name': file_name,
+                            'path': file_path,
+                            'size': os.path.getsize(file_path),
+                        })
+
+            if reports_dir and os.path.exists(reports_dir):
+                for file_name in sorted(os.listdir(reports_dir), reverse=True):
+                    if file_name.lower().endswith(('.txt', '.csv', '.pdf')):
+                        file_path = os.path.join(reports_dir, file_name)
+                        report_files.append({
+                            'name': file_name,
+                            'path': file_path,
+                            'size': os.path.getsize(file_path),
+                        })
+
+        summary = {
+            'students': len(data_manager.get_all_students()) if data_manager else 0,
+            'attendance_files': len(attendance_files),
+            'report_files': len(report_files),
+            'latest_attendance': attendance_files[0] if attendance_files else None,
+            'latest_report': report_files[0] if report_files else None,
+            'attendance_files_list': attendance_files[:10],
+            'report_files_list': report_files[:10],
+        }
+
+        return jsonify(summary)
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+@app.route('/api/reports/files')
+def reports_files():
+    """List attendance reports available in the dashboard."""
+    try:
+        reports = []
+        for file_name in _attendance_files():
+            report_data = _read_attendance_csv(file_name)
+            if report_data:
+                reports.append({
+                    'file_name': report_data['file_name'],
+                    'date': report_data['date'],
+                    'present_count': report_data['present_count'],
+                    'absent_count': report_data['absent_count'],
+                    'total_students': report_data['total_students'],
+                })
+        return jsonify({'reports': reports})
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+
+@app.route('/api/reports/view/<path:report_name>')
+def view_report(report_name):
+    """Return a detailed attendance report for browser rendering."""
+    try:
+        report_data = _read_attendance_csv(report_name)
+        if not report_data:
+            return jsonify({'status': 'error', 'message': 'Report not found'}), 404
+
+        return jsonify({'status': 'success', 'report': report_data})
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+
+@app.route('/api/reports/export/<path:report_name>', methods=['POST'])
+def export_report(report_name):
+    """Export the selected attendance report to PDF."""
+    try:
+        report_data = _read_attendance_csv(report_name)
+        if not report_data:
+            return jsonify({'status': 'error', 'message': 'Report not found'}), 404
+
+        pdf_path = _export_attendance_pdf_file(report_data)
+        pdf_name = os.path.basename(pdf_path)
+        return jsonify({
+            'status': 'success',
+            'pdf_name': pdf_name,
+            'download_url': f'/api/reports/download/{pdf_name}',
+        })
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+
+@app.route('/api/reports/download/<path:pdf_name>')
+def download_report(pdf_name):
+    """Download a generated report PDF."""
+    attendance_dir = _attendance_directory()
+    if not attendance_dir:
+        return jsonify({'status': 'error', 'message': 'Attendance directory is not available'}), 500
+
+    pdf_path = os.path.join(attendance_dir, pdf_name)
+    if not os.path.exists(pdf_path):
+        return jsonify({'status': 'error', 'message': 'PDF not found'}), 404
+
+    return send_from_directory(attendance_dir, pdf_name, as_attachment=True)
 
 @app.route('/api/settings', methods=['GET', 'POST'])
 def settings():

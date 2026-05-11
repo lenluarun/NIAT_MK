@@ -208,7 +208,7 @@ def train_images_option(return_to_menu=True):
     """Train images option"""
     try:
         print_separator("═", 60, app_settings.get("ui_theme", "neon"))
-        print(info("🔥 Starting image training process..."))
+        print(info(" Starting image training process..."))
         show_spinner("Analyzing training images...", 1, app_settings.get("ui_theme", "neon"))
         train_image.TrainImages(storage_paths)
         print(success("✓ Training completed successfully!"))

@@ -27,10 +27,34 @@ for stream in (sys.stdout, sys.stderr):
         # Some execution environments may not allow stream reconfiguration.
         pass
 
-from prompt_toolkit.shortcuts import button_dialog, input_dialog, message_dialog
+try:
+    from prompt_toolkit.shortcuts import button_dialog, input_dialog, message_dialog
+    PROMPT_TOOLKIT_AVAILABLE = True
+except Exception:
+    PROMPT_TOOLKIT_AVAILABLE = False
 
 from .ui import render_banner, render_symbol_wall, print_separator
 from .colors import Colors, colored
+
+
+def _enable_auto_stylish_console():
+    """Best-effort fullscreen/maximized console setup for stylish mode."""
+    if os.name != "nt":
+        return
+
+    try:
+        os.system("mode con cols=140 lines=42")
+    except Exception:
+        pass
+
+    try:
+        import ctypes
+        console = ctypes.windll.kernel32.GetConsoleWindow()
+        if console:
+            # 3 = SW_MAXIMIZE
+            ctypes.windll.user32.ShowWindow(console, 3)
+    except Exception:
+        pass
 
 
 def _import_main_module():
@@ -42,26 +66,27 @@ def _import_main_module():
 
 def _render_e2c_header():
     """Render professional E2C header with animations."""
+    _enable_auto_stylish_console()
     os.system("cls")
 
     e2c_logo = [
         "",
         colored("╔═══════════════════════════════════════════════════════════════════════════════╗", Colors.BRIGHT_CYAN),
         colored("║                                                                               ║", Colors.BRIGHT_CYAN),
-        colored("║   ███████╗██████╗  ██████╗      ██████╗ ███████╗███████╗██╗   ██╗███████╗ ║", Colors.BRIGHT_GREEN),
-        colored("║   ██╔════╝╚════██╗██╔════╝      ╚════██╗██╔════╝██╔════╝╚██╗ ██╔╝██╔════╝ ║", Colors.BRIGHT_CYAN),
-        colored("║   █████╗   █████╔╝██║               ██╔╝███████╗█████╗   ╚████╔╝ ███████╗ ║", Colors.BRIGHT_YELLOW),
-        colored("║   ██╔══╝  ██╔═══╝ ██║            ██╔════╝██╔════╝██╔══╝    ╚██╔╝  ╚════██║ ║", Colors.BRIGHT_MAGENTA),
-        colored("║   ███████╗███████╗╚██████╗    ███████╗███████╗███████╗    ██║   ███████║ ║", Colors.BRIGHT_RED),
-        colored("║   ╚══════╝╚══════╝ ╚═════╝    ╚══════╝╚══════╝╚══════╝    ╚═╝   ╚══════╝ ║", Colors.BRIGHT_GREEN),
+        colored("║   ███████╗██████╗  ██████╗      ██████╗ ███████╗███████╗██╗   ██╗███████╗     ║", Colors.BRIGHT_GREEN),
+        colored("║   ██╔════╝╚════██╗██╔════╝      ╚════██╗██╔════╝██╔════╝╚██╗ ██╔╝██╔════╝     ║", Colors.BRIGHT_CYAN),
+        colored("║   █████╗   █████╔╝██║               ██╔╝███████╗█████╗   ╚████╔╝ ███████╗     ║", Colors.BRIGHT_YELLOW),
+        colored("║   ██╔══╝  ██╔═══╝ ██║            ██╔════╝██╔════╝██╔══╝    ╚██╔╝  ╚════██     ║", Colors.BRIGHT_MAGENTA),
+        colored("║   ███████╗███████╗╚██████╗    ███████╗███████╗███████╗    ██║   ███████║      ║", Colors.BRIGHT_RED),
+        colored("║   ╚══════╝╚══════╝ ╚═════╝    ╚══════╝╚══════╝╚══════╝    ╚═╝   ╚══════╝      ║", Colors.BRIGHT_GREEN),
         colored("║                                                                               ║", Colors.BRIGHT_CYAN),
         colored("╠═══════════════════════════════════════════════════════════════════════════════╣", Colors.BRIGHT_CYAN),
         colored("║                                                                               ║", Colors.BRIGHT_CYAN),
         colored("║  ◆ INTELLIGENT FACE RECOGNITION & ATTENDANCE MANAGEMENT SYSTEM ◆             ║", Colors.BRIGHT_YELLOW),
-        colored("║  ├─ Powered by Advanced Deep Learning                                        ║", Colors.BRIGHT_WHITE),
-        colored("║  ├─ Real-time Multi-face Detection & Recognition                             ║", Colors.BRIGHT_WHITE),
-        colored("║  ├─ Enterprise-Grade Offline Architecture                                    ║", Colors.BRIGHT_WHITE),
-        colored("║  └─ E2C Command Control Center                                               ║", Colors.BRIGHT_WHITE),
+        colored("║  ├─ Powered by Advanced Deep Learning                                         ║", Colors.BRIGHT_WHITE),
+        colored("║  ├─ Real-time Multi-face Detection & Recognition                              ║", Colors.BRIGHT_WHITE),
+        colored("║  ├─ Enterprise-Grade Offline Architecture                                     ║", Colors.BRIGHT_WHITE),
+        colored("║  └─ E2C Command Control Center                                                ║", Colors.BRIGHT_WHITE),
         colored("║                                                                               ║", Colors.BRIGHT_CYAN),
         colored("╚═══════════════════════════════════════════════════════════════════════════════╝", Colors.BRIGHT_CYAN),
         ""
@@ -75,18 +100,18 @@ def _render_e2c_banner():
     """Render dynamic E2C banner with system status."""
     banner = [
         colored("┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓", Colors.BRIGHT_GREEN),
-        colored("┃                       E2C COMMAND CENTER ACTIVATED                        ┃", Colors.BRIGHT_GREEN),
+        colored("┃                       E2C COMMAND CENTER ACTIVATED                     ┃", Colors.BRIGHT_GREEN),
         colored("┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫", Colors.BRIGHT_GREEN),
-        colored("┃  ► STATUS: ONLINE  │ ◄ MODE: INTERACTIVE  │ ◆ ENCRYPTION: ACTIVE        ┃", Colors.BRIGHT_CYAN),
-        colored("┃  ► VERSION: E2C v1.0  │ ► THEME: PROFESSIONAL ENTERPRISE                  ┃", Colors.BRIGHT_CYAN),
+        colored("┃  ► STATUS: ONLINE  │ ◄ MODE: INTERACTIVE  │  ENCRYPTION : ACTIVE       ┃", Colors.BRIGHT_CYAN),
+        colored("┃  ► VERSION: E2C v1.0  │ ► THEME: PROFESSIONAL ENTERPRISE               ┃", Colors.BRIGHT_CYAN),
         colored("┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫", Colors.BRIGHT_GREEN),
-        colored("┃                                                                              ┃", Colors.BRIGHT_GREEN),
-        colored("┃  ✓ NEURAL ENGINE:      INITIALIZED                                          ┃", Colors.BRIGHT_WHITE),
-        colored("┃  ✓ CAMERA INTERFACE:   READY                                                ┃", Colors.BRIGHT_WHITE),
-        colored("┃  ✓ RECOGNITION MODEL:  LOADED                                               ┃", Colors.BRIGHT_WHITE),
-        colored("┃  ✓ DATABASE ENGINE:    CONNECTED                                            ┃", Colors.BRIGHT_WHITE),
-        colored("┃  ✓ ATTENDANCE LEDGER:  LIVE                                                 ┃", Colors.BRIGHT_WHITE),
-        colored("┃                                                                              ┃", Colors.BRIGHT_GREEN),
+        colored("┃                                                                        ┃", Colors.BRIGHT_GREEN),
+        colored("┃   NEURAL ENGINE        : INITIALIZED                                   ┃", Colors.BRIGHT_WHITE),
+        colored("┃   CAMERA INTERFACE     : READY                                         ┃", Colors.BRIGHT_WHITE),
+        colored("┃   RECOGNITION MODEL    : LOADED                                        ┃", Colors.BRIGHT_WHITE),
+        colored("┃   DATABASE ENGINE      : CONNECTED                                     ┃", Colors.BRIGHT_WHITE),
+        colored("┃   ATTENDANCE LEDGER    : LIVE                                          ┃", Colors.BRIGHT_WHITE),
+        colored("┃                                                                        ┃", Colors.BRIGHT_GREEN),
         colored("┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛", Colors.BRIGHT_GREEN),
     ]
 
@@ -98,33 +123,33 @@ def _render_menu_options():
     """Render professional menu with styled options."""
     menu = [
         colored("┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓", Colors.BRIGHT_CYAN),
-        colored("┃                        SELECT OPERATION MODULE                            ┃", Colors.BRIGHT_CYAN),
+        colored("┃                        SELECT OPERATION MODULE                         ┃", Colors.BRIGHT_CYAN),
         colored("┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫", Colors.BRIGHT_CYAN),
-        colored("┃                                                                              ┃", Colors.BRIGHT_CYAN),
-        colored("┃  [1] ◎ CAMERA DIAGNOSTIC MODULE                                             ┃", Colors.BRIGHT_WHITE),
-        colored("┃       └─ Verify hardware connectivity & calibration                         ┃", Colors.BRIGHT_YELLOW),
-        colored("┃                                                                              ┃", Colors.BRIGHT_CYAN),
-        colored("┃  [2] ◉ FACE CAPTURE ENGINE                                                  ┃", Colors.BRIGHT_WHITE),
-        colored("┃       └─ Acquire & register new face profiles                               ┃", Colors.BRIGHT_YELLOW),
-        colored("┃                                                                              ┃", Colors.BRIGHT_CYAN),
-        colored("┃  [3] ◈ NEURAL TRAINING MODULE                                               ┃", Colors.BRIGHT_WHITE),
-        colored("┃       └─ Optimize recognition model with training dataset                   ┃", Colors.BRIGHT_YELLOW),
-        colored("┃                                                                              ┃", Colors.BRIGHT_CYAN),
-        colored("┃  [4] ✦ REAL-TIME RECOGNITION DAEMON                                         ┃", Colors.BRIGHT_WHITE),
-        colored("┃       └─ Activate facial recognition & auto-attendance logging               ┃", Colors.BRIGHT_YELLOW),
-        colored("┃                                                                              ┃", Colors.BRIGHT_CYAN),
-        colored("┃  [5] 📊 DATA ANALYTICS & REPORTING CONSOLE                                  ┃", Colors.BRIGHT_WHITE),
-        colored("┃       └─ Generate reports & manage attendance database                      ┃", Colors.BRIGHT_YELLOW),
-        colored("┃                                                                              ┃", Colors.BRIGHT_CYAN),
-        colored("┃  [6] ⚙ SYSTEM CONFIGURATION PANEL                                            ┃", Colors.BRIGHT_WHITE),
-        colored("┃       └─ Tune parameters & manage system preferences                         ┃", Colors.BRIGHT_YELLOW),
-        colored("┃                                                                              ┃", Colors.BRIGHT_CYAN),
-        colored("┃  [7] ↹ NORMAL STYLISH TERMINAL                                               ┃", Colors.BRIGHT_WHITE),
-        colored("┃       └─ Switch to keyboard command interface                               ┃", Colors.BRIGHT_YELLOW),
-        colored("┃                                                                              ┃", Colors.BRIGHT_CYAN),
-        colored("┃  [0] ⟳ EXIT E2C CONTROL CENTER                                              ┃", Colors.BRIGHT_RED),
-        colored("┃       └─ Shutdown all services & close interface                             ┃", Colors.BRIGHT_RED),
-        colored("┃                                                                              ┃", Colors.BRIGHT_CYAN),
+        colored("┃                                                                        ┃", Colors.BRIGHT_CYAN),
+        colored("┃  [1]   CAMERA DIAGNOSTIC MODULE                                        ┃", Colors.BRIGHT_WHITE),
+        colored("┃       └─ Verify hardware connectivity & calibration                    ┃", Colors.BRIGHT_YELLOW),
+        colored("┃                                                                        ┃", Colors.BRIGHT_CYAN),
+        colored("┃  [2]   FACE CAPTURE ENGINE                                             ┃", Colors.BRIGHT_WHITE),
+        colored("┃       └─ Acquire & register new face profiles                          ┃", Colors.BRIGHT_YELLOW),
+        colored("┃                                                                        ┃", Colors.BRIGHT_CYAN),
+        colored("┃  [3]   NEURAL TRAINING MODULE                                          ┃", Colors.BRIGHT_WHITE),
+        colored("┃       └─ Optimize recognition model with training dataset              ┃", Colors.BRIGHT_YELLOW),
+        colored("┃                                                                        ┃", Colors.BRIGHT_CYAN),
+        colored("┃  [4]   REAL-TIME RECOGNITION DAEMON                                    ┃", Colors.BRIGHT_WHITE),
+        colored("┃       └─ Activate facial recognition & auto-attendance logging         ┃", Colors.BRIGHT_YELLOW),
+        colored("┃                                                                        ┃", Colors.BRIGHT_CYAN),
+        colored("┃  [5]    DATA ANALYTICS & REPORTING CONSOLE                             ┃", Colors.BRIGHT_WHITE),
+        colored("┃       └─ Generate reports & manage attendance database                 ┃", Colors.BRIGHT_YELLOW),
+        colored("┃                                                                        ┃", Colors.BRIGHT_CYAN),
+        colored("┃  [6]   SYSTEM CONFIGURATION PANEL                                      ┃", Colors.BRIGHT_WHITE),
+        colored("┃       └─ Tune parameters & manage system preferences                   ┃", Colors.BRIGHT_YELLOW),
+        colored("┃                                                                        ┃", Colors.BRIGHT_CYAN),
+        colored("┃  [7]   NORMAL STYLISH TERMINAL                                         ┃", Colors.BRIGHT_BLUE),
+        colored("┃       └─ Switch to keyboard command interface                          ┃", Colors.BRIGHT_YELLOW),
+        colored("┃                                                                        ┃", Colors.BRIGHT_CYAN),
+        colored("┃  [0]  EXIT E2C CONTROL CENTER                                          ┃", Colors.BRIGHT_RED),
+        colored("┃       └─ Shutdown all services & close interface                       ┃", Colors.BRIGHT_RED),
+        colored("┃                                                                        ┃", Colors.BRIGHT_CYAN),
         colored("┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛", Colors.BRIGHT_CYAN),
     ]
 
@@ -132,8 +157,60 @@ def _render_menu_options():
         print(line)
 
 
+def _text_message(title: str, text: str):
+    """Display a message using prompt toolkit when available, otherwise plain terminal."""
+    if PROMPT_TOOLKIT_AVAILABLE:
+        message_dialog(title=title, text=text).run()
+        return
+
+    print(f"\n[{title}] {text}")
+    input("Press ENTER to continue...")
+
+
+def _text_input(title: str, prompt: str, default: str = "") -> Optional[str]:
+    """Get text input using dialog when available, otherwise plain input prompt."""
+    if PROMPT_TOOLKIT_AVAILABLE:
+        result = input_dialog(title=title, text=prompt, default=default).run()
+        return result
+
+    prompt_line = f"[{title}] {prompt}"
+    if default:
+        prompt_line += f" (default: {default})"
+    prompt_line += ": "
+
+    value = input(prompt_line).strip()
+    if not value:
+        return default
+    return value
+
+
+def _text_choice(title: str, text: str, buttons):
+    """Choose an option with mouse dialog when available, otherwise keyboard menu."""
+    if PROMPT_TOOLKIT_AVAILABLE:
+        return button_dialog(title=title, text=text, buttons=buttons).run()
+
+    print("\n" + "=" * 72)
+    print(title)
+    print("=" * 72)
+    if text:
+        print(text)
+        print("-" * 72)
+
+    key_map = {}
+    for idx, (label, value) in enumerate(buttons, start=1):
+        key = str(idx)
+        key_map[key] = value
+        print(f"{key}. {label}")
+
+    while True:
+        choice = input("Select option: ").strip()
+        if choice in key_map:
+            return key_map[choice]
+        print("Invalid selection. Please choose a listed option.")
+
+
 def _prompt_text(title: str, prompt: str, default: str = "") -> Optional[str]:
-    result = input_dialog(title=title, text=prompt, default=default).run()
+    result = _text_input(title=title, prompt=prompt, default=default)
     if result is None:
         return None
     return result.strip()
@@ -168,7 +245,7 @@ def _show_settings_snapshot(main_mod):
 def _add_student_detail(main_mod):
     data_manager = getattr(main_mod, "data_manager", None)
     if not data_manager:
-        message_dialog(title="Add Student", text="Student database is not available yet.").run()
+        _text_message("Add Student", "Student database is not available yet.")
         return
 
     student_id = _prompt_text("Add Student", "Enter student ID:")
@@ -182,22 +259,22 @@ def _add_student_detail(main_mod):
     email = _prompt_text("Add Student", "Enter email or phone (optional):", "") or ""
 
     if not student_id.isdigit():
-        message_dialog(title="Add Student", text="Student ID must be numeric.").run()
+        _text_message("Add Student", "Student ID must be numeric.")
         return
 
     if not name.replace(" ", "").isalpha():
-        message_dialog(title="Add Student", text="Student name must contain only letters and spaces.").run()
+        _text_message("Add Student", "Student name must contain only letters and spaces.")
         return
 
     if data_manager.student_exists(student_id):
-        message_dialog(title="Add Student", text=f"Student ID {student_id} already exists.").run()
+        _text_message("Add Student", f"Student ID {student_id} already exists.")
         return
 
     success = data_manager.add_student(student_id, name, email)
     if success:
-        message_dialog(title="Add Student", text=f"Student added: {name} ({student_id})").run()
+        _text_message("Add Student", f"Student added: {name} ({student_id})")
     else:
-        message_dialog(title="Add Student", text="Failed to add student.").run()
+        _text_message("Add Student", "Failed to add student.")
 
 
 def _change_setting_value(main_mod, key, title, prompt, parser=None):
@@ -210,15 +287,15 @@ def _change_setting_value(main_mod, key, title, prompt, parser=None):
     try:
         value = parser(value_text) if parser else value_text
         _save_setting(main_mod, key, value)
-        message_dialog(title=title, text=f"Updated {key} to {value}.").run()
+        _text_message(title, f"Updated {key} to {value}.")
     except Exception as exc:
-        message_dialog(title=title, text=f"Could not update {key}: {exc}").run()
+        _text_message(title, f"Could not update {key}: {exc}")
 
 
 def _settings_menu(main_mod):
     while True:
         settings = getattr(main_mod, "app_settings", None) or {}
-        choice = button_dialog(
+        choice = _text_choice(
             title="E2C Settings Console",
             text=(
                 "Select what you want to change:\n\n"
@@ -241,7 +318,7 @@ def _settings_menu(main_mod):
                 ("View Current Settings", "view"),
                 ("Back", "back"),
             ],
-        ).run()
+        )
 
         if choice in (None, "back"):
             return
@@ -262,17 +339,17 @@ def _settings_menu(main_mod):
         elif choice == "boot":
             current = bool(settings.get("boot_animation", True))
             _save_setting(main_mod, "boot_animation", not current)
-            message_dialog(title="Boot Animation", text=f"Boot animation {'enabled' if not current else 'disabled'}.").run()
+            _text_message("Boot Animation", f"Boot animation {'enabled' if not current else 'disabled'}.")
         elif choice == "hud":
             current = bool(settings.get("hud_mode", True))
             _save_setting(main_mod, "hud_mode", not current)
-            message_dialog(title="HUD Panel", text=f"HUD panel {'enabled' if not current else 'disabled'}.").run()
+            _text_message("HUD Panel", f"HUD panel {'enabled' if not current else 'disabled'}.")
         elif choice == "view":
             _show_settings_snapshot(main_mod)
 
 
 def _handle_data_action(main_mod):
-    data_action = button_dialog(
+    data_action = _text_choice(
         title="E2C Data Console",
         text="Choose a data action",
         buttons=[
@@ -280,7 +357,7 @@ def _handle_data_action(main_mod):
             ("Attendance Report", "attendance"),
             ("Back", "back"),
         ],
-    ).run()
+    )
 
     if data_action == "students" and hasattr(main_mod, "data_manager") and main_mod.data_manager:
         main_mod.data_manager.display_all_students()
@@ -310,19 +387,20 @@ def _execute_enhanced_action(main_mod, action):
 
 def _confirm_switch_to_keyboard() -> bool:
     """Ask user whether to switch from mouse interface to keyboard interface."""
-    decision = button_dialog(
+    decision = _text_choice(
         title="Switch Interface Mode",
         text="Move to Normal Stylish Terminal (keyboard mode)?",
         buttons=[
             ("Yes, switch", "yes"),
             ("No, stay in mouse interface", "no"),
         ],
-    ).run()
+    )
     return decision == "yes"
 
 
 def launch_stylish_terminal(main_mod):
     """Keyboard-first stylish terminal mode launched from mouse interface."""
+    _enable_auto_stylish_console()
     while True:
         _render_e2c_header()
         _render_e2c_banner()
@@ -356,6 +434,7 @@ def launch_stylish_terminal(main_mod):
 
 def launch_interactive():
     """Run the professional E2C terminal interface."""
+    _enable_auto_stylish_console()
     main_mod = _import_main_module()
 
     if main_mod is not None:
@@ -370,14 +449,19 @@ def launch_interactive():
     _render_e2c_banner()
     time.sleep(0.3)
 
+    if not PROMPT_TOOLKIT_AVAILABLE:
+        print(colored("[INFO] prompt_toolkit not found. Running stylish keyboard mode automatically.", Colors.BRIGHT_YELLOW))
+        print(colored("[INFO] You can still use all features from the terminal menu.", Colors.BRIGHT_CYAN))
+        time.sleep(0.8)
+
     while True:
         try:
             print("")
             _render_menu_options()
             print("")
 
-            result: Optional[str] = button_dialog(
-                title="E2C Command Center — Select Operation",
+            result: Optional[str] = _text_choice(
+                title="E2C Command Center - Select Operation",
                 text="",
                 buttons=[
                     ("Camera", "camera"),
@@ -389,7 +473,7 @@ def launch_interactive():
                     ("Normal Terminal", "normal"),
                     ("Exit", "exit"),
                 ],
-            ).run()
+            )
 
             if result is None or result == "exit":
                 _render_shutdown()
@@ -425,12 +509,12 @@ def _render_shutdown():
         "",
         colored("╔═══════════════════════════════════════════════════════════════╗", Colors.BRIGHT_RED),
         colored("║                                                               ║", Colors.BRIGHT_RED),
-        colored("║  ███████╗██╗  ██╗██╗   ██╗████████╗██████╗  ██████╗ ██╗    ║", Colors.BRIGHT_YELLOW),
-        colored("║  ██╔════╝██║  ██║██║   ██║╚══██╔══╝██╔══██╗██╔════╝ ██║    ║", Colors.BRIGHT_YELLOW),
-        colored("║  ███████╗███████║██║   ██║   ██║   ██║  ██║██║  ███╗██║    ║", Colors.BRIGHT_RED),
-        colored("║  ╚════██║██╔══██║██║   ██║   ██║   ██║  ██║██║   ██║╚═╝    ║", Colors.BRIGHT_YELLOW),
-        colored("║  ███████║██║  ██║╚██████╔╝   ██║   ██████╔╝╚██████╔╝██╗    ║", Colors.BRIGHT_YELLOW),
-        colored("║  ╚══════╝╚═╝  ╚═╝ ╚═════╝    ╚═╝   ╚═════╝  ╚═════╝ ╚═╝    ║", Colors.BRIGHT_RED),
+        colored("║  ███████╗██╗  ██╗██╗   ██╗████████╗██████╗  ██████╗ ██╗       ║", Colors.BRIGHT_YELLOW),
+        colored("║  ██╔════╝██║  ██║██║   ██║╚══██╔══╝██╔══██╗██╔════╝ ██║       ║", Colors.BRIGHT_YELLOW),
+        colored("║  ███████╗███████║██║   ██║   ██║   ██║  ██║██║  ███╗██║       ║", Colors.BRIGHT_RED),
+        colored("║  ╚════██║██╔══██║██║   ██║   ██║   ██║  ██║██║   ██║╚═╝       ║", Colors.BRIGHT_YELLOW),
+        colored("║  ███████║██║  ██║╚██████╔╝   ██║   ██████╔╝╚██████╔╝██╗       ║", Colors.BRIGHT_YELLOW),
+        colored("║  ╚══════╝╚═╝  ╚═╝ ╚═════╝    ╚═╝   ╚═════╝  ╚═════╝ ╚═╝       ║", Colors.BRIGHT_RED),
         colored("║                                                               ║", Colors.BRIGHT_RED),
         colored("║  ► Disconnecting neural engines...                            ║", Colors.BRIGHT_WHITE),
         colored("║  ► Flushing recognition cache...                              ║", Colors.BRIGHT_WHITE),
