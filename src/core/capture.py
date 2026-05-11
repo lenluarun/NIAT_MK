@@ -19,7 +19,7 @@ def is_number(s):
     return False
 
 
-def takeImages(storage_paths, data_manager=None, camera_index=0, max_samples=100):
+def takeImages(storage_paths, data_manager=None, camera_index=0, max_samples=100, student_id=None, student_name=None):
     """
     Capture face images from a camera and save into storage_paths['TrainingImages'].
     Parameters:
@@ -27,6 +27,8 @@ def takeImages(storage_paths, data_manager=None, camera_index=0, max_samples=100
       data_manager: optional DataManager instance to register student (if provided)
       camera_index: integer camera index to open with OpenCV
       max_samples: maximum number of face samples to capture
+            student_id: optional pre-filled student identifier from a browser form
+            student_name: optional pre-filled student name from a browser form
     """
     # Validate storage_paths
     training_dir = None
@@ -38,9 +40,18 @@ def takeImages(storage_paths, data_manager=None, camera_index=0, max_samples=100
     if not training_dir:
         raise ValueError("storage_paths must contain 'TrainingImages' path")
 
+    base_dir = os.path.dirname(__file__)
+
     # Ask for user inputs
-    Id = input("Enter Your Id: ").strip()
-    name = input("Enter Your Name: ").strip()
+    if student_id is None:
+        Id = input("Enter Your Id: ").strip()
+    else:
+        Id = str(student_id).strip()
+
+    if student_name is None:
+        name = input("Enter Your Name: ").strip()
+    else:
+        name = str(student_name).strip()
 
     valid_name = all(part.isalpha() for part in name.split())
     if not (is_number(Id) and valid_name):
@@ -83,7 +94,6 @@ def takeImages(storage_paths, data_manager=None, camera_index=0, max_samples=100
         return
 
     # Haarcascade path: prefer the one bundled in project folder
-    base_dir = os.path.dirname(__file__)
     cascade_path = os.path.join(base_dir, "..", "models", "haarcascade_default.xml")
     if not os.path.exists(cascade_path):
         # fallback to OpenCV default cascade location (if available)

@@ -144,6 +144,16 @@ def _recognition_snapshot():
     }
 
 
+def _camera_scan_snapshot():
+    scan_range = int(app_settings.get('camera_scan_range', 5)) if app_settings else 5
+    cameras = detect_available_cameras(scan_range)
+    return {
+        'scan_range': scan_range,
+        'cameras': cameras,
+        'active_camera': app_settings.get('camera_index', 0) if app_settings else 0,
+    }
+
+
 def _build_recognition_result(before_snapshot):
     after_snapshot = _recognition_snapshot()
     if after_snapshot['record_count'] > before_snapshot.get('record_count', 0) and after_snapshot.get('last_record'):
@@ -272,6 +282,8 @@ def system_status():
     model_count = len([f for f in os.listdir(storage_paths['TrainingImageLabel']) if f.endswith(".yml")]) if storage_paths else 0
     attendance_count = len([f for f in os.listdir(storage_paths['Attendance']) if f.endswith(".csv")]) if storage_paths else 0
     student_count = len(data_manager.get_all_students()) if data_manager else 0
+    latest_report = _recognition_snapshot()
+    camera_snapshot = _camera_scan_snapshot()
 
     return jsonify({
         "storage_path": storage_path,
@@ -280,7 +292,16 @@ def system_status():
         "attendance_records": attendance_count,
         "students": student_count,
         "camera_index": app_settings.get('camera_index', 0) if app_settings else 0,
-        "recognition_available": RECOGNITION_AVAILABLE
+        "camera_scan_range": app_settings.get('camera_scan_range', 5) if app_settings else 5,
+        "max_capture_samples": app_settings.get('max_capture_samples', 50) if app_settings else 50,
+        "recognition_pass_mark": app_settings.get('recognition_pass_mark', 80) if app_settings else 80,
+        "recognition_mode": app_settings.get('recognition_mode', 'fast') if app_settings else 'fast',
+        "ui_theme": app_settings.get('ui_theme', 'e2c') if app_settings else 'e2c',
+        "boot_animation": app_settings.get('boot_animation', True) if app_settings else True,
+        "hud_mode": app_settings.get('hud_mode', True) if app_settings else True,
+        "recognition_available": RECOGNITION_AVAILABLE,
+        "latest_attendance": latest_report['file_name'],
+        "camera_count": len(camera_snapshot['cameras']),
     })
 
 @app.route('/api/camera/check', methods=['POST'])
@@ -304,22 +325,97 @@ def camera_check():
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
 
+
+@app.route('/api/camera/scan')
+def camera_scan():
+    """Scan available camera devices."""
+    try:
+        return jsonify(_camera_scan_snapshot())
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+@app.route('/api/camera/set', methods=['POST'])
+def camera_set():
+    """Update the active camera index."""
+    global app_settings
+    try:
+        payload = request.get_json(silent=True) or {}
+        camera_index = payload.get('camera_index')
+        if camera_index is None:
+            return jsonify({"status": "error", "message": "camera_index is required"}), 400
+
+        try:
+            camera_index = int(camera_index)
+        except (TypeError, ValueError):
+            return jsonify({"status": "error", "message": "camera_index must be numeric"}), 400
+
+        app_settings = update_setting('camera_index', camera_index)
+        emit_status(f"Active camera set to {camera_index}", 100, "success")
+        return jsonify({"status": "success", "camera_index": camera_index})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
 @app.route('/api/capture/faces', methods=['POST'])
 def capture_faces():
     """Capture faces for training"""
     try:
+        payload = request.get_json(silent=True) or {}
+        student_id = str(payload.get('student_id', '')).strip()
+        student_name = str(payload.get('name', '')).strip()
+        student_email = str(payload.get('email', '')).strip()
+        quick_pipeline = bool(payload.get('quick_pipeline', False))
+        max_samples = payload.get('max_samples', app_settings.get('max_capture_samples', 50) if app_settings else 50)
+
+        try:
+            max_samples = int(max_samples)
+        except (TypeError, ValueError):
+            max_samples = app_settings.get('max_capture_samples', 50) if app_settings else 50
+
+        if not student_id or not student_name:
+            return jsonify({"status": "error", "message": "Student ID and name are required"}), 400
+
+        if not data_manager:
+            return jsonify({"status": "error", "message": "Student database is not available"}), 500
+
         emit_status("Starting face capture process...", 0)
 
         def run_capture():
+            global last_recognition_result
             try:
+                if not data_manager.student_exists(student_id):
+                    data_manager.add_student(student_id, student_name, student_email)
+
                 emit_status("Initializing camera...", 20)
                 capture_image.takeImages(
                     storage_paths,
                     data_manager,
                     camera_index=app_settings['camera_index'],
-                    max_samples=app_settings['max_capture_samples']
+                    max_samples=max_samples,
+                    student_id=student_id,
+                    student_name=student_name,
                 )
-                emit_status("Face capture completed successfully!", 100, "success")
+
+                if quick_pipeline:
+                    emit_status("Training model from captured images...", 70)
+                    train_image.TrainImages(storage_paths)
+
+                    if RECOGNITION_AVAILABLE:
+                        emit_status("Running attendance recognition...", 85)
+                        before_snapshot = _recognition_snapshot()
+                        recognize.recognize_attendence(
+                            storage_paths,
+                            data_manager,
+                            camera_index=app_settings['camera_index'],
+                            pass_mark=app_settings['recognition_pass_mark'],
+                            fast_mode=(app_settings.get("recognition_mode", "fast") == "fast")
+                        )
+                        last_recognition_result = _build_recognition_result(before_snapshot)
+                        emit_status(last_recognition_result['message'], 100, "success")
+                    else:
+                        emit_status("Capture and training completed. Recognition unavailable.", 100, "success")
+                else:
+                    emit_status("Face capture completed successfully!", 100, "success")
             except Exception as e:
                 emit_status(f"Face capture failed: {str(e)}", 0, "error")
 
@@ -327,7 +423,7 @@ def capture_faces():
         thread.daemon = True
         thread.start()
 
-        return jsonify({"status": "started"})
+        return jsonify({"status": "started", "quick_pipeline": quick_pipeline})
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
 
@@ -449,6 +545,30 @@ def delete_student(student_id):
         return jsonify({"status": "error", "message": str(e)}), 500
 
 
+@app.route('/api/data/reset', methods=['POST'])
+def reset_database():
+    """Reset student records, training images, and trained models."""
+    try:
+        payload = request.get_json(silent=True) or {}
+        confirmation = str(payload.get('confirmation', '')).strip().upper()
+        password = str(payload.get('password', '')).strip()
+
+        if confirmation != 'RESET':
+            return jsonify({"status": "error", "message": "Type RESET to confirm the reset"}), 400
+
+        if not data_manager:
+            return jsonify({"status": "error", "message": "Student database is not available"}), 500
+
+        ok, message = data_manager.reset_database(password)
+        if not ok:
+            return jsonify({"status": "error", "message": message}), 400
+
+        emit_status(message, 100, "success")
+        return jsonify({"status": "success", "message": message})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
 @app.route('/api/reports/summary')
 def reports_summary():
     """Return a simple reports overview for the dashboard."""
@@ -559,6 +679,246 @@ def download_report(pdf_name):
         return jsonify({'status': 'error', 'message': 'PDF not found'}), 404
 
     return send_from_directory(attendance_dir, pdf_name, as_attachment=True)
+
+@app.route('/api/data/edit_student/<student_id>', methods=['POST'])
+def edit_student(student_id):
+    """Edit student details (name/email)"""
+    try:
+        if not data_manager:
+            return jsonify({"status": "error", "message": "Student database is not available"}), 500
+        
+        payload = request.get_json(silent=True) or {}
+        name = str(payload.get('name', '')).strip()
+        email = str(payload.get('email', '')).strip()
+        
+        if not name:
+            return jsonify({"status": "error", "message": "Name is required"}), 400
+        
+        # Update student details in the database
+        if data_manager.update_student(student_id, name, email):
+            emit_status(f"Updated student {student_id}", 100, "success")
+            return jsonify({"status": "success", "message": f"Student {student_id} updated successfully"})
+        else:
+            return jsonify({"status": "error", "message": f"Student {student_id} not found"}), 404
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+@app.route('/api/reports/delete/<path:report_name>', methods=['POST'])
+def delete_attendance_report(report_name):
+    """Delete an attendance CSV file"""
+    try:
+        attendance_dir = _attendance_directory()
+        if not attendance_dir:
+            return jsonify({"status": "error", "message": "Attendance directory is not available"}), 500
+        
+        file_path = os.path.join(attendance_dir, report_name)
+        if not os.path.exists(file_path):
+            return jsonify({"status": "error", "message": "Report not found"}), 404
+        
+        # Verify it's a CSV file
+        if not report_name.lower().endswith('.csv'):
+            return jsonify({"status": "error", "message": "Invalid file type"}), 400
+        
+        os.remove(file_path)
+        emit_status(f"Deleted attendance report: {report_name}", 100, "success")
+        return jsonify({"status": "success", "message": f"Report {report_name} deleted"})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+@app.route('/api/reports/delete-pdf/<path:pdf_name>', methods=['POST'])
+def delete_pdf_report(pdf_name):
+    """Delete a generated PDF report"""
+    try:
+        attendance_dir = _attendance_directory()
+        if not attendance_dir:
+            return jsonify({"status": "error", "message": "Attendance directory is not available"}), 500
+        
+        file_path = os.path.join(attendance_dir, pdf_name)
+        if not os.path.exists(file_path):
+            return jsonify({"status": "error", "message": "PDF not found"}), 404
+        
+        # Verify it's a PDF file
+        if not pdf_name.lower().endswith('.pdf'):
+            return jsonify({"status": "error", "message": "Invalid file type"}), 400
+        
+        os.remove(file_path)
+        emit_status(f"Deleted PDF report: {pdf_name}", 100, "success")
+        return jsonify({"status": "success", "message": f"PDF {pdf_name} deleted"})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+@app.route('/api/reports/download-csv/<path:report_name>')
+def download_attendance_csv(report_name):
+    """Download attendance CSV file"""
+    attendance_dir = _attendance_directory()
+    if not attendance_dir:
+        return jsonify({"status": "error", "message": "Attendance directory is not available"}), 500
+    
+    file_path = os.path.join(attendance_dir, report_name)
+    if not os.path.exists(file_path) or not report_name.lower().endswith('.csv'):
+        return jsonify({"status": "error", "message": "File not found"}), 404
+    
+    return send_from_directory(attendance_dir, report_name, as_attachment=True)
+
+
+@app.route('/api/reports/export-excel/<path:report_name>')
+def export_attendance_excel(report_name):
+    """Export attendance report to Excel (CSV format)"""
+    try:
+        report_data = _read_attendance_csv(report_name)
+        if not report_data:
+            return jsonify({"status": "error", "message": "Report not found"}), 404
+        
+        attendance_dir = _attendance_directory()
+        excel_name = report_name.replace('.csv', '_Export.csv')
+        excel_path = os.path.join(attendance_dir, excel_name)
+        
+        with open(excel_path, 'w', newline='', encoding='utf-8') as f:
+            writer = csv.writer(f)
+            # Header
+            writer.writerow(['ATTENDANCE SESSION EXPORT', report_data['file_name'], f"Total: {report_data['total_students']}", f"Present: {report_data['present_count']}", f"Absent: {report_data['absent_count']}"])
+            writer.writerow([])
+            
+            # Present students
+            writer.writerow(['PRESENT STUDENTS'])
+            writer.writerow(['Student ID', 'Name', 'Email', 'Date', 'Time'])
+            for record in report_data['records']:
+                writer.writerow([record['student_id'], record['name'], record['email'], record['date'], record['time']])
+            
+            writer.writerow([])
+            # Absent students
+            writer.writerow(['ABSENT STUDENTS'])
+            writer.writerow(['Student ID', 'Name', 'Email'])
+            for student in report_data['absent_students']:
+                writer.writerow([student.get('id', ''), student.get('name', ''), student.get('email', '')])
+        
+        return jsonify({
+            "status": "success",
+            "excel_name": excel_name,
+            "download_url": f'/api/reports/download-csv/{excel_name}'
+        })
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+@app.route('/api/reports/statistics')
+def attendance_statistics():
+    """Get attendance statistics"""
+    try:
+        attendance_files = _attendance_files()
+        students = data_manager.get_all_students() if data_manager else []
+        
+        total_marked = 0
+        daily_data = {}
+        student_attendance = {}
+        
+        for file_name in attendance_files:
+            report_data = _read_attendance_csv(file_name)
+            if report_data:
+                daily_data[report_data['date']] = {
+                    'date': report_data['date'],
+                    'present': report_data['present_count'],
+                    'absent': report_data['absent_count'],
+                    'total': report_data['total_students'],
+                }
+                total_marked += report_data['present_count']
+                
+                # Track individual student attendance
+                for record in report_data['records']:
+                    sid = record['student_id']
+                    if sid not in student_attendance:
+                        student_attendance[sid] = {'name': record['name'], 'present': 0, 'sessions': 0}
+                    student_attendance[sid]['present'] += 1
+                    student_attendance[sid]['sessions'] += 1
+        
+        # Add absent sessions to student records
+        for file_name in attendance_files:
+            report_data = _read_attendance_csv(file_name)
+            if report_data:
+                for student in report_data['absent_students']:
+                    sid = str(student.get('id', '')).strip().lstrip('0')
+                    if sid and sid not in student_attendance:
+                        student_attendance[sid] = {'name': student.get('name', 'Unknown'), 'present': 0, 'sessions': 0}
+                    if sid and sid in student_attendance:
+                        student_attendance[sid]['sessions'] += 1
+        
+        return jsonify({
+            'total_marked': total_marked,
+            'total_students': len(students),
+            'total_sessions': len(attendance_files),
+            'daily_data': sorted(daily_data.values(), key=lambda x: x['date'], reverse=True)[:30],
+            'student_attendance': student_attendance,
+            'attendance_files': len(attendance_files),
+        })
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+@app.route('/api/data/import-students', methods=['POST'])
+def import_students_bulk():
+    """Import students from CSV file"""
+    try:
+        if 'file' not in request.files:
+            return jsonify({"status": "error", "message": "No file provided"}), 400
+        
+        file = request.files['file']
+        if not file.filename.endswith('.csv'):
+            return jsonify({"status": "error", "message": "Only CSV files are accepted"}), 400
+        
+        if not data_manager:
+            return jsonify({"status": "error", "message": "Student database is not available"}), 500
+        
+        added = 0
+        skipped = 0
+        errors = []
+        
+        try:
+            stream = file.stream.read().decode('UTF8', errors='ignore').split('\n')
+            csv_reader = csv.reader(stream)
+            next(csv_reader, None)  # Skip header
+            
+            for row in csv_reader:
+                if not row or len(row) < 2:
+                    continue
+                
+                student_id = str(row[0]).strip()
+                name = str(row[1]).strip()
+                email = str(row[2]).strip() if len(row) > 2 else ''
+                
+                if not student_id or not name:
+                    skipped += 1
+                    continue
+                
+                try:
+                    if not data_manager.student_exists(student_id):
+                        data_manager.add_student(student_id, name, email)
+                        added += 1
+                    else:
+                        skipped += 1
+                except Exception as e:
+                    errors.append(f"Row {student_id}: {str(e)}")
+            
+            message = f"Imported {added} students"
+            if skipped > 0:
+                message += f", {skipped} skipped"
+            if errors:
+                message += f", {len(errors)} errors"
+            
+            emit_status(message, 100, "success")
+            return jsonify({
+                "status": "success",
+                "added": added,
+                "skipped": skipped,
+                "errors": errors
+            })
+        except Exception as e:
+            return jsonify({"status": "error", "message": f"Failed to parse CSV: {str(e)}"}), 400
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
 
 @app.route('/api/settings', methods=['GET', 'POST'])
 def settings():

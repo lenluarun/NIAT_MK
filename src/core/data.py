@@ -49,6 +49,36 @@ class DataManager:
         except:
             pass
         return False
+
+    def update_student(self, student_id, name, email=''):
+        """Update student name and email"""
+        try:
+            student_id = str(student_id).strip()
+            students = self.get_all_students()
+            
+            # Find and update the student
+            updated = False
+            for student in students:
+                if student['id'] == student_id:
+                    student['name'] = name
+                    student['email'] = email
+                    updated = True
+                    break
+            
+            if not updated:
+                return False
+            
+            # Rewrite the file
+            with open(self.student_file, 'w', newline='') as f:
+                writer = csv.writer(f)
+                writer.writerow(['Id', 'Name', 'Email', 'DateAdded'])
+                for student in students:
+                    writer.writerow([student['id'], student['name'], student['email'], student['date_added']])
+            
+            return True
+        except Exception as e:
+            print(error(f"✗ Error updating student: {e}"))
+            return False
     
     def get_all_students(self):
         """Get all students"""

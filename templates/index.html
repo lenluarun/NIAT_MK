@@ -274,6 +274,103 @@
             margin-bottom: 10px;
         }
 
+        .layout-grid {
+            display: grid;
+            grid-template-columns: 1.1fr 0.9fr;
+            gap: 14px;
+        }
+
+        .stack {
+            display: grid;
+            gap: 10px;
+        }
+
+        .section-card {
+            border: 1px solid rgba(255,255,255,0.08);
+            background: rgba(255,255,255,0.03);
+            border-radius: 14px;
+            padding: 14px;
+        }
+
+        .section-card h4 {
+            font-size: 0.95rem;
+            margin-bottom: 8px;
+        }
+
+        .section-card p {
+            color: var(--muted);
+            font-size: 0.84rem;
+            line-height: 1.45;
+        }
+
+        .report-list,
+        .camera-list {
+            display: grid;
+            gap: 10px;
+            margin-top: 12px;
+        }
+
+        .report-row,
+        .camera-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+            border: 1px solid rgba(255,255,255,0.08);
+            background: rgba(255,255,255,0.03);
+            border-radius: 12px;
+            padding: 10px 12px;
+        }
+
+        .report-meta,
+        .camera-meta {
+            color: var(--muted);
+            font-size: 0.82rem;
+            margin-top: 3px;
+        }
+
+        .inline-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+        }
+
+        .btn-mini {
+            width: auto;
+            padding: 7px 10px;
+            font-size: 0.78rem;
+        }
+
+        .danger-zone {
+            border-color: rgba(255,95,109,0.3);
+            background: rgba(255,95,109,0.06);
+        }
+
+        .pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            border-radius: 999px;
+            padding: 6px 10px;
+            font-size: 0.76rem;
+            border: 1px solid rgba(255,255,255,0.1);
+            background: rgba(255,255,255,0.04);
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+        }
+
+        .helper-text {
+            color: var(--muted);
+            font-size: 0.82rem;
+            line-height: 1.45;
+            margin-top: 8px;
+        }
+
         .camera-icon { background: linear-gradient(135deg, #3d83ff 0%, #3064d4 100%); }
         .capture-icon { background: linear-gradient(135deg, #ff7e42 0%, #ea5636 100%); }
         .train-icon { background: linear-gradient(135deg, #a54dff 0%, #7b36cc 100%); }
@@ -339,8 +436,8 @@
                     </div>
                     <div class="card">
                         <div class="card-header"><div class="card-icon capture-icon"><i class="fas fa-user-plus"></i></div><div class="card-title">Capture Faces</div></div>
-                        <p>Capture face images for new students and prepare fresh training data.</p>
-                        <button class="btn btn-warning" onclick="captureFaces()"><i class="fas fa-camera-retro"></i> Start Capture</button>
+                        <p>Capture face images for a student and register them from the browser.</p>
+                        <button class="btn btn-warning" onclick="openCaptureModal(false)"><i class="fas fa-camera-retro"></i> Start Capture</button>
                     </div>
                     <div class="card">
                         <div class="card-header"><div class="card-icon train-icon"><i class="fas fa-cogs"></i></div><div class="card-title">Train Model</div></div>
@@ -354,23 +451,38 @@
                     </div>
                     <div class="card">
                         <div class="card-header"><div class="card-icon data-icon"><i class="fas fa-database"></i></div><div class="card-title">Data Management</div></div>
-                        <p>Manage student database entries and review registered records.</p>
+                        <p>Manage student database entries, removal, and reset operations.</p>
                         <button class="btn btn-warning" onclick="showDataModal()"><i class="fas fa-users"></i> Manage Data</button>
                     </div>
                     <div class="card">
                         <div class="card-header"><div class="card-icon reports-icon"><i class="fas fa-chart-bar"></i></div><div class="card-title">Reports</div></div>
-                        <p>Access attendance reports and operational analytics overview.</p>
+                        <p>Browse attendance sessions, view details, export PDFs, and download reports.</p>
                         <button class="btn btn-primary" onclick="showReports()"><i class="fas fa-file-alt"></i> View Reports</button>
                     </div>
                     <div class="card">
+                        <div class="card-header"><div class="card-icon reports-icon"><i class="fas fa-chart-line"></i></div><div class="card-title">Analytics</div></div>
+                        <p>View attendance statistics, trends, and student performance analytics.</p>
+                        <button class="btn btn-primary" onclick="showAnalytics()"><i class="fas fa-analytics"></i> View Analytics</button>
+                    </div>
+                    <div class="card">
                         <div class="card-header"><div class="card-icon settings-icon"><i class="fas fa-cog"></i></div><div class="card-title">Settings</div></div>
-                        <p>Configure camera index, capture limits and recognition thresholds.</p>
+                        <p>Configure camera index, scan range, capture limits, theme, and recognition behavior.</p>
                         <button class="btn btn-primary" onclick="showSettings()"><i class="fas fa-sliders-h"></i> System Settings</button>
                     </div>
                     <div class="card">
                         <div class="card-header"><div class="card-icon update-icon"><i class="fas fa-cloud-arrow-down"></i></div><div class="card-title">Update System</div></div>
                         <p>Pull the latest code and dependencies from GitHub repositories.</p>
                         <button class="btn btn-success" onclick="updateSystem()"><i class="fas fa-download"></i> Update from GitHub</button>
+                    </div>
+                    <div class="card">
+                        <div class="card-header"><div class="card-icon camera-icon"><i class="fas fa-video"></i></div><div class="card-title">Camera Studio</div></div>
+                        <p>Scan available cameras and switch the active camera from the browser.</p>
+                        <button class="btn btn-primary" onclick="showCameraStudio()"><i class="fas fa-list"></i> Open Camera Studio</button>
+                    </div>
+                    <div class="card">
+                        <div class="card-header"><div class="card-icon recognize-icon"><i class="fas fa-route"></i></div><div class="card-title">Quick Pipeline</div></div>
+                        <p>Capture a student, train the model, and run recognition in one flow.</p>
+                        <button class="btn btn-success" onclick="openCaptureModal(true)"><i class="fas fa-bolt"></i> Run Pipeline</button>
                     </div>
                 </div>
             </div>
@@ -388,8 +500,16 @@
                         <button class="btn btn-warning" style="width:auto;" onclick="showDataModal()"><i class="fas fa-users"></i> Open</button>
                     </div>
                     <div class="quick-item">
+                        <div class="quick-info"><h3>Camera Studio</h3><p>Scan devices and set the active camera</p></div>
+                        <button class="btn btn-primary" style="width:auto;" onclick="showCameraStudio()"><i class="fas fa-video"></i> Open</button>
+                    </div>
+                    <div class="quick-item">
                         <div class="quick-info"><h3>Recognition Flow</h3><p>Start live attendance recognition quickly</p></div>
                         <button class="btn btn-success" style="width:auto;" onclick="recognizeAttendance()"><i class="fas fa-play"></i> Start</button>
+                    </div>
+                    <div class="quick-item">
+                        <div class="quick-info"><h3>Reports Center</h3><p>Browse and export attendance records</p></div>
+                        <button class="btn btn-primary" style="width:auto;" onclick="showReports()"><i class="fas fa-file-lines"></i> Open</button>
                     </div>
                     <div class="quick-item">
                         <div class="quick-info"><h3>Settings Center</h3><p>Review and adjust active system values</p></div>
@@ -426,6 +546,70 @@
                 <div class="modal-close" onclick="closeModal('settingsModal')"><i class="fas fa-times"></i></div>
             </div>
             <div id="settingsContent"><p>Loading settings...</p></div>
+        </div>
+    </div>
+
+    <div class="modal" id="cameraModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">Camera Studio</div>
+                <div class="modal-close" onclick="closeModal('cameraModal')"><i class="fas fa-times"></i></div>
+            </div>
+            <div id="cameraContent"><p>Loading camera devices...</p></div>
+        </div>
+    </div>
+
+    <div class="modal" id="reportsModal">
+        <div class="modal-content" style="width:min(980px, 100%);">
+            <div class="modal-header">
+                <div class="modal-title">Reports Center</div>
+                <div class="modal-close" onclick="closeModal('reportsModal')"><i class="fas fa-times"></i></div>
+            </div>
+            <div id="reportsContent"><p>Loading reports...</p></div>
+        </div>
+    </div>
+
+    <div class="modal" id="captureModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">Capture Faces</div>
+                <div class="modal-close" onclick="closeModal('captureModal')"><i class="fas fa-times"></i></div>
+            </div>
+            <div id="captureContent"></div>
+        </div>
+    </div>
+
+    <div class="modal" id="resetModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">Database Reset</div>
+                <div class="modal-close" onclick="closeModal('resetModal')"><i class="fas fa-times"></i></div>
+            </div>
+            <div class="section-card danger-zone">
+                <h4>Danger zone</h4>
+                <p>This removes student records, training images, and trained models. Attendance CSV history is preserved.</p>
+            </div>
+            <form id="resetForm" style="margin-top:14px;">
+                <div class="form-group">
+                    <label class="form-label">Type RESET to confirm</label>
+                    <input type="text" class="form-input" name="confirmation" placeholder="RESET" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Reset Password</label>
+                    <input type="password" class="form-input" name="password" placeholder="E2C" required>
+                </div>
+                <button type="submit" class="btn btn-danger">Reset Database</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal" id="analyticsModal">
+        <div class="modal-content" style="width:min(1000px, 100%);">
+            <div class="modal-header">
+                <div class="modal-title">Attendance Analytics & Statistics</div>
+                <div class="modal-close" onclick="closeModal('analyticsModal')"><i class="fas fa-times"></i></div>
+            </div>
+            <div id="analyticsContent"><p>Loading analytics...</p></div>
         </div>
     </div>
 
@@ -515,8 +699,34 @@
                     btn.disabled = true;
                     return;
                 }
+                if (btn.id === 'recognizeBtn' && isRunning) {
+                    btn.disabled = false;
+                    return;
+                }
                 btn.disabled = isRunning;
             });
+
+            if (btnIsRecognitionButton() && status !== 'running') {
+                setRecognitionButton(false);
+            }
+        }
+
+        function btnIsRecognitionButton() {
+            const btn = document.getElementById('recognizeBtn');
+            return Boolean(btn && btn.innerHTML.includes('Stop'));
+        }
+
+        function setRecognitionButton(isStopping) {
+            const btn = document.getElementById('recognizeBtn');
+            if (!btn) {
+                return;
+            }
+
+            if (isStopping) {
+                btn.innerHTML = '<i class="fas fa-stop-circle"></i> Stop Recognition';
+            } else {
+                btn.innerHTML = '<i class="fas fa-play-circle"></i> Start Recognition';
+            }
         }
 
         async function checkCamera() {
@@ -531,16 +741,78 @@
             }
         }
 
-        async function captureFaces() {
-            try {
-                const response = await fetch('/api/capture/faces', { method: 'POST' });
-                const data = await response.json();
-                if (data.status === 'started') {
-                    updateStatus('running', 'Starting face capture...', 0);
+        function openCaptureModal(quickPipeline = false) {
+            document.getElementById('captureModal').classList.add('show');
+            const captureContent = document.getElementById('captureContent');
+            captureContent.innerHTML = `
+                <div class="section-card">
+                    <h4>Capture student faces</h4>
+                    <p>Enter the student details in the form below. If you enable quick pipeline, the app will train the model and run recognition after capture.</p>
+                    <form id="captureForm" style="margin-top:14px;">
+                        <div class="grid-2">
+                            <div class="form-group">
+                                <label class="form-label">Student ID</label>
+                                <input type="text" class="form-input" name="student_id" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Full Name</label>
+                                <input type="text" class="form-input" name="name" required>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Email</label>
+                            <input type="email" class="form-input" name="email" placeholder="student@example.com">
+                        </div>
+                        <div class="grid-2">
+                            <div class="form-group">
+                                <label class="form-label">Max Samples</label>
+                                <input type="number" class="form-input" name="max_samples" min="20" max="500" value="${(window.__dashboardStatus && window.__dashboardStatus.max_capture_samples) || 50}">
+                            </div>
+                            <div class="form-group" style="display:flex; align-items:flex-end;">
+                                <label style="display:flex; align-items:center; gap:10px; color:#c9d6f4; font-size:0.88rem; margin-bottom:10px;">
+                                    <input type="checkbox" name="quick_pipeline" ${quickPipeline ? 'checked' : ''} style="transform:scale(1.1);">
+                                    Run quick pipeline after capture
+                                </label>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-warning">Start Capture</button>
+                    </form>
+                </div>
+            `;
+
+            document.getElementById('captureForm').addEventListener('submit', async function(e) {
+                e.preventDefault();
+                const formData = new FormData(e.target);
+                const payload = {
+                    student_id: String(formData.get('student_id') || '').trim(),
+                    name: String(formData.get('name') || '').trim(),
+                    email: String(formData.get('email') || '').trim(),
+                    max_samples: parseInt(formData.get('max_samples') || '50', 10),
+                    quick_pipeline: formData.get('quick_pipeline') === 'on'
+                };
+
+                try {
+                    const response = await fetch('/api/capture/faces', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    const data = await response.json();
+                    if (data.status === 'started') {
+                        closeModal('captureModal');
+                        const statusMessage = data.quick_pipeline ? 'Capture started with quick pipeline.' : 'Face capture started.';
+                        updateStatus('running', statusMessage, 0);
+                    } else {
+                        updateStatus('error', data.message || 'Failed to start capture', 0);
+                    }
+                } catch (error) {
+                    updateStatus('error', 'Failed to start face capture', 0);
                 }
-            } catch (error) {
-                updateStatus('error', 'Failed to start face capture', 0);
-            }
+            });
+        }
+
+        async function captureFaces() {
+            openCaptureModal(false);
         }
 
         async function trainImages() {
@@ -574,7 +846,7 @@
             if (isRunning) {
                 try {
                     await fetch('/api/recognize/stop', { method: 'POST' });
-                    btn.innerHTML = '<i class="fas fa-play-circle"></i> Start Recognition';
+                    setRecognitionButton(false);
                     updateStatus('idle', 'Recognition stopped', 0);
                 } catch (error) {
                     updateStatus('error', 'Failed to stop recognition', 0);
@@ -584,7 +856,7 @@
                     const response = await fetch('/api/recognize/attendance', { method: 'POST' });
                     const data = await response.json();
                     if (data.status === 'started') {
-                        btn.innerHTML = '<i class="fas fa-stop-circle"></i> Stop Recognition';
+                        setRecognitionButton(true);
                         updateStatus('running', 'Starting attendance recognition...', 0);
                     } else if (data.status === 'error') {
                         const apiMessage = typeof data.message === 'string' ? data.message : 'Recognition unavailable';
@@ -600,6 +872,7 @@
             try {
                 const response = await fetch('/api/system/status');
                 const data = await response.json();
+                window.__dashboardStatus = data;
                 document.getElementById('students-count').textContent = data.students;
                 document.getElementById('images-count').textContent = data.training_images;
                 document.getElementById('models-count').textContent = data.trained_models;
@@ -614,13 +887,28 @@
             loadStudentData();
         }
 
+        function showCameraStudio() {
+            document.getElementById('cameraModal').classList.add('show');
+            loadCameraStudio();
+        }
+
+        function showReports() {
+            document.getElementById('reportsModal').classList.add('show');
+            loadReports();
+        }
+
         function showSettings() {
             document.getElementById('settingsModal').classList.add('show');
             loadSettings();
         }
 
-        function showReports() {
-            alert('Reports functionality coming soon!');
+        function showAnalytics() {
+            document.getElementById('analyticsModal').classList.add('show');
+            loadAnalytics();
+        }
+
+        function showResetModal() {
+            document.getElementById('resetModal').classList.add('show');
         }
 
         function closeModal(modalId) {
@@ -635,6 +923,10 @@
                 let html = '<div style="margin-bottom:14px;">';
                 html += '<button class="btn btn-success" style="margin-bottom:12px;" onclick="showAddStudentForm()">';
                 html += '<i class="fas fa-plus"></i> Add New Student</button>';
+                html += '<button class="btn btn-primary" style="margin-bottom:12px; margin-left:10px; width:auto;" onclick="showBulkImportForm()">';
+                html += '<i class="fas fa-file-upload"></i> Import from CSV</button>';
+                html += '<button class="btn btn-danger" style="margin-bottom:12px; margin-left:10px; width:auto;" onclick="showResetModal()">';
+                html += '<i class="fas fa-triangle-exclamation"></i> Reset Database</button>';
 
                 if (data.students && data.students.length > 0) {
                     html += '<div style="max-height: 340px; overflow-y: auto;">';
@@ -644,8 +936,12 @@
                         const encodedStudentId = encodeURIComponent(String(student.id));
                         html += '<div class="data-list-item">';
                         html += `<div><strong>${safeName}</strong><div style="color:#95a3c3; font-size:0.82rem; margin-top:2px;">ID: ${safeId}</div></div>`;
+                        html += '<div class="inline-actions">';
+                        html += `<button class="btn btn-primary" style="width:auto; padding:7px 10px; font-size:0.75rem;" onclick="editStudentForm('${encodedStudentId}', '${safeName.replace(/'/g, "&#39;")}')"`;
+                        html += `><i class="fas fa-edit"></i></button>`;
                         html += `<button class="btn btn-danger" style="width:auto; padding:7px 10px;" onclick="deleteStudent(decodeURIComponent('${encodedStudentId}'))">`;
                         html += '<i class="fas fa-trash"></i></button>';
+                        html += '</div>';
                         html += '</div>';
                     });
                     html += '</div>';
@@ -660,17 +956,126 @@
             }
         }
 
+        async function editStudentForm(encodedStudentId, studentName) {
+            const studentId = decodeURIComponent(encodedStudentId);
+            const response = await fetch('/api/data/students');
+            const data = await response.json();
+            const student = data.students.find(s => s.id === studentId);
+            if (!student) return;
+
+            const html = `
+                <form id="editStudentForm">
+                    <div class="form-group">
+                        <label class="form-label">Student ID</label>
+                        <input type="text" class="form-input" value="${escapeHtml(student.id)}" disabled>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Student Name</label>
+                        <input type="text" class="form-input" name="name" value="${escapeHtml(student.name)}" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Email</label>
+                        <input type="email" class="form-input" name="email" value="${escapeHtml(student.email || '')}" placeholder="student@example.com">
+                    </div>
+                    <button type="submit" class="btn btn-primary" style="margin-bottom:8px;">Save Changes</button>
+                    <button type="button" class="btn btn-warning" onclick="loadStudentData()">Cancel</button>
+                </form>
+            `;
+            document.getElementById('dataContent').innerHTML = html;
+
+            document.getElementById('editStudentForm').addEventListener('submit', async function(e) {
+                e.preventDefault();
+                const formData = new FormData(e.target);
+                const studentData = {
+                    name: formData.get('name'),
+                    email: formData.get('email') || ''
+                };
+
+                try {
+                    const response = await fetch(`/api/data/edit_student/${encodedStudentId}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(studentData)
+                    });
+                    const result = await response.json();
+                    if (result.status === 'success') {
+                        loadStudentData();
+                        refreshStatus();
+                        updateStatus('success', `Student ${studentId} updated successfully`, 100);
+                    } else {
+                        updateStatus('error', result.message || 'Failed to update student', 0);
+                    }
+                } catch (error) {
+                    updateStatus('error', 'Failed to update student', 0);
+                }
+            });
+        }
+
+        function showBulkImportForm() {
+            const html = `
+                <form id="bulkImportForm" enctype="multipart/form-data">
+                    <div class="section-card">
+                        <h4>Import Students from CSV</h4>
+                        <p>Upload a CSV file with columns: Student ID, Name, Email</p>
+                        <div class="form-group" style="margin-top:12px;">
+                            <label class="form-label">CSV File</label>
+                            <input type="file" class="form-input" name="file" accept=".csv" required style="cursor:pointer;">
+                            <div class="helper-text">CSV format: ID, Name, Email</div>
+                        </div>
+                        <button type="submit" class="btn btn-success">Import Students</button>
+                        <button type="button" class="btn btn-warning" onclick="loadStudentData()">Cancel</button>
+                    </div>
+                </form>
+            `;
+            document.getElementById('dataContent').innerHTML = html;
+
+            document.getElementById('bulkImportForm').addEventListener('submit', async function(e) {
+                e.preventDefault();
+                const formData = new FormData(e.target);
+                updateStatus('running', 'Importing students from CSV...', 0);
+
+                try {
+                    const response = await fetch('/api/data/import-students', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    const result = await response.json();
+                    if (result.status === 'success') {
+                        const msg = `Imported ${result.added} students${result.skipped > 0 ? `, skipped ${result.skipped}` : ''}`;
+                        updateStatus('success', msg, 100);
+                        setTimeout(() => {
+                            loadStudentData();
+                            refreshStatus();
+                        }, 1000);
+                    } else {
+                        updateStatus('error', result.message || 'Import failed', 0);
+                        loadStudentData();
+                    }
+                } catch (error) {
+                    updateStatus('error', 'Failed to import students', 0);
+                    loadStudentData();
+                }
+            });
+        }
         async function loadSettings() {
             try {
                 const response = await fetch('/api/settings');
                 const settings = await response.json();
 
                 let html = '<form id="settingsForm">';
+                html += '<div class="grid-2">';
                 html += '<div class="form-group">';
                 html += '<label class="form-label">Camera Index</label>';
                 html += `<input type="number" class="form-input" name="camera_index" value="${settings.camera_index || 0}">`;
                 html += '</div>';
 
+                html += '<div class="form-group">';
+                html += '<label class="form-label">Camera Scan Range</label>';
+                html += `<input type="number" class="form-input" name="camera_scan_range" value="${settings.camera_scan_range || 5}">`;
+                html += '</div>';
+                html += '</div>';
+
+                html += '<div class="grid-2">';
                 html += '<div class="form-group">';
                 html += '<label class="form-label">Max Capture Samples</label>';
                 html += `<input type="number" class="form-input" name="max_capture_samples" value="${settings.max_capture_samples || 50}">`;
@@ -679,6 +1084,31 @@
                 html += '<div class="form-group">';
                 html += '<label class="form-label">Recognition Pass Mark</label>';
                 html += `<input type="number" class="form-input" name="recognition_pass_mark" value="${settings.recognition_pass_mark || 80}">`;
+                html += '</div>';
+                html += '</div>';
+
+                html += '<div class="grid-2">';
+                html += '<div class="form-group">';
+                html += '<label class="form-label">Recognition Mode</label>';
+                html += `<select class="form-input" name="recognition_mode">`;
+                html += `<option value="fast" ${settings.recognition_mode === 'fast' ? 'selected' : ''}>Fast</option>`;
+                html += `<option value="accurate" ${settings.recognition_mode === 'accurate' ? 'selected' : ''}>Accurate</option>`;
+                html += '</select>';
+                html += '</div>';
+
+                html += '<div class="form-group">';
+                html += '<label class="form-label">UI Theme</label>';
+                html += `<select class="form-input" name="ui_theme">`;
+                ['e2c', 'neon', 'matrix', 'abyss', 'phantom', 'sunset', 'ocean', 'fire'].forEach(theme => {
+                    html += `<option value="${theme}" ${settings.ui_theme === theme ? 'selected' : ''}>${theme.toUpperCase()}</option>`;
+                });
+                html += '</select>';
+                html += '</div>';
+                html += '</div>';
+
+                html += '<div class="grid-2">';
+                html += '<label class="pill"><input type="checkbox" name="boot_animation" ' + (settings.boot_animation ? 'checked' : '') + '> Boot animation</label>';
+                html += '<label class="pill"><input type="checkbox" name="hud_mode" ' + (settings.hud_mode ? 'checked' : '') + '> HUD panel</label>';
                 html += '</div>';
 
                 html += '<button type="submit" class="btn btn-primary">Save Settings</button>';
@@ -691,8 +1121,17 @@
                     const formData = new FormData(e.target);
                     const settingsData = {};
                     for (let [key, value] of formData.entries()) {
-                        settingsData[key] = isNaN(value) ? value : parseInt(value);
+                        if (key === 'boot_animation' || key === 'hud_mode') {
+                            settingsData[key] = value === 'on';
+                        } else if (key === 'recognition_mode' || key === 'ui_theme') {
+                            settingsData[key] = value;
+                        } else {
+                            settingsData[key] = isNaN(value) ? value : parseInt(value);
+                        }
                     }
+
+                    settingsData.boot_animation = e.target.boot_animation.checked;
+                    settingsData.hud_mode = e.target.hud_mode.checked;
 
                     try {
                         const response = await fetch('/api/settings', {
@@ -714,6 +1153,311 @@
             }
         }
 
+        async function loadCameraStudio() {
+            try {
+                const response = await fetch('/api/camera/scan');
+                const data = await response.json();
+
+                let html = '<div class="layout-grid">';
+                html += '<div class="stack">';
+                html += '<div class="section-card">';
+                html += '<h4>Camera Scan</h4>';
+                html += `<p>Scanned index range 0-${data.scan_range}. Active camera: ${data.active_camera}.</p>`;
+                html += '<div class="camera-list">';
+
+                if (data.cameras && data.cameras.length > 0) {
+                    data.cameras.forEach(camera => {
+                        html += '<div class="camera-row">';
+                        html += `<div><strong>Camera ${camera.index}</strong><div class="camera-meta">${escapeHtml(camera.resolution)} | ${escapeHtml(camera.fps)} FPS</div></div>`;
+                        html += '<div class="inline-actions">';
+                        html += `<button class="btn btn-primary btn-mini" onclick="setActiveCamera(${camera.index})">Use This Camera</button>`;
+                        html += '</div>';
+                        html += '</div>';
+                    });
+                } else {
+                    html += '<p style="color:#95a3c3;">No cameras detected in the configured scan range.</p>';
+                }
+
+                html += '</div></div>';
+                html += '</div>';
+
+                html += '<div class="stack">';
+                html += '<div class="section-card">';
+                html += '<h4>Active Camera</h4>';
+                html += `<p>The current active camera is <strong>${escapeHtml(data.active_camera)}</strong>. Use the buttons above to switch devices.</p>`;
+                html += '<div class="helper-text">This matches the camera index used by capture, check, and recognition workflows.</div>';
+                html += '</div>';
+                html += '<div class="section-card">';
+                html += '<h4>Camera Actions</h4>';
+                html += '<p>Run a camera check after switching devices to verify the feed before capture or recognition.</p>';
+                html += '<div class="inline-actions" style="margin-top:12px; justify-content:flex-start;">';
+                html += '<button class="btn btn-primary btn-mini" onclick="checkCamera()">Check Camera</button>';
+                html += '<button class="btn btn-warning btn-mini" onclick="openCaptureModal(false)">Capture Faces</button>';
+                html += '</div>';
+                html += '</div>';
+                html += '</div>';
+                html += '</div>';
+
+                document.getElementById('cameraContent').innerHTML = html;
+            } catch (error) {
+                document.getElementById('cameraContent').innerHTML = '<p style="color:#ff8c9f;">Error loading camera data.</p>';
+            }
+        }
+
+        async function setActiveCamera(cameraIndex) {
+            try {
+                const response = await fetch('/api/camera/set', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ camera_index: cameraIndex })
+                });
+                const result = await response.json();
+                if (result.status === 'success') {
+                    updateStatus('success', `Active camera switched to ${cameraIndex}.`, 100);
+                    loadCameraStudio();
+                    refreshStatus();
+                } else {
+                    updateStatus('error', result.message || 'Failed to update camera', 0);
+                }
+            } catch (error) {
+                updateStatus('error', 'Failed to update camera', 0);
+            }
+        }
+
+        async function loadReports() {
+            try {
+                const [summaryResponse, filesResponse] = await Promise.all([
+                    fetch('/api/reports/summary'),
+                    fetch('/api/reports/files')
+                ]);
+
+                const summary = await summaryResponse.json();
+                const files = await filesResponse.json();
+
+                let html = '<div class="layout-grid">';
+                html += '<div class="stack">';
+                html += '<div class="section-card">';
+                html += '<h4>Attendance Overview</h4>';
+                html += `<p>${summary.students} students, ${summary.attendance_files} attendance files, and ${summary.report_files} generated report files.</p>`;
+                html += '<div class="grid-2" style="margin-top:12px;">';
+                html += `<div class="pill"><i class="fas fa-users"></i> ${summary.students} students</div>`;
+                html += `<div class="pill"><i class="fas fa-file-csv"></i> ${summary.attendance_files} attendance sessions</div>`;
+                html += `<div class="pill"><i class="fas fa-file-pdf"></i> ${summary.report_files} report files</div>`;
+                html += `<div class="pill"><i class="fas fa-clock"></i> ${summary.latest_attendance ? escapeHtml(summary.latest_attendance.name) : 'No attendance yet'}</div>`;
+                html += '</div>';
+                html += '</div>';
+                html += '<div class="section-card">';
+                html += '<h4>Latest Report</h4>';
+                if (summary.latest_report) {
+                    html += `<p>${escapeHtml(summary.latest_report.name)} is ready for viewing or download.</p>`;
+                } else {
+                    html += '<p>No generated reports found yet.</p>';
+                }
+                html += '<button class="btn btn-primary btn-mini" style="width:auto;" onclick="refreshReportsList()">Refresh List</button>';
+                html += '</div>';
+                html += '</div>';
+
+                html += '<div class="stack">';
+                html += '<div class="section-card">';
+                html += '<h4>Attendance Sessions</h4>';
+                html += '<div id="reportsList" class="report-list">';
+                if (files.reports && files.reports.length > 0) {
+                    files.reports.forEach(report => {
+                        html += '<div class="report-row">';
+                        html += `<div><strong>${escapeHtml(report.file_name)}</strong><div class="report-meta">Present ${report.present_count} | Absent ${report.absent_count} | Total ${report.total_students}</div></div>`;
+                        html += '<div class="inline-actions">';
+                        html += `<button class="btn btn-primary btn-mini" onclick="viewReport('${encodeURIComponent(report.file_name)}')">View</button>`;
+                        html += `<button class="btn btn-success btn-mini" onclick="exportReport('${encodeURIComponent(report.file_name)}')">Export PDF</button>`;
+                        html += `<button class="btn btn-warning btn-mini" onclick="downloadCSV('${encodeURIComponent(report.file_name)}')">Download CSV</button>`;
+                        html += `<button class="btn btn-danger btn-mini" onclick="deleteReport('${encodeURIComponent(report.file_name)}')">Delete</button>`;
+                        html += '</div>';
+                        html += '</div>';
+                    });
+                } else {
+                    html += '<p style="color:#95a3c3;">No attendance files found.</p>';
+                }
+                html += '</div>';
+                html += '</div>';
+                html += '<div class="section-card" id="reportDetailPanel">';
+                html += '<h4>Report Details</h4>';
+                html += '<p>Select a session to inspect attendance records, absent students, and export options.</p>';
+                html += '</div>';
+                html += '</div>';
+                html += '</div>';
+
+                document.getElementById('reportsContent').innerHTML = html;
+                window.__reportsCache = summary;
+            } catch (error) {
+                document.getElementById('reportsContent').innerHTML = '<p style="color:#ff8c9f;">Error loading reports.</p>';
+            }
+        }
+
+        async function downloadCSV(encodedReportName) {
+            try {
+                const reportName = decodeURIComponent(encodedReportName);
+                const url = `/api/reports/download-csv/${encodeURIComponent(reportName)}`;
+                window.open(url, '_blank');
+                updateStatus('success', `Downloading ${reportName}...`, 100);
+            } catch (error) {
+                updateStatus('error', 'Failed to download CSV', 0);
+            }
+        }
+
+        async function deleteReport(encodedReportName) {
+            const reportName = decodeURIComponent(encodedReportName);
+            if (confirm(`Are you sure you want to delete ${reportName}? This cannot be undone.`)) {
+                try {
+                    const response = await fetch(`/api/reports/delete/${encodeURIComponent(reportName)}`, { method: 'POST' });
+                    const result = await response.json();
+                    if (result.status === 'success') {
+                        loadReports();
+                        updateStatus('success', `Report ${reportName} deleted`, 100);
+                    } else {
+                        updateStatus('error', result.message || 'Failed to delete report', 0);
+                    }
+                } catch (error) {
+                    updateStatus('error', 'Failed to delete report', 0);
+                }
+            }
+        }
+        function refreshReportsList() {
+            loadReports();
+        }
+
+        async function viewReport(encodedReportName) {
+            try {
+                const reportName = decodeURIComponent(encodedReportName);
+                const response = await fetch(`/api/reports/view/${encodeURIComponent(reportName)}`);
+                const data = await response.json();
+                if (data.status !== 'success') {
+                    document.getElementById('reportDetailPanel').innerHTML = `<h4>Report Details</h4><p style="color:#ff8c9f;">${escapeHtml(data.message || 'Unable to load report')}</p>`;
+                    return;
+                }
+
+                const report = data.report;
+                let html = '<h4>Report Details</h4>';
+                html += `<p><strong>${escapeHtml(report.file_name)}</strong></p>`;
+                html += `<div class="grid-2" style="margin-top:12px;">`;
+                html += `<div class="pill">Present: ${report.present_count}</div>`;
+                html += `<div class="pill">Absent: ${report.absent_count}</div>`;
+                html += `<div class="pill">Total: ${report.total_students}</div>`;
+                html += `<div class="pill">Date: ${escapeHtml(report.date)}</div>`;
+                html += `</div>`;
+                html += `<div class="helper-text" style="margin-top:10px;">Use Export PDF to generate a printable copy. Download uses the generated file in the attendance folder.</div>`;
+                html += `<div class="inline-actions" style="margin-top:12px; justify-content:flex-start;">`;
+                html += `<button class="btn btn-success btn-mini" onclick="exportReport('${encodeURIComponent(report.file_name)}')">Export PDF</button>`;
+                html += `</div>`;
+
+                if (report.records && report.records.length > 0) {
+                    html += '<div class="section-card" style="margin-top:14px;">';
+                    html += '<h4>Present Students</h4>';
+                    report.records.forEach(record => {
+                        html += '<div class="data-list-item">';
+                        html += `<div><strong>${escapeHtml(record.name)}</strong><div class="report-meta">ID ${escapeHtml(record.student_id)} | ${escapeHtml(record.time)} | ${escapeHtml(record.email || 'No email')}</div></div>`;
+                        html += '</div>';
+                    });
+                    html += '</div>';
+                }
+
+                if (report.absent_students && report.absent_students.length > 0) {
+                    html += '<div class="section-card" style="margin-top:14px;">';
+                    html += '<h4>Absent Students</h4>';
+                    report.absent_students.forEach(student => {
+                        html += '<div class="data-list-item">';
+                        html += `<div><strong>${escapeHtml(student.name || student.id)}</strong><div class="report-meta">ID ${escapeHtml(student.id || '')} | ${escapeHtml(student.email || 'No email')}</div></div>`;
+                        html += '</div>';
+                    });
+                    html += '</div>';
+                }
+
+                document.getElementById('reportDetailPanel').innerHTML = html;
+            } catch (error) {
+                document.getElementById('reportDetailPanel').innerHTML = '<h4>Report Details</h4><p style="color:#ff8c9f;">Error loading report details.</p>';
+            }
+        }
+
+        async function exportReport(encodedReportName) {
+            try {
+                const reportName = decodeURIComponent(encodedReportName);
+                const response = await fetch(`/api/reports/export/${encodeURIComponent(reportName)}`, { method: 'POST' });
+                const data = await response.json();
+                if (data.status === 'success') {
+                    updateStatus('success', `Report exported: ${data.pdf_name}`, 100);
+                    window.open(data.download_url, '_blank');
+                    loadReports();
+                } else {
+                    updateStatus('error', data.message || 'Failed to export report', 0);
+                }
+            } catch (error) {
+                updateStatus('error', 'Failed to export report', 0);
+            }
+        }
+
+        async function loadAnalytics() {
+            try {
+                const response = await fetch('/api/reports/statistics');
+                const stats = await response.json();
+
+                let html = '<div class="layout-grid">';
+                html += '<div class="stack">';
+                
+                // Summary cards
+                html += '<div class="grid-2" style="margin-bottom:14px;">';
+                html += `<div class="section-card"><h4>${stats.total_students}</h4><p>Total Students</p></div>`;
+                html += `<div class="section-card"><h4>${stats.total_sessions}</h4><p>Attendance Sessions</p></div>`;
+                html += `<div class="section-card"><h4>${stats.total_marked}</h4><p>Total Marked Present</p></div>`;
+                html += `<div class="section-card"><h4>${Math.round(stats.total_marked / (stats.total_sessions * stats.total_students) * 100) || 0}%</h4><p>Overall Attendance Rate</p></div>`;
+                html += '</div>';
+
+                // Daily attendance trend
+                html += '<div class="section-card">';
+                html += '<h4>Daily Attendance Trend</h4>';
+                if (stats.daily_data && stats.daily_data.length > 0) {
+                    html += '<div style="margin-top:10px; font-size:0.85rem;">';
+                    stats.daily_data.slice(0, 10).forEach(day => {
+                        const rate = Math.round(day.present / day.total * 100) || 0;
+                        html += `<div style="display:flex; justify-content:space-between; margin-bottom:6px;">`;
+                        html += `<span>${day.date}: ${day.present}/${day.total}</span>`;
+                        html += `<span style="color:var(--success);">${rate}%</span>`;
+                        html += `</div>`;
+                    });
+                    html += '</div>';
+                } else {
+                    html += '<p style="color:#95a3c3;">No attendance data yet</p>';
+                }
+                html += '</div>';
+                html += '</div>';
+
+                // Student attendance details
+                html += '<div class="stack">';
+                html += '<div class="section-card">';
+                html += '<h4>Top Attending Students</h4>';
+                if (stats.student_attendance && Object.keys(stats.student_attendance).length > 0) {
+                    const sorted = Object.entries(stats.student_attendance)
+                        .map(([id, data]) => ({ id, ...data, rate: data.sessions > 0 ? Math.round(data.present / data.sessions * 100) : 0 }))
+                        .sort((a, b) => b.rate - a.rate)
+                        .slice(0, 10);
+                    
+                    html += '<div style="margin-top:10px; font-size:0.85rem;">';
+                    sorted.forEach(student => {
+                        html += `<div style="display:flex; justify-content:space-between; margin-bottom:6px;">`;
+                        html += `<span>${escapeHtml(student.name)}</span>`;
+                        html += `<span>${student.present}/${student.sessions} (${student.rate}%)</span>`;
+                        html += `</div>`;
+                    });
+                    html += '</div>';
+                } else {
+                    html += '<p style="color:#95a3c3;">No student data yet</p>';
+                }
+                html += '</div>';
+                html += '</div>';
+                html += '</div>';
+
+                document.getElementById('analyticsContent').innerHTML = html;
+            } catch (error) {
+                document.getElementById('analyticsContent').innerHTML = '<p style="color:#ff8c9f;">Error loading analytics.</p>';
+            }
+        }
         function showAddStudentForm() {
             const html = `
                 <form id="addStudentForm">
@@ -724,6 +1468,10 @@
                     <div class="form-group">
                         <label class="form-label">Student Name</label>
                         <input type="text" class="form-input" name="name" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Email</label>
+                        <input type="email" class="form-input" name="email" placeholder="student@example.com">
                     </div>
                     <button type="submit" class="btn btn-success" style="margin-bottom:8px;">Add Student</button>
                     <button type="button" class="btn btn-primary" onclick="loadStudentData()">Cancel</button>
@@ -736,7 +1484,8 @@
                 const formData = new FormData(e.target);
                 const studentData = {
                     student_id: formData.get('student_id'),
-                    name: formData.get('name')
+                    name: formData.get('name'),
+                    email: formData.get('email') || ''
                 };
 
                 try {
@@ -758,9 +1507,49 @@
 
         async function deleteStudent(studentId) {
             if (confirm('Are you sure you want to delete this student?')) {
-                alert('Delete functionality coming soon!');
+                try {
+                    const response = await fetch(`/api/data/delete_student/${encodeURIComponent(studentId)}`, { method: 'POST' });
+                    const result = await response.json();
+                    if (result.status === 'success') {
+                        loadStudentData();
+                        refreshStatus();
+                        updateStatus('success', `Student ${studentId} deleted.`, 100);
+                    } else {
+                        updateStatus('error', result.message || 'Failed to delete student', 0);
+                    }
+                } catch (error) {
+                    updateStatus('error', 'Failed to delete student', 0);
+                }
             }
         }
+
+        document.getElementById('resetForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const payload = {
+                confirmation: formData.get('confirmation'),
+                password: formData.get('password')
+            };
+
+            try {
+                const response = await fetch('/api/data/reset', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const result = await response.json();
+                if (result.status === 'success') {
+                    closeModal('resetModal');
+                    updateStatus('success', result.message || 'Database reset complete.', 100);
+                    refreshStatus();
+                    loadStudentData();
+                } else {
+                    updateStatus('error', result.message || 'Failed to reset database', 0);
+                }
+            } catch (error) {
+                updateStatus('error', 'Failed to reset database', 0);
+            }
+        });
     </script>
 </body>
 </html>
