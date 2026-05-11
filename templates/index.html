@@ -451,8 +451,10 @@
 
             if (!recognitionAvailable) {
                 const recognizeBtn = document.getElementById('recognizeBtn');
-                recognizeBtn.disabled = true;
-                recognizeBtn.innerHTML = '<i class="fas fa-ban"></i> Recognition Unavailable';
+                if (recognizeBtn) {
+                    recognizeBtn.disabled = true;
+                    recognizeBtn.innerHTML = '<i class="fas fa-ban"></i> Recognition Unavailable';
+                }
             }
         });
 
@@ -585,7 +587,8 @@
                         btn.innerHTML = '<i class="fas fa-stop-circle"></i> Stop Recognition';
                         updateStatus('running', 'Starting attendance recognition...', 0);
                     } else if (data.status === 'error') {
-                        updateStatus('error', data.message || 'Recognition unavailable', 0);
+                        const apiMessage = typeof data.message === 'string' ? data.message : 'Recognition unavailable';
+                        updateStatus('error', apiMessage, 0);
                     }
                 } catch (error) {
                     updateStatus('error', 'Failed to start recognition', 0);
