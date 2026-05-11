@@ -431,9 +431,18 @@
 
     <script>
         const socket = null;
-        const recognitionAvailable = {{ 'true' if recognition_available else 'false' }};
+        const recognitionAvailable = {{ recognition_available | tojson }};
         let currentStatus = 'idle';
         let statusInterval = null;
+
+        function escapeHtml(value) {
+            return String(value)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
 
         document.addEventListener('DOMContentLoaded', function() {
             refreshStatus();
@@ -627,9 +636,12 @@
                 if (data.students && data.students.length > 0) {
                     html += '<div style="max-height: 340px; overflow-y: auto;">';
                     data.students.forEach(student => {
+                        const safeName = escapeHtml(student.name);
+                        const safeId = escapeHtml(student.id);
+                        const encodedStudentId = encodeURIComponent(String(student.id));
                         html += '<div class="data-list-item">';
-                        html += `<div><strong>${student.name}</strong><div style="color:#95a3c3; font-size:0.82rem; margin-top:2px;">ID: ${student.id}</div></div>`;
-                        html += `<button class="btn btn-danger" style="width:auto; padding:7px 10px;" onclick="deleteStudent('${student.id}')">`;
+                        html += `<div><strong>${safeName}</strong><div style="color:#95a3c3; font-size:0.82rem; margin-top:2px;">ID: ${safeId}</div></div>`;
+                        html += `<button class="btn btn-danger" style="width:auto; padding:7px 10px;" onclick="deleteStudent(decodeURIComponent('${encodedStudentId}'))">`;
                         html += '<i class="fas fa-trash"></i></button>';
                         html += '</div>';
                     });
