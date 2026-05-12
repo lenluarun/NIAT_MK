@@ -269,19 +269,7 @@ def print_separator(char="═", length=60, theme="neon"):
 
 def print_menu_item(number, text, theme="neon"):
     """Print a menu item with Unicode symbols."""
-    theme_colors = get_theme(theme)
-    symbols = {
-        "neon": "►",
-        "matrix": "▣",
-        "abyss": "◍",
-        "phantom": "◆",
-        "sunset": "🔥",
-        "ocean": "🌊",
-        "fire": "💥",
-        "e2c": "✦",
-    }
-    symbol = symbols.get(theme, "►")
-    print(themed_colored(f"[{number}] {symbol} {text}", "info", theme))
+    print(themed_colored(f"[{number}] {text}", "info", theme))
 
 
 def print_status_box(title, items, theme="neon"):
@@ -306,3 +294,53 @@ def print_status_box(title, items, theme="neon"):
     for item in items:
         print(themed_colored(f"{vert} {str(item).ljust(width - 2)} {vert}", "info", theme))
     print(themed_colored(f"{bl}{horiz * width}{br}", "primary", theme))
+
+
+def print_section_header(title, theme="neon", width=72):
+    """Print an enhanced section header with decorative elements."""
+    theme_colors = get_theme(theme)
+    print(colored("", Colors.RESET))
+    print(themed_colored(f"  ▸ {title.upper()} " + "─" * (width - len(title) - 6), "highlight", theme))
+    print(colored("", Colors.RESET))
+
+
+def print_table_header(headers, widths=None, theme="neon"):
+    """Print a formatted table header."""
+    if widths is None:
+        widths = [20] * len(headers)
+    header_str = " │ ".join(h.ljust(w)[:w] for h, w in zip(headers, widths))
+    print(themed_colored(f"  {header_str}", "primary", theme))
+    divider = " ─ ".join("─" * w for w in widths)
+    print(themed_colored(f"  {divider}", "highlight", theme))
+
+
+def print_loading_animation(duration=1, theme="neon"):
+    """Print an animated loading sequence."""
+    frames = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]
+    start_time = time.time()
+    idx = 0
+    while time.time() - start_time < duration:
+        print(themed_colored(f"  {frames[idx % len(frames)]} Processing...", "success", theme), end="\r")
+        time.sleep(0.1)
+        idx += 1
+    print(" " * 40, end="\r")  # Clear the line
+
+
+def print_success_message(message, theme="neon"):
+    """Print a success message with styling."""
+    print(themed_colored(f"  ✓ {message}", "success", theme))
+
+
+def print_warning_message(message, theme="neon"):
+    """Print a warning message with styling."""
+    print(themed_colored(f"  ⚠ {message}", "warning", theme))
+
+
+def print_error_message(message, theme="neon"):
+    """Print an error message with styling."""
+    print(themed_colored(f"  ✗ {message}", "danger", theme))
+
+
+def print_info_message(message, theme="neon"):
+    """Print an info message with styling."""
+    print(themed_colored(f"  ℹ {message}", "info", theme))

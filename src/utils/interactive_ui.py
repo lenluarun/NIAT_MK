@@ -29,6 +29,30 @@ for stream in (sys.stdout, sys.stderr):
 
 from .ui import render_banner, render_symbol_wall, print_separator
 from .colors import Colors, colored
+from src.core import capture as capture_image
+from src.core import training as train_image
+from src.core.data import DataManager
+from src.core.storage import create_storage_folders, get_storage_path
+from src.utils.camera_utils import detect_available_cameras
+from src.utils.camera_check import camer
+from src.utils.settings_manager import load_settings, update_setting
+
+
+storage_path = None
+storage_paths = None
+data_manager = None
+app_settings = None
+recognize_module = None
+RECOGNITION_AVAILABLE = False
+RECOGNITION_IMPORT_ERROR = ""
+
+try:
+    from src.core import recognition as _recognize_module
+
+    recognize_module = _recognize_module
+    RECOGNITION_AVAILABLE = True
+except Exception as exc:
+    RECOGNITION_IMPORT_ERROR = str(exc)
 
 
 def _enable_auto_stylish_console():
@@ -49,13 +73,6 @@ def _enable_auto_stylish_console():
             ctypes.windll.user32.ShowWindow(console, 3)
     except Exception:
         pass
-
-
-def _import_main_module():
-    try:
-        return importlib.import_module("main")
-    except Exception:
-        return None
 
 
 def _render_e2c_header():
@@ -115,37 +132,7 @@ def _render_e2c_banner():
 
 def _render_menu_options():
     """Render professional menu with styled options."""
-    menu = [
-        colored("┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓", Colors.BRIGHT_CYAN),
-        colored("┃                        SELECT OPERATION MODULE                         ┃", Colors.BRIGHT_CYAN),
-        colored("┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫", Colors.BRIGHT_CYAN),
-        colored("┃                                                                        ┃", Colors.BRIGHT_CYAN),
-        colored("┃  [1]   CAMERA DIAGNOSTIC MODULE                                        ┃", Colors.BRIGHT_WHITE),
-        colored("┃       └─ Verify hardware connectivity & calibration                    ┃", Colors.BRIGHT_YELLOW),
-        colored("┃                                                                        ┃", Colors.BRIGHT_CYAN),
-        colored("┃  [2]   FACE CAPTURE ENGINE                                             ┃", Colors.BRIGHT_WHITE),
-        colored("┃       └─ Acquire & register new face profiles                          ┃", Colors.BRIGHT_YELLOW),
-        colored("┃                                                                        ┃", Colors.BRIGHT_CYAN),
-        colored("┃  [3]   NEURAL TRAINING MODULE                                          ┃", Colors.BRIGHT_WHITE),
-        colored("┃       └─ Optimize recognition model with training dataset              ┃", Colors.BRIGHT_YELLOW),
-        colored("┃                                                                        ┃", Colors.BRIGHT_CYAN),
-        colored("┃  [4]   REAL-TIME RECOGNITION DAEMON                                    ┃", Colors.BRIGHT_WHITE),
-        colored("┃       └─ Activate facial recognition & auto-attendance logging         ┃", Colors.BRIGHT_YELLOW),
-        colored("┃                                                                        ┃", Colors.BRIGHT_CYAN),
-        colored("┃  [5]    DATA ANALYTICS & REPORTING CONSOLE                             ┃", Colors.BRIGHT_WHITE),
-        colored("┃       └─ Generate reports & manage attendance database                 ┃", Colors.BRIGHT_YELLOW),
-        colored("┃                                                                        ┃", Colors.BRIGHT_CYAN),
-        colored("┃  [6]   SYSTEM CONFIGURATION PANEL                                      ┃", Colors.BRIGHT_WHITE),
-        colored("┃       └─ Tune parameters & manage system preferences                   ┃", Colors.BRIGHT_YELLOW),
-        colored("┃                                                                        ┃", Colors.BRIGHT_CYAN),
-        colored("┃  [7]   NORMAL STYLISH TERMINAL                                         ┃", Colors.BRIGHT_BLUE),
-        colored("┃       └─ Switch to keyboard command interface                          ┃", Colors.BRIGHT_YELLOW),
-        colored("┃                                                                        ┃", Colors.BRIGHT_CYAN),
-        colored("┃  [0]  EXIT E2C CONTROL CENTER                                          ┃", Colors.BRIGHT_RED),
-        colored("┃       └─ Shutdown all services & close interface                       ┃", Colors.BRIGHT_RED),
-        colored("┃                                                                        ┃", Colors.BRIGHT_CYAN),
-        colored("┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛", Colors.BRIGHT_CYAN),
-    ]
+    menu = []
 
     for line in menu:
         print(line)
@@ -171,19 +158,23 @@ def _text_input(title: str, prompt: str, default: str = "") -> Optional[str]:
 
 
 def _text_choice(title: str, text: str, buttons):
-    """Choose an option using a keyboard-driven terminal menu."""
-    print("\n" + "=" * 72)
-    print(title)
-    print("=" * 72)
+    """Choose an option using a styled keyboard-driven terminal menu."""
+    print()
+    print(colored("┏" + "━" * 72 + "┓", Colors.BRIGHT_CYAN))
+    print(colored(f"┃ {title.center(70)} ┃", Colors.BRIGHT_CYAN))
+    print(colored("┣" + "━" * 72 + "┫", Colors.BRIGHT_CYAN))
     if text:
-        print(text)
-        print("-" * 72)
+        for line in text.splitlines():
+            print(colored(f"┃ {line.ljust(70)} ┃", Colors.BRIGHT_WHITE))
+        print(colored("┣" + "━" * 72 + "┫", Colors.BRIGHT_CYAN))
 
     key_map = {}
     for idx, (label, value) in enumerate(buttons, start=1):
         key = str(idx)
         key_map[key] = value
-        print(f"{key}. {label}")
+        print(colored(f"┃  [{key}]  {label.ljust(62)} ┃", Colors.BRIGHT_YELLOW))
+
+    print(colored("┗" + "━" * 72 + "┛", Colors.BRIGHT_CYAN))
 
     while True:
         choice = input("Select option: ").strip()
@@ -199,18 +190,15 @@ def _prompt_text(title: str, prompt: str, default: str = "") -> Optional[str]:
     return result.strip()
 
 
-def _save_setting(main_mod, key, value):
-    if not hasattr(main_mod, "update_setting"):
-        raise AttributeError("update_setting not available")
-
-    settings = main_mod.update_setting(key, value)
-    if hasattr(main_mod, "app_settings"):
-        main_mod.app_settings = settings
+def _save_setting(key, value):
+    global app_settings
+    settings = update_setting(key, value)
+    app_settings = settings
     return settings
 
 
-def _show_settings_snapshot(main_mod):
-    settings = getattr(main_mod, "app_settings", None) or {}
+def _show_settings_snapshot():
+    settings = app_settings or {}
     print("\nCURRENT SETTINGS")
     print("-" * 40)
     print(f"Camera Index: {settings.get('camera_index', 'n/a')}")
@@ -225,8 +213,7 @@ def _show_settings_snapshot(main_mod):
     input("Press ENTER to return to Enhanced Menu...")
 
 
-def _add_student_detail(main_mod):
-    data_manager = getattr(main_mod, "data_manager", None)
+def _add_student_detail():
     if not data_manager:
         _text_message("Add Student", "Student database is not available yet.")
         return
@@ -260,8 +247,8 @@ def _add_student_detail(main_mod):
         _text_message("Add Student", "Failed to add student.")
 
 
-def _change_setting_value(main_mod, key, title, prompt, parser=None):
-    current_settings = getattr(main_mod, "app_settings", None) or {}
+def _change_setting_value(key, title, prompt, parser=None):
+    current_settings = app_settings or {}
     default_value = str(current_settings.get(key, ""))
     value_text = _prompt_text(title, prompt, default_value)
     if value_text is None or value_text == "":
@@ -269,15 +256,15 @@ def _change_setting_value(main_mod, key, title, prompt, parser=None):
 
     try:
         value = parser(value_text) if parser else value_text
-        _save_setting(main_mod, key, value)
+        _save_setting(key, value)
         _text_message(title, f"Updated {key} to {value}.")
     except Exception as exc:
         _text_message(title, f"Could not update {key}: {exc}")
 
 
-def _settings_menu(main_mod):
+def _settings_menu():
     while True:
-        settings = getattr(main_mod, "app_settings", None) or {}
+        settings = app_settings or {}
         choice = _text_choice(
             title="E2C Settings Console",
             text=(
@@ -306,32 +293,32 @@ def _settings_menu(main_mod):
         if choice in (None, "back"):
             return
         if choice == "student":
-            _add_student_detail(main_mod)
+            _add_student_detail()
         elif choice == "camera_index":
-            _change_setting_value(main_mod, "camera_index", "Camera Index", "Enter new camera index:", int)
+            _change_setting_value("camera_index", "Camera Index", "Enter new camera index:", int)
         elif choice == "scan_range":
-            _change_setting_value(main_mod, "camera_scan_range", "Camera Scan Range", "Enter camera scan range (1-20):", int)
+            _change_setting_value("camera_scan_range", "Camera Scan Range", "Enter camera scan range (1-20):", int)
         elif choice == "samples":
-            _change_setting_value(main_mod, "max_capture_samples", "Capture Samples", "Enter max capture samples (20-500):", int)
+            _change_setting_value("max_capture_samples", "Capture Samples", "Enter max capture samples (20-500):", int)
         elif choice == "pass_mark":
-            _change_setting_value(main_mod, "recognition_pass_mark", "Recognition Pass Mark", "Enter new pass mark:", int)
+            _change_setting_value("recognition_pass_mark", "Recognition Pass Mark", "Enter new pass mark:", int)
         elif choice == "rec_mode":
-            _change_setting_value(main_mod, "recognition_mode", "Recognition Mode", "Enter recognition mode (fast/accurate):")
+            _change_setting_value("recognition_mode", "Recognition Mode", "Enter recognition mode (fast/accurate):")
         elif choice == "theme":
-            _change_setting_value(main_mod, "ui_theme", "UI Theme", "Enter theme (neon/e2c/matrix/abyss/phantom/sunset/ocean/fire):")
+            _change_setting_value("ui_theme", "UI Theme", "Enter theme (neon/e2c/matrix/abyss/phantom/sunset/ocean/fire):")
         elif choice == "boot":
             current = bool(settings.get("boot_animation", True))
-            _save_setting(main_mod, "boot_animation", not current)
+            _save_setting("boot_animation", not current)
             _text_message("Boot Animation", f"Boot animation {'enabled' if not current else 'disabled'}.")
         elif choice == "hud":
             current = bool(settings.get("hud_mode", True))
-            _save_setting(main_mod, "hud_mode", not current)
+            _save_setting("hud_mode", not current)
             _text_message("HUD Panel", f"HUD panel {'enabled' if not current else 'disabled'}.")
         elif choice == "view":
-            _show_settings_snapshot(main_mod)
+            _show_settings_snapshot()
 
 
-def _handle_data_action(main_mod):
+def _handle_data_action():
     data_action = _text_choice(
         title="E2C Data Console",
         text="Choose a data action",
@@ -342,27 +329,50 @@ def _handle_data_action(main_mod):
         ],
     )
 
-    if data_action == "students" and hasattr(main_mod, "data_manager") and main_mod.data_manager:
-        main_mod.data_manager.display_all_students()
+    if data_action == "students" and data_manager:
+        data_manager.display_all_students()
         input("Press ENTER to return to Enhanced Menu...")
-    elif data_action == "attendance" and hasattr(main_mod, "data_manager") and main_mod.data_manager:
-        main_mod.data_manager.generate_attendance_report()
+    elif data_action == "attendance" and data_manager:
+        data_manager.generate_attendance_report()
         input("Press ENTER to return to Enhanced Menu...")
 
 
-def _execute_enhanced_action(main_mod, action):
-    if action == "camera" and hasattr(main_mod, "check_camera_option"):
-        main_mod.check_camera_option(return_to_menu=False)
-    elif action == "capture" and hasattr(main_mod, "capture_faces_option"):
-        main_mod.capture_faces_option(return_to_menu=False)
-    elif action == "train" and hasattr(main_mod, "train_images_option"):
-        main_mod.train_images_option(return_to_menu=False)
-    elif action == "recognize" and hasattr(main_mod, "recognize_faces_option"):
-        main_mod.recognize_faces_option(return_to_menu=False)
+def _execute_enhanced_action(action):
+    if action == "camera":
+        camer(app_settings['camera_index'])
+        input("\nPress ENTER to return to Enhanced Menu...")
+    elif action == "capture":
+        print_separator("═", 60, app_settings.get("ui_theme", "neon"))
+        print("Starting face capture process...")
+        capture_image.takeImages(
+            storage_paths,
+            data_manager,
+            camera_index=app_settings['camera_index'],
+            max_samples=app_settings['max_capture_samples']
+        )
+        input("\nPress ENTER to return to Enhanced Menu...")
+    elif action == "train":
+        print_separator("═", 60, app_settings.get("ui_theme", "neon"))
+        print("Starting image training process...")
+        train_image.TrainImages(storage_paths)
+        input("\nPress ENTER to return to Enhanced Menu...")
+    elif action == "recognize":
+        if not RECOGNITION_AVAILABLE:
+            print(f"Recognition is disabled because required dependency failed to load: {RECOGNITION_IMPORT_ERROR}")
+            input("Press ENTER to return to Enhanced Menu...")
+            return
+        recognize_module.recognize_attendence(
+            storage_paths,
+            data_manager,
+            camera_index=app_settings['camera_index'],
+            pass_mark=app_settings['recognition_pass_mark'],
+            fast_mode=(app_settings.get("recognition_mode", "fast") == "fast")
+        )
+        input("\nPress ENTER to return to Enhanced Menu...")
     elif action == "data":
-        _handle_data_action(main_mod)
+        _handle_data_action()
     elif action == "settings":
-        _settings_menu(main_mod)
+        _settings_menu()
     else:
         print("Selected action is not available in interactive mode.")
         input("Press ENTER to continue...")
@@ -373,7 +383,7 @@ def _confirm_switch_to_keyboard() -> bool:
     return True
 
 
-def launch_stylish_terminal(main_mod):
+def launch_stylish_terminal():
     """Keyboard-first stylish terminal mode."""
     _enable_auto_stylish_console()
     while True:
@@ -401,7 +411,7 @@ def launch_stylish_terminal(main_mod):
 
         action = mapping.get(choice)
         if action:
-            _execute_enhanced_action(main_mod, action)
+            _execute_enhanced_action(action)
         else:
             print("Invalid choice. Please select a number from 0 to 7.")
             input("Press ENTER to continue...")
@@ -410,14 +420,28 @@ def launch_stylish_terminal(main_mod):
 def launch_interactive():
     """Run the professional E2C terminal interface."""
     _enable_auto_stylish_console()
-    main_mod = _import_main_module()
+    global storage_path, storage_paths, data_manager, app_settings, RECOGNITION_AVAILABLE, RECOGNITION_IMPORT_ERROR
 
-    if main_mod is not None:
-        try:
-            if hasattr(main_mod, "init_system"):
-                main_mod.init_system()
-        except Exception as exc:
-            print(f"Warning: failed to initialize full system: {exc}")
+    try:
+        storage_path = get_storage_path()
+        if not storage_path:
+            raise RuntimeError("Failed to resolve storage path")
+        storage_paths = create_storage_folders(storage_path)
+        data_manager = DataManager(storage_paths)
+        app_settings = load_settings()
+    except Exception as exc:
+        print(f"Warning: failed to initialize terminal UI backend: {exc}")
+        data_manager = None
+        app_settings = {
+            "camera_index": 0,
+            "camera_scan_range": 5,
+            "max_capture_samples": 100,
+            "recognition_pass_mark": 60,
+            "recognition_mode": "fast",
+            "ui_theme": "neon",
+            "boot_animation": True,
+            "hud_mode": True,
+        }
 
     _render_e2c_header()
     time.sleep(0.5)
@@ -453,19 +477,13 @@ def launch_interactive():
                 _render_shutdown()
                 break
 
-            if main_mod is None:
-                print("Enhanced UI backend is unavailable right now.")
-                print("Restart launcher and try again after fixing startup errors.")
-                input("Press ENTER to continue...")
-                break
-
             if result == "normal":
-                mode_result = launch_stylish_terminal(main_mod)
+                mode_result = launch_stylish_terminal()
                 if mode_result == "exit":
                     _render_shutdown()
                     break
             else:
-                _execute_enhanced_action(main_mod, result)
+                _execute_enhanced_action(result)
 
         except KeyboardInterrupt:
             _render_shutdown()

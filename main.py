@@ -114,19 +114,7 @@ def main_menu():
             ],
         )
     print_menu_block(
-        "MAIN MENU // CHOOSE MODULE",
-        [
-            ("1", "► Camera Check"),
-            ("2", "► Capture Faces"),
-            ("3", "► Train Images"),
-            ("4", "► Recognize & Attendance"),
-            ("5", "► Data Management"),
-            ("6", "► View Reports"),
-            ("7", "► System Settings"),
-            ("8", "► Exit"),
-        ],
-        accent=Colors.BRIGHT_CYAN
-    )
+       )
     
     # System status footer
     print(colored("\n" + "═" * 74, Colors.BRIGHT_MAGENTA))
