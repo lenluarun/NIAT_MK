@@ -1,5 +1,5 @@
 """
-Professional E2C Terminal UI with advanced styling and prompt_toolkit integration.
+Professional E2C Terminal UI with advanced styling and keyboard-only interaction.
 """
 from __future__ import annotations
 
@@ -26,12 +26,6 @@ for stream in (sys.stdout, sys.stderr):
     except Exception:
         # Some execution environments may not allow stream reconfiguration.
         pass
-
-try:
-    from prompt_toolkit.shortcuts import button_dialog, input_dialog, message_dialog
-    PROMPT_TOOLKIT_AVAILABLE = True
-except Exception:
-    PROMPT_TOOLKIT_AVAILABLE = False
 
 from .ui import render_banner, render_symbol_wall, print_separator
 from .colors import Colors, colored
@@ -158,21 +152,13 @@ def _render_menu_options():
 
 
 def _text_message(title: str, text: str):
-    """Display a message using prompt toolkit when available, otherwise plain terminal."""
-    if PROMPT_TOOLKIT_AVAILABLE:
-        message_dialog(title=title, text=text).run()
-        return
-
+    """Display a message in the terminal."""
     print(f"\n[{title}] {text}")
     input("Press ENTER to continue...")
 
 
 def _text_input(title: str, prompt: str, default: str = "") -> Optional[str]:
-    """Get text input using dialog when available, otherwise plain input prompt."""
-    if PROMPT_TOOLKIT_AVAILABLE:
-        result = input_dialog(title=title, text=prompt, default=default).run()
-        return result
-
+    """Get text input from the terminal."""
     prompt_line = f"[{title}] {prompt}"
     if default:
         prompt_line += f" (default: {default})"
@@ -185,10 +171,7 @@ def _text_input(title: str, prompt: str, default: str = "") -> Optional[str]:
 
 
 def _text_choice(title: str, text: str, buttons):
-    """Choose an option with mouse dialog when available, otherwise keyboard menu."""
-    if PROMPT_TOOLKIT_AVAILABLE:
-        return button_dialog(title=title, text=text, buttons=buttons).run()
-
+    """Choose an option using a keyboard-driven terminal menu."""
     print("\n" + "=" * 72)
     print(title)
     print("=" * 72)
@@ -386,27 +369,19 @@ def _execute_enhanced_action(main_mod, action):
 
 
 def _confirm_switch_to_keyboard() -> bool:
-    """Ask user whether to switch from mouse interface to keyboard interface."""
-    decision = _text_choice(
-        title="Switch Interface Mode",
-        text="Move to Normal Stylish Terminal (keyboard mode)?",
-        buttons=[
-            ("Yes, switch", "yes"),
-            ("No, stay in mouse interface", "no"),
-        ],
-    )
-    return decision == "yes"
+    """Keep the terminal UI in keyboard mode."""
+    return True
 
 
 def launch_stylish_terminal(main_mod):
-    """Keyboard-first stylish terminal mode launched from mouse interface."""
+    """Keyboard-first stylish terminal mode."""
     _enable_auto_stylish_console()
     while True:
         _render_e2c_header()
         _render_e2c_banner()
         print("")
         _render_menu_options()
-        print(colored("\n[7] ↹ SWITCH BACK TO MOUSE INTERFACE", Colors.BRIGHT_CYAN))
+        print(colored("\n[7] ↹ RETURN TO MAIN LAUNCHER", Colors.BRIGHT_CYAN))
         print(colored("[0] ⟳ EXIT ENHANCED TERMINAL", Colors.BRIGHT_RED))
 
         choice = input("\nSelect option (0-7): ").strip()
@@ -420,7 +395,7 @@ def launch_stylish_terminal(main_mod):
         }
 
         if choice == "7":
-            return "mouse"
+            return "launcher"
         if choice == "0":
             return "exit"
 
@@ -449,10 +424,9 @@ def launch_interactive():
     _render_e2c_banner()
     time.sleep(0.3)
 
-    if not PROMPT_TOOLKIT_AVAILABLE:
-        print(colored("[INFO] prompt_toolkit not found. Running stylish keyboard mode automatically.", Colors.BRIGHT_YELLOW))
-        print(colored("[INFO] You can still use all features from the terminal menu.", Colors.BRIGHT_CYAN))
-        time.sleep(0.8)
+    print(colored("[INFO] Running stylish keyboard mode.", Colors.BRIGHT_YELLOW))
+    print(colored("[INFO] Use the numbered menu to navigate all terminal features.", Colors.BRIGHT_CYAN))
+    time.sleep(0.8)
 
     while True:
         try:
@@ -486,12 +460,10 @@ def launch_interactive():
                 break
 
             if result == "normal":
-                if _confirm_switch_to_keyboard():
-                    mode_result = launch_stylish_terminal(main_mod)
-                    if mode_result == "exit":
-                        _render_shutdown()
-                        break
-                    # If mode_result is "mouse", loop continues in mouse interface.
+                mode_result = launch_stylish_terminal(main_mod)
+                if mode_result == "exit":
+                    _render_shutdown()
+                    break
             else:
                 _execute_enhanced_action(main_mod, result)
 

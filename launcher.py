@@ -8,7 +8,6 @@ import os
 import sys
 import subprocess
 import time
-import importlib.util
 
 from src.core.updater import update_system_from_github
 
@@ -29,9 +28,9 @@ def print_menu():
     print(">>> SELECT YOUR PREFERRED INTERFACE")
     print("-"*50)
     print("1. [T] Terminal Interface (Console-based)")
-    print("   + Enhanced terminal UI (mouse + keyboard)")
+    print("   + Enhanced terminal UI (keyboard only)")
     print("   + Stylish visual dashboard and controls")
-    print("   + Includes optional keyboard-only stylish mode")
+    print("   + Keyboard-first stylish mode")
     print("   + Best for local operation and fast workflows")
     print()
     print("2. [W] Web Interface (Browser-based)")
@@ -69,34 +68,11 @@ def update_system():
 def launch_terminal_interface():
     """Launch the terminal interface"""
     print("\n[START] Launching Enhanced Terminal Interface...")
-    print("[INFO] Use mouse or keyboard to interact with enhanced console if supported")
+    print("[INFO] Use the keyboard to navigate the enhanced console")
     print("[INFO] Use Ctrl+C to stop any running operation")
     print("\n" + "-"*50)
     try:
-        if importlib.util.find_spec("prompt_toolkit") is None:
-            print("\n[WARN] Enhanced console dependency is missing: prompt_toolkit")
-            print("[INFO] You can install all project dependencies automatically.")
-            install_choice = input("[PROMPT] Install all dependencies now? (Y/n): ").strip().lower()
-
-            if install_choice in ("", "y", "yes"):
-                print("\n[SETUP] Installing dependencies from requirements.txt...")
-                install_result = subprocess.run(
-                    [sys.executable, "-m", "pip", "install", "-r", "requirements.txt"],
-                    cwd=os.path.dirname(__file__),
-                    check=False,
-                )
-
-                if install_result.returncode == 0:
-                    print("[OK] Dependencies installed successfully.")
-                    print("[INFO] Continuing with terminal interface...")
-                else:
-                    print("[WARN] Automatic dependency installation failed.")
-                    print("[INFO] Continuing in keyboard stylish mode without prompt_toolkit.")
-            else:
-                print("[INFO] Continuing in keyboard stylish mode without prompt_toolkit.")
-
-        # Launch interactive UI. It will automatically use mouse dialogs
-        # when prompt_toolkit is available, otherwise keyboard fallback.
+        # Launch interactive UI in keyboard-only mode.
         from src.utils import interactive_ui
         interactive_ui.launch_interactive()
     except ModuleNotFoundError as e:

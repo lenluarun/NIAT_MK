@@ -2,7 +2,7 @@
   "camera_index": 0,
   "camera_scan_range": 5,
   "max_capture_samples": 120,
-  "recognition_pass_mark": 50,
+  "recognition_pass_mark": 70,
   "recognition_mode": "accurate",
   "ui_theme": "e2c",
   "boot_animation": true,

@@ -8,7 +8,7 @@
 [![ReportLab](https://img.shields.io/badge/ReportLab-PDF%20Reports-orange.svg)](https://www.reportlab.com/)
 [![Status](https://img.shields.io/badge/Status-Active-success.svg)]()
 
-Offline face recognition attendance with a modern terminal experience, editable settings, local reports, and a browser dashboard.
+Offline face recognition attendance with a keyboard-first terminal experience, editable settings, local reports, and a browser dashboard.
 
 [Download](#download-and-setup) • [How to Use](#how-to-use) • [Settings](#settings) • [Project Structure](#project-structure) • [Troubleshooting](#troubleshooting)
 
@@ -23,9 +23,8 @@ NIAT MK is a fully offline attendance system built for local classrooms, labs, a
 The current version includes:
 
 - A launcher-driven workflow through `launcher.py`
-- A stylish mouse-based terminal interface
-- A normal keyboard-style terminal mode that you can switch to from the mouse UI
-- A switch-back option to return to the mouse interface
+- A stylish keyboard-only terminal interface
+- A normal terminal menu for quick local workflows
 - Editable system settings instead of a read-only settings page
 - Student detail management from the settings console
 - Local CSV attendance logs and PDF report generation
@@ -38,7 +37,7 @@ The current version includes:
 This release updates the original project into a cleaner and more usable system.
 
 - The launcher now prefers the project `.venv` so the app uses the correct dependencies.
-- The enhanced terminal interface no longer falls back to the old classic flow.
+- The enhanced terminal interface now runs in keyboard-only mode.
 - The settings screen now lets you change real values such as camera index, pass mark, sample count, theme, and HUD options.
 - Report generation now includes richer attendance details and a daily text report.
 - Student records can be added from the enhanced settings console.
@@ -57,9 +56,8 @@ This release updates the original project into a cleaner and more usable system.
 
 ### Interface Modes
 
-- Mouse-friendly enhanced terminal interface
+- Keyboard-first enhanced terminal interface
 - Normal stylish terminal mode for keyboard users
-- Bidirectional switching between mouse and terminal modes
 - Web dashboard access for browser-based control
 
 ### Administration
@@ -127,7 +125,6 @@ The important packages include:
 - `scikit-learn`
 - `Flask`
 - `Flask-CORS`
-- `prompt_toolkit`
 - `reportlab`
 
 ### 5. Start the app
@@ -158,25 +155,11 @@ python launcher.py
 6. Start attendance recognition.
 7. Review the generated attendance reports.
 
-### Mouse Interface
-
-Use this if you want a visual terminal menu with buttons.
-
-Available actions include:
-
-- Camera check
-- Capture faces
-- Train images
-- Recognize and attendance marking
-- Data and reports
-- Settings
-- Switch to normal stylish terminal
-
 ### Normal Stylish Terminal
 
 Use this if you prefer keyboard input and a simple command-style flow.
 
-You can switch back to the mouse interface from inside the terminal mode.
+The terminal UI uses numbered menus and plain text prompts only.
 
 ### Web Interface
 
@@ -270,16 +253,6 @@ If face recognition fails to import, make sure `opencv-contrib-python` is instal
 ---
 
 ## Troubleshooting
-
-### `No module named prompt_toolkit`
-
-Install the dependencies inside the project environment:
-
-```bash
-pip install -r requirements.txt
-```
-
-Make sure the launcher is using `.venv`, not a system Python install.
 
 ### Camera does not open
 

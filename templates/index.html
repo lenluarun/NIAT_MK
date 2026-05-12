@@ -310,6 +310,13 @@
             margin-top: 12px;
         }
 
+        .camera-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 12px;
+            margin-top: 12px;
+        }
+
         .report-row,
         .camera-row {
             display: flex;
@@ -327,6 +334,95 @@
             color: var(--muted);
             font-size: 0.82rem;
             margin-top: 3px;
+        }
+
+        .camera-card {
+            position: relative;
+            border: 1px solid rgba(255,255,255,0.1);
+            background: linear-gradient(160deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
+            border-radius: 14px;
+            padding: 14px;
+            display: grid;
+            gap: 12px;
+        }
+
+        .camera-card.active {
+            border-color: rgba(20, 184, 106, 0.55);
+            box-shadow: 0 0 0 1px rgba(20, 184, 106, 0.2) inset;
+        }
+
+        .camera-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 10px;
+        }
+
+        .camera-card-title {
+            font-size: 0.98rem;
+            font-weight: 650;
+        }
+
+        .camera-card-index {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 5px 9px;
+            border-radius: 999px;
+            font-size: 0.72rem;
+            background: rgba(91, 140, 255, 0.16);
+            color: #cfe0ff;
+        }
+
+        .camera-card-index.active {
+            background: rgba(20, 184, 106, 0.18);
+            color: #baf7d4;
+        }
+
+        .camera-card-preview {
+            border-radius: 12px;
+            min-height: 104px;
+            border: 1px dashed rgba(255,255,255,0.12);
+            background:
+                radial-gradient(circle at 30% 30%, rgba(91, 140, 255, 0.18), transparent 40%),
+                radial-gradient(circle at 70% 70%, rgba(20, 184, 106, 0.12), transparent 42%),
+                rgba(255,255,255,0.03);
+            display: grid;
+            place-items: center;
+            text-align: center;
+            color: var(--muted);
+            padding: 14px;
+        }
+
+        .camera-card-preview i {
+            font-size: 1.3rem;
+            color: #8bb4ff;
+            margin-bottom: 8px;
+        }
+
+        .camera-card-preview strong {
+            display: block;
+            color: #fff;
+            margin-bottom: 4px;
+        }
+
+        .camera-card-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .camera-card-actions .btn {
+            width: auto;
+            flex: 1 1 0;
+        }
+
+        .camera-empty {
+            border-radius: 14px;
+            border: 1px dashed rgba(255,255,255,0.12);
+            background: rgba(255,255,255,0.03);
+            padding: 18px;
+            color: var(--muted);
         }
 
         .inline-actions {
@@ -1157,25 +1253,38 @@
             try {
                 const response = await fetch('/api/camera/scan');
                 const data = await response.json();
+                const activeCamera = Number(data.active_camera ?? 0);
+                const cameras = Array.isArray(data.cameras) ? [...data.cameras].sort((left, right) => left.index - right.index) : [];
 
                 let html = '<div class="layout-grid">';
                 html += '<div class="stack">';
                 html += '<div class="section-card">';
                 html += '<h4>Camera Scan</h4>';
-                html += `<p>Scanned index range 0-${data.scan_range}. Active camera: ${data.active_camera}.</p>`;
-                html += '<div class="camera-list">';
+                html += `<p>Scanned index range 0-${escapeHtml(data.scan_range)}. Active camera: ${escapeHtml(activeCamera)}.</p>`;
+                html += '<div class="camera-grid">';
 
-                if (data.cameras && data.cameras.length > 0) {
-                    data.cameras.forEach(camera => {
-                        html += '<div class="camera-row">';
-                        html += `<div><strong>Camera ${camera.index}</strong><div class="camera-meta">${escapeHtml(camera.resolution)} | ${escapeHtml(camera.fps)} FPS</div></div>`;
-                        html += '<div class="inline-actions">';
-                        html += `<button class="btn btn-primary btn-mini" onclick="setActiveCamera(${camera.index})">Use This Camera</button>`;
+                if (cameras.length > 0) {
+                    cameras.forEach(camera => {
+                        const isActive = Number(camera.index) === activeCamera;
+                        html += `<div class="camera-card ${isActive ? 'active' : ''}">`;
+                        html += '<div class="camera-card-header">';
+                        html += `<div><div class="camera-card-title">Camera ${escapeHtml(camera.index)}</div><div class="camera-meta">${escapeHtml(camera.resolution)} | ${escapeHtml(camera.fps)} FPS</div></div>`;
+                        html += `<div class="camera-card-index ${isActive ? 'active' : ''}">${isActive ? 'Active' : 'Available'}</div>`;
+                        html += '</div>';
+                        html += '<div class="camera-card-preview">';
+                        html += `<div><i class="fas fa-video"></i><strong>Index ${escapeHtml(camera.index)}</strong><span>Use this device for capture and recognition</span></div>`;
+                        html += '</div>';
+                        html += '<div class="camera-card-actions">';
+                        html += `<button class="btn ${isActive ? 'btn-success' : 'btn-primary'} btn-mini" onclick="setActiveCamera(${camera.index})" ${isActive ? 'disabled' : ''}>${isActive ? 'Selected' : 'Use Camera'}</button>`;
+                        html += `<button class="btn btn-warning btn-mini" onclick="setActiveCamera(${camera.index}); closeModal('cameraModal');">Set & Close</button>`;
                         html += '</div>';
                         html += '</div>';
                     });
                 } else {
-                    html += '<p style="color:#95a3c3;">No cameras detected in the configured scan range.</p>';
+                    html += '<div class="camera-empty">';
+                    html += '<strong>No cameras detected</strong>';
+                    html += '<div style="margin-top:6px;">Increase the scan range in Settings or connect a camera device, then refresh the scan.</div>';
+                    html += '</div>';
                 }
 
                 html += '</div></div>';
@@ -1184,12 +1293,12 @@
                 html += '<div class="stack">';
                 html += '<div class="section-card">';
                 html += '<h4>Active Camera</h4>';
-                html += `<p>The current active camera is <strong>${escapeHtml(data.active_camera)}</strong>. Use the buttons above to switch devices.</p>`;
-                html += '<div class="helper-text">This matches the camera index used by capture, check, and recognition workflows.</div>';
+                html += `<p>The current active camera is <strong>${escapeHtml(activeCamera)}</strong>. Use the grid to switch devices by index.</p>`;
+                html += '<div class="helper-text">This index is used by capture, camera checks, and recognition workflows on localhost.</div>';
                 html += '</div>';
                 html += '<div class="section-card">';
                 html += '<h4>Camera Actions</h4>';
-                html += '<p>Run a camera check after switching devices to verify the feed before capture or recognition.</p>';
+                html += '<p>Run a camera check after switching devices to verify the feed before capture or recognition. The active index is persisted in settings.</p>';
                 html += '<div class="inline-actions" style="margin-top:12px; justify-content:flex-start;">';
                 html += '<button class="btn btn-primary btn-mini" onclick="checkCamera()">Check Camera</button>';
                 html += '<button class="btn btn-warning btn-mini" onclick="openCaptureModal(false)">Capture Faces</button>';
