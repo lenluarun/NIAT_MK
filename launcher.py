@@ -47,6 +47,14 @@ def print_menu():
     print("-"*50)
 
 
+def get_project_python():
+    """Return the project virtualenv Python when available, otherwise the current interpreter."""
+    venv_python = os.path.join(os.path.dirname(__file__), ".venv", "Scripts", "python.exe")
+    if os.path.exists(venv_python):
+        return venv_python
+    return sys.executable
+
+
 def update_system():
     """Update the project from GitHub."""
     print("\n[UPDATE] Checking for updates from GitHub...")
@@ -95,7 +103,8 @@ def launch_web_interface():
 
     try:
         # Launch web_app.py
-        process = subprocess.Popen([sys.executable, "web_app.py"], cwd=os.path.dirname(__file__))
+        web_python = get_project_python()
+        process = subprocess.Popen([web_python, "web_app.py"], cwd=os.path.dirname(__file__))
         print("[OK] Web server started successfully!")
         print("[INFO] Access the interface at: http://localhost:5000")
         print("\n[INFO] The web server is running in the background.")

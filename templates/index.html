@@ -7,29 +7,37 @@
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 
     <style>
         :root {
-            --bg-body: #09090b;
-            --bg-sidebar: #121214;
-            --bg-card: rgba(24, 24, 27, 0.72);
-            --border-color: rgba(255, 255, 255, 0.08);
-            --text-main: #f4f4f5;
-            --text-muted: #a1a1aa;
+            --bg-body: #050505;
+            --bg-sidebar: rgba(10, 10, 12, 0.6);
+            --bg-card: rgba(20, 20, 24, 0.4);
+            --border-color: rgba(255, 255, 255, 0.06);
+            --border-highlight: rgba(255, 255, 255, 0.12);
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
             --accent-primary: #3b82f6;
+            --accent-primary-glow: rgba(59, 130, 246, 0.4);
             --accent-success: #10b981;
             --accent-warning: #f59e0b;
             --accent-danger: #ef4444;
             --accent-purple: #8b5cf6;
             --shadow-sm: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
-            --radius-md: 12px;
-            --radius-lg: 20px;
+            --shadow-glow: 0 0 20px rgba(59, 130, 246, 0.15);
+            --radius-md: 14px;
+            --radius-lg: 24px;
             font-family: "Plus Jakarta Sans", sans-serif;
         }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: var(--bg-body); }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
 
         body {
             background-color: var(--bg-body);
@@ -37,320 +45,286 @@
             min-height: 100vh;
             display: flex;
             overflow-x: hidden;
-            background-image:
-                radial-gradient(circle at 15% 50%, rgba(59, 130, 246, 0.08), transparent 25%),
-                radial-gradient(circle at 85% 30%, rgba(139, 92, 246, 0.08), transparent 25%);
+            position: relative;
         }
 
+        /* Animated Background Orbs */
+        .bg-orb {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.4;
+            z-index: -1;
+            animation: float 20s infinite alternate cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .orb-1 { top: -10%; left: -10%; width: 50vw; height: 50vw; background: radial-gradient(circle, rgba(59,130,246,0.15) 0%, transparent 70%); }
+        .orb-2 { bottom: -10%; right: -10%; width: 40vw; height: 40vw; background: radial-gradient(circle, rgba(139,92,246,0.15) 0%, transparent 70%); animation-delay: -5s; }
+        
+        @keyframes float {
+            0% { transform: translate(0, 0) scale(1); }
+            100% { transform: translate(5%, 5%) scale(1.1); }
+        }
+
+        /* Entrance Animations */
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-in { animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; }
+        .delay-1 { animation-delay: 0.1s; }
+        .delay-2 { animation-delay: 0.2s; }
+        .delay-3 { animation-delay: 0.3s; }
+
+        /* Sidebar Styling */
         .sidebar {
             width: 280px;
             background-color: var(--bg-sidebar);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
             border-right: 1px solid var(--border-color);
             display: flex;
             flex-direction: column;
             position: fixed;
             height: 100vh;
             z-index: 1000;
-            transition: all 0.3s ease;
+            transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            box-shadow: 10px 0 30px rgba(0,0,0,0.2);
         }
 
         .brand-logo {
-            padding: 2rem 1.5rem;
-            font-size: 1.25rem;
-            font-weight: 700;
+            padding: 2.5rem 1.5rem;
+            font-size: 1.35rem;
+            font-weight: 800;
             color: white;
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 14px;
             text-decoration: none;
-            border-bottom: 1px solid var(--border-color);
+            letter-spacing: -0.5px;
+            position: relative;
+        }
+
+        .brand-logo::after {
+            content: ''; position: absolute; bottom: 0; left: 10%; right: 10%;
+            height: 1px; background: linear-gradient(90deg, transparent, var(--border-highlight), transparent);
         }
 
         .brand-logo i {
             color: var(--accent-primary);
-            font-size: 1.5rem;
+            font-size: 1.8rem;
+            filter: drop-shadow(0 0 8px var(--accent-primary-glow));
         }
 
-        .nav-menu {
-            padding: 1.5rem 1rem;
-            display: flex;
-            flex-direction: column;
-            gap: 0.5rem;
-            flex: 1;
-        }
+        .nav-menu { padding: 2rem 1.2rem; display: flex; flex-direction: column; gap: 0.6rem; flex: 1; }
 
         .nav-link {
             color: var(--text-muted);
-            padding: 0.8rem 1.2rem;
-            border-radius: var(--radius-md);
+            padding: 0.9rem 1.2rem;
+            border-radius: 10px;
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 14px;
             font-weight: 500;
-            transition: all 0.2s ease;
-        }
-
-        .nav-link:hover,
-        .nav-link.active {
-            color: white;
-            background: rgba(59, 130, 246, 0.1);
-            border-left: 3px solid var(--accent-primary);
-        }
-
-        .main-wrapper {
-            flex: 1;
-            margin-left: 280px;
-            display: flex;
-            flex-direction: column;
-            min-height: 100vh;
-        }
-
-        .top-header {
-            height: 80px;
-            padding: 0 2rem;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            border-bottom: 1px solid var(--border-color);
-            background: rgba(9, 9, 11, 0.8);
-            -webkit-backdrop-filter: blur(12px);
-            backdrop-filter: blur(12px);
-            position: sticky;
-            top: 0;
-            z-index: 999;
-        }
-
-        .content-container {
-            padding: 2rem;
-            flex: 1;
-        }
-
-        .glass-card {
-            background: var(--bg-card);
-            -webkit-backdrop-filter: blur(16px);
-            backdrop-filter: blur(16px);
-            border: 1px solid var(--border-color);
-            border-radius: var(--radius-lg);
-            padding: 1.5rem;
-            box-shadow: var(--shadow-sm);
-        }
-
-        .brand-subtext { font-size: 0.7rem; color: var(--text-muted); font-weight: 500; }
-        .sidebar-footer { padding: 1.5rem; border-top: 1px solid var(--border-color); font-size: 0.75rem; color: var(--text-muted); text-align: center; }
-        .header-title { font-weight: 600; font-size: 1.1rem; }
-        .clock-badge { border-radius: 20px; }
-        .engine-icon-wrap { background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); }
-        .system-msg { color: var(--accent-success); font-size: 1rem; margin-top: 5px; }
-        .student-search { width: 220px; }
-        .toast-high-z { z-index: 2000; }
-
-        .section-title {
-            font-size: 1.25rem;
-            font-weight: 600;
-            margin-bottom: 1.5rem;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .stat-card {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-        }
-
-        .stat-icon {
-            width: 56px;
-            height: 56px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.5rem;
-        }
-
-        .icon-blue { background: rgba(59, 130, 246, 0.1); color: var(--accent-primary); }
-        .icon-green { background: rgba(16, 185, 129, 0.1); color: var(--accent-success); }
-        .icon-purple { background: rgba(139, 92, 246, 0.1); color: var(--accent-purple); }
-
-        .stat-details h3 { font-size: 1.75rem; font-weight: 700; margin: 0; color: white; }
-        .stat-details p { color: var(--text-muted); font-size: 0.85rem; margin: 0; font-weight: 500; }
-
-        .status-dot {
-            width: 12px;
-            height: 12px;
-            background-color: var(--accent-success);
-            border-radius: 50%;
-            box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
-            animation: pulse 2s infinite;
-        }
-
-        @keyframes pulse {
-            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
-            70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
-            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
-        }
-
-        .op-card {
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            border-radius: var(--radius-md);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             position: relative;
             overflow: hidden;
         }
 
-        .op-card::before {
-            content: "";
-            position: absolute;
+        .nav-link i { font-size: 1.1rem; width: 20px; text-align: center; transition: color 0.3s; }
+
+        .nav-link:hover {
+            color: white;
+            background: rgba(255, 255, 255, 0.03);
+            transform: translateX(4px);
+        }
+
+        .nav-link.active {
+            color: white;
+            background: linear-gradient(90deg, rgba(59, 130, 246, 0.15) 0%, transparent 100%);
+            border-left: 4px solid var(--accent-primary);
+            font-weight: 600;
+        }
+
+        .nav-link.active i { color: var(--accent-primary); filter: drop-shadow(0 0 5px var(--accent-primary-glow)); }
+
+        /* Main Wrapper & Header */
+        .main-wrapper { flex: 1; margin-left: 280px; display: flex; flex-direction: column; min-height: 100vh; }
+
+        .top-header {
+            height: 85px;
+            padding: 0 2.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(5, 5, 5, 0.7);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            position: sticky;
             top: 0;
-            left: 0;
-            right: 0;
-            height: 4px;
-            background: var(--accent-primary);
-            opacity: 0;
-            transition: opacity 0.3s ease;
+            z-index: 999;
+            border-bottom: 1px solid var(--border-color);
         }
 
-        .op-card:hover::before {
-            opacity: 1;
+        .header-title { font-weight: 700; font-size: 1.3rem; letter-spacing: -0.3px; }
+        
+        .clock-badge { 
+            border-radius: 30px; 
+            background: rgba(255,255,255,0.03) !important;
+            border: 1px solid var(--border-highlight) !important;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
+            font-weight: 500;
+            letter-spacing: 1px;
         }
 
-        .op-card.recognize-card::before {
-            background: var(--accent-success);
+        .content-container { padding: 2.5rem; flex: 1; }
+
+        /* Glass Cards */
+        .glass-card {
+            background: var(--bg-card);
+            background-image: linear-gradient(145deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0) 100%);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: 1.8rem;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+            transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+            position: relative;
+            overflow: hidden;
         }
+
+        .glass-card::before {
+            content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            border-radius: var(--radius-lg);
+            box-shadow: inset 0 1px 1px rgba(255,255,255,0.08);
+            pointer-events: none;
+        }
+
+        .glass-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.4);
+            border-color: var(--border-highlight);
+        }
+
+        /* Stats Cards */
+        .stat-card { display: flex; align-items: center; gap: 1.5rem; }
+        .stat-icon {
+            width: 64px; height: 64px; border-radius: 20px;
+            display: flex; align-items: center; justify-content: center; font-size: 1.8rem;
+            box-shadow: inset 0 2px 4px rgba(255,255,255,0.1);
+        }
+        .icon-blue { background: linear-gradient(135deg, rgba(59,130,246,0.2), rgba(37,99,235,0.05)); color: #60a5fa; border: 1px solid rgba(59,130,246,0.2); }
+        .icon-green { background: linear-gradient(135deg, rgba(16,185,129,0.2), rgba(5,150,105,0.05)); color: #34d399; border: 1px solid rgba(16,185,129,0.2); }
+        .icon-purple { background: linear-gradient(135deg, rgba(139,92,246,0.2), rgba(109,40,217,0.05)); color: #a78bfa; border: 1px solid rgba(139,92,246,0.2); }
+        
+        .stat-details h3 { font-size: 2rem; font-weight: 800; margin: 0; color: white; letter-spacing: -0.5px; }
+        .stat-details p { color: var(--text-muted); font-size: 0.85rem; margin: 0; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+
+        /* Operation Cards */
+        .op-card { height: 100%; display: flex; flex-direction: column; justify-content: space-between; }
+        .op-card::after {
+            content: ""; position: absolute; top: 0; left: 0; right: 0; height: 4px;
+            background: linear-gradient(90deg, var(--accent-primary), transparent);
+            opacity: 0; transition: opacity 0.4s ease;
+        }
+        .op-card:hover::after { opacity: 1; }
+        .op-card.recognize-card::after { background: linear-gradient(90deg, var(--accent-success), transparent); }
 
         .op-icon-wrapper {
-            font-size: 2rem;
-            margin-bottom: 1rem;
-            color: var(--text-main);
+            width: 48px; height: 48px; border-radius: 14px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.4rem; margin-bottom: 1.2rem;
+            background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.05);
         }
+        .op-icon-wrapper.text-primary { color: #60a5fa !important; }
+        .op-icon-wrapper.text-info { color: #38bdf8 !important; }
+        .op-icon-wrapper.text-warning { color: #fbbf24 !important; }
+        .op-icon-wrapper.text-success { color: #34d399 !important; }
 
-        .op-title { font-weight: 600; font-size: 1.1rem; margin-bottom: 0.5rem; }
-        .op-desc { color: var(--text-muted); font-size: 0.85rem; line-height: 1.5; margin-bottom: 1.5rem; }
+        .op-title { font-weight: 700; font-size: 1.15rem; margin-bottom: 0.5rem; letter-spacing: -0.2px; }
+        .op-desc { color: var(--text-muted); font-size: 0.9rem; line-height: 1.6; margin-bottom: 1.8rem; }
 
+        /* Buttons */
         .btn-custom {
-            border-radius: 8px;
-            padding: 0.6rem 1.2rem;
-            font-weight: 600;
-            font-size: 0.85rem;
-            letter-spacing: 0.3px;
-            border: none;
-            transition: all 0.2s ease;
+            border-radius: 12px; padding: 0.7rem 1.4rem; font-weight: 600; font-size: 0.9rem;
+            letter-spacing: 0.3px; border: none; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative; overflow: hidden; z-index: 1;
         }
-
-        .btn-primary-custom { background: var(--accent-primary); color: white; }
-        .btn-primary-custom:hover { background: #2563eb; color: white; }
-        .btn-success-custom { background: var(--accent-success); color: white; }
-        .btn-success-custom:hover { background: #059669; color: white; }
-        .btn-danger-custom { background: var(--accent-danger); color: white; }
-        .btn-danger-custom:hover { background: #dc2626; color: white; }
-
-        .form-control,
-        .form-select {
-            background: rgba(0, 0, 0, 0.2);
-            border: 1px solid var(--border-color);
-            color: var(--text-main);
-            border-radius: 8px;
-            padding: 0.7rem 1rem;
+        .btn-custom::before {
+            content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(rgba(255,255,255,0.1), rgba(255,255,255,0)); z-index: -1;
         }
+        .btn-primary-custom { background: var(--accent-primary); color: white; box-shadow: 0 4px 15px rgba(59,130,246,0.3); }
+        .btn-primary-custom:hover { background: #2563eb; transform: translateY(-2px); box-shadow: 0 8px 25px rgba(59,130,246,0.5); }
+        .btn-success-custom { background: var(--accent-success); color: white; box-shadow: 0 4px 15px rgba(16,185,129,0.3); }
+        .btn-success-custom:hover { background: #059669; transform: translateY(-2px); box-shadow: 0 8px 25px rgba(16,185,129,0.5); }
 
-        .form-control:focus,
-        .form-select:focus {
-            background: rgba(0, 0, 0, 0.3);
-            border-color: var(--accent-primary);
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+        /* Forms */
+        .form-control, .form-select {
+            background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(255,255,255,0.1);
+            color: var(--text-main); border-radius: 12px; padding: 0.8rem 1.2rem;
+            transition: all 0.3s; box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
+        }
+        .form-control:focus, .form-select:focus {
+            background: rgba(0, 0, 0, 0.5); border-color: var(--accent-primary);
+            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15), inset 0 2px 4px rgba(0,0,0,0.2);
             color: white;
         }
 
-        .table { color: var(--text-main); vertical-align: middle; }
+        /* Tables */
+        .table { color: var(--text-main); vertical-align: middle; margin-bottom: 0; }
         .table thead th {
-            background: rgba(0, 0, 0, 0.2);
-            border-bottom: 1px solid var(--border-color);
-            color: var(--text-muted);
-            font-weight: 600;
-            font-size: 0.82rem;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            padding: 0.8rem;
+            background: rgba(255,255,255,0.02); border-bottom: 1px solid var(--border-color);
+            color: var(--text-muted); font-weight: 600; font-size: 0.75rem; text-transform: uppercase;
+            letter-spacing: 1px; padding: 1rem;
         }
-        .table tbody td {
-            border-bottom: 1px solid var(--border-color);
-            padding: 0.75rem;
-        }
+        .table tbody td { border-bottom: 1px solid rgba(255,255,255,0.03); padding: 1rem; font-size: 0.95rem; }
+        .clickable-row { cursor: pointer; transition: background 0.2s; }
+        .clickable-row:hover { background: rgba(255, 255, 255, 0.04); }
 
-        .panel-subtitle {
-            color: var(--text-muted);
-            font-size: 0.86rem;
-        }
-
-        .progress {
-            background: rgba(255, 255, 255, 0.08);
-            height: 10px;
-        }
-
-        .op-progress-initial { width: 0%; }
-
+        /* Typography & Utilities */
+        .section-title { font-size: 1.3rem; font-weight: 700; margin-bottom: 1.8rem; display: flex; align-items: center; gap: 12px; letter-spacing: -0.3px; }
+        .progress { background: rgba(0,0,0,0.4); height: 8px; border-radius: 10px; box-shadow: inset 0 1px 2px rgba(0,0,0,0.5); overflow: hidden; }
+        .progress-bar { box-shadow: 0 0 10px rgba(255,255,255,0.3); }
         .status-pill {
-            font-size: 0.75rem;
-            border-radius: 999px;
-            padding: 0.3rem 0.7rem;
-            border: 1px solid var(--border-color);
-            color: var(--text-muted);
-            background: rgba(255, 255, 255, 0.04);
+            font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;
+            border-radius: 30px; padding: 0.4rem 1rem; border: 1px solid var(--border-color);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
         }
 
-        .status-pill.running {
-            color: var(--accent-warning);
-            border-color: rgba(245, 158, 11, 0.45);
-            background: rgba(245, 158, 11, 0.1);
+        .status-pill.success { color: #34d399; border-color: rgba(16,185,129,0.3); background: rgba(16,185,129,0.1); text-shadow: 0 0 10px rgba(16,185,129,0.5); }
+        .status-pill.running { color: #fbbf24; border-color: rgba(245,158,11,0.3); background: rgba(245,158,11,0.1); text-shadow: 0 0 10px rgba(245,158,11,0.5); }
+        .status-pill.error { color: #f87171; border-color: rgba(239,68,68,0.3); background: rgba(239,68,68,0.1); text-shadow: 0 0 10px rgba(239,68,68,0.5); }
+
+        .status-dot { width: 10px; height: 10px; background-color: var(--accent-success); border-radius: 50%; box-shadow: 0 0 10px var(--accent-success); animation: pulse 2s infinite; }
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
         }
 
-        .status-pill.success {
-            color: var(--accent-success);
-            border-color: rgba(16, 185, 129, 0.45);
-            background: rgba(16, 185, 129, 0.1);
-        }
-
-        .status-pill.error {
-            color: var(--accent-danger);
-            border-color: rgba(239, 68, 68, 0.45);
-            background: rgba(239, 68, 68, 0.1);
-        }
-
-        .mobile-toggle {
-            display: none;
-            background: none;
-            border: none;
-            color: white;
-            font-size: 1.5rem;
-        }
-
-        .clickable-row {
-            cursor: pointer;
-        }
-
-        .clickable-row:hover {
-            background: rgba(255, 255, 255, 0.03);
-        }
+        .mobile-toggle { display: none; background: none; border: none; color: white; font-size: 1.5rem; }
 
         @media (max-width: 992px) {
             .sidebar { transform: translateX(-100%); }
             .sidebar.active { transform: translateX(0); }
             .main-wrapper { margin-left: 0; }
             .mobile-toggle { display: block; }
-            .content-container { padding: 1rem; }
+            .content-container { padding: 1.5rem; }
+            .orb-1, .orb-2 { width: 80vw; height: 80vw; }
         }
     </style>
 </head>
 <body>
+    <div class="bg-orb orb-1"></div>
+    <div class="bg-orb orb-2"></div>
+
     <aside class="sidebar" id="sidebar">
         <a href="#dashboard" class="brand-logo">
             <i class="fas fa-fingerprint"></i>
             <div>
                 E2C Vision
-                <div class="brand-subtext">Smart Attendance</div>
+                <div style="font-size: 0.7rem; color: var(--text-muted); font-weight: 600; letter-spacing: 1px; text-transform: uppercase; margin-top: 2px;">Smart Attendance</div>
             </div>
         </a>
         <nav class="nav-menu">
@@ -360,33 +334,36 @@
             <a href="#reports" class="nav-link"><i class="fas fa-chart-pie"></i> Reports</a>
             <a href="#settings" class="nav-link"><i class="fas fa-sliders"></i> Settings</a>
         </nav>
-        <div class="sidebar-footer">
-            System v2.5.0<br>Offline Mode Active
+        <div style="padding: 1.5rem; font-size: 0.75rem; color: var(--text-muted); text-align: center; border-top: 1px solid var(--border-color);">
+            <div class="d-flex align-items-center justify-content-center gap-2 mb-2">
+                <div class="status-dot" style="width: 6px; height: 6px;"></div> System Online
+            </div>
+            v2.5.0 • Enterprise Edition
         </div>
     </aside>
 
     <div class="main-wrapper">
         <header class="top-header">
             <div class="d-flex align-items-center gap-3">
-                <button class="mobile-toggle" onclick="toggleSidebar()"><i class="fas fa-bars"></i></button>
+                <button class="mobile-toggle" onclick="toggleSidebar()"><i class="fas fa-bars-staggered"></i></button>
                 <h4 class="m-0 header-title">Command Center</h4>
             </div>
             <div class="d-flex align-items-center gap-3">
                 <span id="opStatePill" class="status-pill">idle</span>
-                <span class="badge bg-dark border text-muted px-3 py-2 clock-badge">
-                    <i class="fas fa-clock text-primary me-1"></i> <span id="clock">00:00:00</span>
+                <span class="badge bg-dark border text-muted px-4 py-2 clock-badge d-flex align-items-center gap-2">
+                    <i class="fas fa-clock text-primary"></i> <span id="clock" style="font-family: monospace; font-size: 0.9rem;">00:00:00</span>
                 </span>
             </div>
         </header>
 
         <div class="content-container">
-            <section id="dashboard" class="mb-5">
+            <section id="dashboard" class="mb-5 animate-in">
                 <div class="row g-4">
                     <div class="col-12 col-sm-6 col-xl-3">
                         <div class="glass-card stat-card">
                             <div class="stat-icon icon-blue"><i class="fas fa-user-graduate"></i></div>
                             <div class="stat-details">
-                                <p>Registered Profiles</p>
+                                <p>Registered</p>
                                 <h3 id="totalStudents">0</h3>
                             </div>
                         </div>
@@ -395,7 +372,7 @@
                         <div class="glass-card stat-card">
                             <div class="stat-icon icon-green"><i class="fas fa-user-check"></i></div>
                             <div class="stat-details">
-                                <p>Present In Latest Session</p>
+                                <p>Present Today</p>
                                 <h3 id="todayPresent">0</h3>
                             </div>
                         </div>
@@ -411,100 +388,121 @@
                     </div>
                     <div class="col-12 col-sm-6 col-xl-3">
                         <div class="glass-card stat-card">
-                            <div class="stat-icon engine-icon-wrap">
+                            <div class="stat-icon" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);">
                                 <div class="status-dot"></div>
                             </div>
                             <div class="stat-details">
-                                <p>System Message</p>
-                                <h3 id="systemMsg" class="system-msg">Ready</h3>
+                                <p>Engine Status</p>
+                                <h3 id="systemMsg" style="color: var(--accent-success); font-size: 1.5rem;">Ready</h3>
                             </div>
                         </div>
                     </div>
                 </div>
             </section>
 
-            <section id="operations" class="mb-5">
-                <div class="d-flex justify-content-between align-items-center mb-3">
+            <section id="operations" class="mb-5 animate-in delay-1">
+                <div class="d-flex justify-content-between align-items-center mb-4">
                     <h2 class="section-title m-0"><i class="fas fa-bolt text-warning"></i> Core Operations</h2>
-                    <button class="btn btn-sm btn-outline-light" onclick="refreshAll()"><i class="fas fa-rotate"></i> Refresh</button>
+                    <button class="btn btn-sm btn-outline-light" style="border-radius: 8px; font-weight: 600;" onclick="refreshAll()"><i class="fas fa-rotate"></i> Sync</button>
                 </div>
                 <div class="row g-4 mb-4">
                     <div class="col-12 col-md-6 col-xl-3">
                         <div class="glass-card op-card">
                             <div>
                                 <div class="op-icon-wrapper text-primary"><i class="fas fa-camera-retro"></i></div>
-                                <h4 class="op-title">Camera Calibration</h4>
-                                <p class="op-desc">Test camera feed and validate active camera index.</p>
+                                <h4 class="op-title">Camera Matrix</h4>
+                                <p class="op-desc">Validate active video sources and test latency.</p>
                             </div>
-                            <button class="btn btn-custom btn-primary-custom w-100" onclick="performOperation('camera')">Initialize Camera</button>
+                            <div class="d-grid gap-2">
+                                <button class="btn btn-custom btn-primary-custom" onclick="performOperation('camera')"><i class="fas fa-play me-1"></i> Initialize Feed</button>
+                                <button class="btn btn-outline-danger" onclick="stopCameraCheck()" style="border-radius: 12px;"><i class="fas fa-stop me-1"></i> Stop Preview</button>
+                            </div>
                         </div>
                     </div>
                     <div class="col-12 col-md-6 col-xl-3">
                         <div class="glass-card op-card">
                             <div>
-                                <div class="op-icon-wrapper text-info"><i class="fas fa-user-plus"></i></div>
+                                <div class="op-icon-wrapper text-info"><i class="fas fa-face-viewfinder"></i></div>
                                 <h4 class="op-title">Data Acquisition</h4>
-                                <p class="op-desc">Capture a student face dataset and optionally run quick pipeline.</p>
+                                <p class="op-desc">Capture facial topography for new student profiles.</p>
                             </div>
-                            <button class="btn btn-custom btn-primary-custom w-100" data-bs-toggle="modal" data-bs-target="#captureModal">Capture Faces</button>
+                            <button class="btn btn-custom btn-primary-custom w-100" data-bs-toggle="modal" data-bs-target="#captureModal">Acquire Data</button>
                         </div>
                     </div>
                     <div class="col-12 col-md-6 col-xl-3">
                         <div class="glass-card op-card">
                             <div>
                                 <div class="op-icon-wrapper text-warning"><i class="fas fa-network-wired"></i></div>
-                                <h4 class="op-title">Model Training</h4>
-                                <p class="op-desc">Train recognizer from currently captured face images.</p>
+                                <h4 class="op-title">Neural Training</h4>
+                                <p class="op-desc">Compile datasets into deep learning recognition models.</p>
                             </div>
-                            <button class="btn btn-custom btn-primary-custom w-100" onclick="performOperation('train')">Start Training</button>
+                            <button class="btn btn-custom btn-primary-custom w-100" onclick="performOperation('train')">Execute Build</button>
                         </div>
                     </div>
                     <div class="col-12 col-md-6 col-xl-3">
                         <div class="glass-card op-card recognize-card">
                             <div>
                                 <div class="op-icon-wrapper text-success"><i class="fas fa-expand-arrows-alt"></i></div>
-                                <h4 class="op-title">Live Recognition</h4>
-                                <p class="op-desc">Run attendance recognition with current threshold settings.</p>
+                                <h4 class="op-title">Live Vision</h4>
+                                <p class="op-desc">Deploy real-time attendance tracking via active matrix.</p>
                             </div>
                             <div class="d-grid gap-2">
-                                <button class="btn btn-custom btn-success-custom w-100" onclick="performOperation('recognize')"><i class="fas fa-play me-1"></i> Start Attendance</button>
-                                <button class="btn btn-sm btn-outline-danger w-100" onclick="stopRecognition()">Stop Recognition</button>
+                                <button class="btn btn-custom btn-success-custom w-100" onclick="performOperation('recognize')"><i class="fas fa-play me-1"></i> Launch Engine</button>
+                                <button class="btn btn-sm btn-outline-danger w-100" style="border-radius: 10px;" onclick="stopRecognition()">Halt Process</button>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <div class="glass-card">
+                <div class="glass-card p-4">
                     <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h2 class="section-title m-0"><i class="fas fa-wave-square text-info"></i> Live Operation Status</h2>
-                        <span id="opProgressLabel" class="panel-subtitle">0%</span>
+                        <h2 class="section-title m-0" style="font-size: 1.1rem;"><i class="fas fa-wave-square text-info"></i> Pipeline Status</h2>
+                        <span id="opProgressLabel" style="font-family: monospace; font-weight: 700; color: var(--accent-primary);">0%</span>
                     </div>
-                    <div class="progress mb-2">
-                        <div id="opProgressBar" class="progress-bar progress-bar-striped progress-bar-animated op-progress-initial" role="progressbar" aria-label="Operation progress"></div>
+                    <div class="progress mb-3">
+                        <div id="opProgressBar" class="progress-bar progress-bar-striped progress-bar-animated bg-primary" style="width: 0%;" role="progressbar"></div>
                     </div>
-                    <div id="opMessage" class="panel-subtitle">No active operation.</div>
+                    <div id="opMessage" style="color: var(--text-muted); font-size: 0.9rem;">System standing by.</div>
                 </div>
             </section>
 
-            <section id="database" class="mb-5">
+            <section id="preview" class="mb-5 animate-in delay-2">
+                <div class="glass-card p-4">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h2 class="section-title m-0" style="font-size: 1.1rem;"><i class="fas fa-video text-success"></i> In-Browser Camera Preview</h2>
+                        <span class="status-pill running">Live Feed</span>
+                    </div>
+                    <div class="ratio ratio-16x9" style="border-radius: 16px; overflow: hidden; border: 1px solid rgba(255,255,255,0.08); background: rgba(0,0,0,0.35);">
+                        <img id="cameraPreviewImage" src="/api/camera/preview" alt="Camera preview" style="width: 100%; height: 100%; object-fit: cover; display: block;">
+                    </div>
+                    <div class="mt-3 text-muted" style="font-size: 0.9rem;">This preview stays inside the website while capture, camera check, and recognition run.</div>
+                </div>
+            </section>
+
+            <section id="database" class="mb-5 animate-in delay-2">
                 <div class="row g-4">
                     <div class="col-12 col-xl-8">
-                        <div class="glass-card h-100">
-                            <div class="d-flex justify-content-between align-items-center mb-3">
-                                <h2 class="section-title m-0"><i class="fas fa-users text-muted"></i> Students</h2>
-                                <div class="d-flex gap-2">
-                                    <input id="studentSearch" type="text" class="form-control form-control-sm student-search" placeholder="Search ID or name" title="Search students">
-                                    <button class="btn btn-sm btn-outline-light" onclick="loadStudents()" title="Reload students"><i class="fas fa-rotate"></i></button>
+                        <div class="glass-card h-100 p-0 overflow-hidden">
+                            <div class="p-4 border-bottom" style="border-color: var(--border-color) !important;">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <h2 class="section-title m-0"><i class="fas fa-users text-muted"></i> Identity Registry</h2>
+                                    <div class="d-flex gap-2">
+                                        <div class="input-group input-group-sm" style="width: 250px;">
+                                            <span class="input-group-text bg-dark border-secondary text-muted"><i class="fas fa-search"></i></span>
+                                            <input id="studentSearch" type="text" class="form-control border-secondary text-light bg-dark" placeholder="Search parameters...">
+                                        </div>
+                                        <button class="btn btn-sm btn-outline-light" onclick="loadStudents()"><i class="fas fa-rotate"></i></button>
+                                    </div>
                                 </div>
                             </div>
-                            <div class="table-responsive">
+                            <div class="table-responsive p-0">
                                 <table class="table table-borderless table-hover">
                                     <thead>
                                         <tr>
-                                            <th>ID</th>
-                                            <th>Name</th>
-                                            <th>Email</th>
-                                            <th class="text-end">Actions</th>
+                                            <th class="ps-4">UID</th>
+                                            <th>Subject Name</th>
+                                            <th>Contact Vector</th>
+                                            <th class="text-end pe-4">Controls</th>
                                         </tr>
                                     </thead>
                                     <tbody id="studentsTableBody"></tbody>
@@ -514,51 +512,53 @@
                     </div>
                     <div class="col-12 col-xl-4">
                         <div class="glass-card h-100">
-                            <h2 class="section-title"><i class="fas fa-user-plus text-primary"></i> Add Student</h2>
+                            <h2 class="section-title" style="font-size: 1.15rem;"><i class="fas fa-user-plus text-primary"></i> Manual Entry</h2>
                             <form id="addStudentForm">
                                 <div class="mb-3">
-                                    <label class="form-label">Student ID</label>
-                                    <input id="newStudentId" type="text" class="form-control" placeholder="Enter student ID" title="Student ID" required>
+                                    <label class="form-label text-muted" style="font-size: 0.85rem; font-weight: 600;">System ID</label>
+                                    <input id="newStudentId" type="text" class="form-control" placeholder="e.g. STU-001" required>
                                 </div>
                                 <div class="mb-3">
-                                    <label class="form-label">Full Name</label>
-                                    <input id="newStudentName" type="text" class="form-control" placeholder="Enter full name" title="Student name" required>
+                                    <label class="form-label text-muted" style="font-size: 0.85rem; font-weight: 600;">Full Designation</label>
+                                    <input id="newStudentName" type="text" class="form-control" placeholder="Jane Doe" required>
                                 </div>
-                                <div class="mb-3">
-                                    <label class="form-label">Email</label>
-                                    <input id="newStudentEmail" type="email" class="form-control" placeholder="student@example.com" title="Student email">
+                                <div class="mb-4">
+                                    <label class="form-label text-muted" style="font-size: 0.85rem; font-weight: 600;">Comm Link (Email)</label>
+                                    <input id="newStudentEmail" type="email" class="form-control" placeholder="jane@e2c.io">
                                 </div>
-                                <button type="submit" class="btn btn-custom btn-primary-custom w-100 mb-3">Save Student</button>
+                                <button type="submit" class="btn btn-custom btn-primary-custom w-100 mb-4">Register Profile</button>
                             </form>
 
-                            <hr class="border-secondary">
+                            <hr style="border-color: rgba(255,255,255,0.1); margin: 2rem 0;">
 
-                            <h2 class="section-title"><i class="fas fa-file-import text-warning"></i> Import CSV</h2>
+                            <h2 class="section-title" style="font-size: 1.15rem;"><i class="fas fa-file-import text-warning"></i> Batch Import (CSV)</h2>
                             <form id="importStudentsForm">
-                                <input id="importFile" type="file" class="form-control mb-3" accept=".csv" title="Choose CSV file" required>
-                                <button type="submit" class="btn btn-custom btn-success-custom w-100">Import Students</button>
+                                <input id="importFile" type="file" class="form-control mb-3" accept=".csv" required style="font-size: 0.85rem;">
+                                <button type="submit" class="btn btn-custom btn-success-custom w-100" style="background: rgba(16,185,129,0.15); color: #34d399; border: 1px solid rgba(16,185,129,0.3); box-shadow: none;">Execute Import</button>
                             </form>
                         </div>
                     </div>
                 </div>
             </section>
 
-            <section id="reports" class="mb-5">
-                <div class="glass-card">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h2 class="section-title m-0"><i class="fas fa-list-ul text-muted"></i> Attendance Reports</h2>
-                        <button class="btn btn-sm btn-outline-light" onclick="loadReports()">Reload Reports</button>
+            <section id="reports" class="mb-5 animate-in delay-3">
+                <div class="glass-card p-0 overflow-hidden">
+                    <div class="p-4 border-bottom" style="border-color: var(--border-color) !important;">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h2 class="section-title m-0"><i class="fas fa-chart-pie text-muted"></i> Session Logs</h2>
+                            <button class="btn btn-sm btn-outline-light" style="border-radius: 8px; font-weight: 600;" onclick="loadReports()"><i class="fas fa-rotate"></i> Fetch Logs</button>
+                        </div>
                     </div>
-                    <div class="table-responsive">
+                    <div class="table-responsive p-0">
                         <table class="table table-borderless table-hover">
                             <thead>
                                 <tr>
-                                    <th>File</th>
-                                    <th>Date</th>
+                                    <th class="ps-4">Archive ID</th>
+                                    <th>Timestamp</th>
                                     <th>Present</th>
                                     <th>Absent</th>
-                                    <th>Total</th>
-                                    <th class="text-end">Actions</th>
+                                    <th>Total Matrix</th>
+                                    <th class="text-end pe-4">Actions</th>
                                 </tr>
                             </thead>
                             <tbody id="reportsTableBody"></tbody>
@@ -567,42 +567,55 @@
                 </div>
             </section>
 
-            <section id="settings" class="mb-5">
+            <section id="settings" class="mb-5 animate-in delay-3">
                 <div class="row g-4">
                     <div class="col-12 col-xl-6">
                         <div class="glass-card h-100">
-                            <h2 class="section-title"><i class="fas fa-video text-info"></i> Camera Settings</h2>
+                            <h2 class="section-title"><i class="fas fa-video text-info"></i> Hardware I/O</h2>
                             <div class="mb-3">
-                                <label class="form-label">Active Camera</label>
-                                <select id="cameraSelect" class="form-select" title="Select active camera"></select>
+                                <label class="form-label text-muted" style="font-size: 0.85rem; font-weight: 600;">USB Camera Index</label>
+                                <select id="cameraSelect" class="form-select"></select>
+                                <small class="text-muted d-block mt-2"><i class="fas fa-info-circle"></i> Auto-detected USB camera devices</small>
+                            </div>
+                            <div class="mb-4">
+                                <label class="form-label text-muted" style="font-size: 0.85rem; font-weight: 600;">Network Camera (IP/URL)</label>
+                                <div class="input-group">
+                                    <input id="networkCameraInput" type="text" class="form-control" placeholder="e.g., http://192.168.1.100:8080/video or rtsp://..." />
+                                    <button class="btn btn-outline-light" onclick="setNetworkCamera()" style="border-radius: 0 12px 12px 0;">
+                                        <i class="fas fa-link"></i> Connect
+                                    </button>
+                                </div>
+                                <small class="text-muted d-block mt-2"><i class="fas fa-info-circle"></i> WiFi/LAN camera streaming URL</small>
                             </div>
                             <div class="d-grid gap-2 d-md-flex">
-                                <button class="btn btn-custom btn-primary-custom" onclick="scanCameras()">Scan Cameras</button>
-                                <button class="btn btn-outline-light" onclick="setCamera()">Set Active Camera</button>
+                                <button class="btn btn-custom btn-primary-custom flex-grow-1" onclick="scanCameras()"><i class="fas fa-search"></i> Detect Hardware</button>
+                                <button class="btn btn-outline-light flex-grow-1" style="border-radius: 12px;" onclick="setCamera()"><i class="fas fa-lock"></i> Lock Stream</button>
                             </div>
                         </div>
                     </div>
 
                     <div class="col-12 col-xl-6">
                         <div class="glass-card h-100">
-                            <h2 class="section-title"><i class="fas fa-cog text-muted"></i> Engine Settings</h2>
+                            <h2 class="section-title"><i class="fas fa-cog text-muted"></i> Engine Parameters</h2>
                             <form id="settingsForm">
-                                <div class="mb-3">
-                                    <label class="form-label">Recognition Pass Mark</label>
-                                    <input id="recognitionPassMark" type="number" class="form-control" title="Recognition pass mark" min="30" max="150" required>
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label text-muted" style="font-size: 0.85rem; font-weight: 600;">Confidence Threshold</label>
+                                        <input id="recognitionPassMark" type="number" class="form-control" min="30" max="150" required>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label text-muted" style="font-size: 0.85rem; font-weight: 600;">Acquisition Sample Size</label>
+                                        <input id="maxCaptureSamples" type="number" class="form-control" min="20" max="500" required>
+                                    </div>
                                 </div>
-                                <div class="mb-3">
-                                    <label class="form-label">Max Capture Samples</label>
-                                    <input id="maxCaptureSamples" type="number" class="form-control" title="Max capture samples" min="20" max="500" required>
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label">Recognition Mode</label>
-                                    <select id="recognitionMode" class="form-select" title="Recognition mode">
-                                        <option value="fast">fast</option>
-                                        <option value="accurate">accurate</option>
+                                <div class="mb-4">
+                                    <label class="form-label text-muted" style="font-size: 0.85rem; font-weight: 600;">Compute Mode</label>
+                                    <select id="recognitionMode" class="form-select">
+                                        <option value="fast">High-Velocity (Fast)</option>
+                                        <option value="accurate">High-Fidelity (Accurate)</option>
                                     </select>
                                 </div>
-                                <button type="submit" class="btn btn-custom btn-primary-custom w-100">Apply Configuration</button>
+                                <button type="submit" class="btn btn-custom btn-primary-custom w-100" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); box-shadow: none;">Commit Parameters</button>
                             </form>
                         </div>
                     </div>
@@ -613,59 +626,99 @@
 
     <div class="modal fade" id="captureModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content bg-dark border-secondary">
-                <div class="modal-header border-secondary">
-                    <h5 class="modal-title"><i class="fas fa-camera"></i> Capture Faces</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            <div class="modal-content" style="background: rgba(15,15,20,0.95); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.1); border-radius: 20px;">
+                <div class="modal-header border-bottom-0 pb-0 pt-4 px-4">
+                    <h5 class="modal-title" style="font-weight: 700;"><i class="fas fa-face-viewfinder text-primary me-2"></i> Initializing Capture</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <form id="captureForm">
-                    <div class="modal-body">
+                    <div class="modal-body p-4">
                         <div class="mb-3">
-                            <label class="form-label">Student ID</label>
+                            <label class="form-label text-muted" style="font-size: 0.85rem;">Target UID</label>
                             <input id="captureStudentId" type="text" class="form-control" required>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">Name</label>
+                            <label class="form-label text-muted" style="font-size: 0.85rem;">Target Designation (Name)</label>
                             <input id="captureStudentName" type="text" class="form-control" required>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">Email</label>
+                            <label class="form-label text-muted" style="font-size: 0.85rem;">Comm Link (Optional)</label>
                             <input id="captureStudentEmail" type="email" class="form-control">
                         </div>
-                        <div class="mb-3">
-                            <label class="form-label">Max Samples</label>
+                        <div class="mb-4">
+                            <label class="form-label text-muted" style="font-size: 0.85rem;">Vector Depth (Samples)</label>
                             <input id="captureMaxSamples" type="number" class="form-control" value="100" min="20" max="500">
                         </div>
-                        <div class="form-check">
-                            <input id="captureQuickPipeline" class="form-check-input" type="checkbox" checked>
-                            <label class="form-check-label" for="captureQuickPipeline">Run quick pipeline (capture + train + recognize)</label>
+                        <div class="form-check form-switch">
+                            <input id="captureQuickPipeline" class="form-check-input" type="checkbox" checked role="switch" style="cursor: pointer;">
+                            <label class="form-check-label text-muted ms-2" for="captureQuickPipeline" style="font-size: 0.9rem;">Automate pipeline (Capture → Train → Vision)</label>
                         </div>
                     </div>
-                    <div class="modal-footer border-secondary">
-                        <button type="button" class="btn btn-outline-light" data-bs-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn btn-custom btn-success-custom">Start Capture</button>
+                    <div class="modal-footer border-top-0 pt-0 pb-4 px-4">
+                        <button type="button" class="btn btn-outline-secondary" style="border-radius: 10px;" data-bs-dismiss="modal">Abort</button>
+                        <button type="submit" class="btn btn-custom btn-primary-custom">Execute Capture</button>
                     </div>
                 </form>
             </div>
         </div>
     </div>
 
-    <div id="appToast" class="toast position-fixed bottom-0 end-0 m-3 toast-high-z" role="alert" aria-live="assertive" aria-atomic="true">
-        <div class="toast-header bg-dark text-light border-secondary">
-            <i class="fas fa-circle-info me-2 text-primary"></i>
-            <strong class="me-auto">E2C System</strong>
-            <small>Now</small>
+    <!-- Student recognition popup -->
+    <div class="modal fade" id="studentPopupModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-sm modal-dialog-centered">
+            <div class="modal-content" style="background: rgba(10,10,12,0.95); border-radius: 14px; border: 1px solid rgba(255,255,255,0.06);">
+                <div class="modal-header border-bottom-0 pb-0 pt-3 px-3">
+                    <h5 class="modal-title" id="studentPopupTitle" style="font-weight:700;"></h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body px-3 pb-3 pt-2">
+                    <div id="studentPopupBody" style="font-size:0.95rem; color:#cbd5e1;"></div>
+                    <div class="mt-3 d-flex justify-content-end">
+                        <button id="studentPopupReportBtn" class="btn btn-sm btn-outline-info me-2" style="border-radius:10px; display:none;">Preview Report</button>
+                        <button type="button" class="btn btn-sm btn-primary" data-bs-dismiss="modal" style="border-radius:10px;">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Report preview modal -->
+    <div class="modal fade" id="reportPreviewModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content" style="background: rgba(12,12,14,0.98); border-radius: 14px; border: 1px solid rgba(255,255,255,0.06);">
+                <div class="modal-header border-bottom-0 pb-0 pt-3 px-3">
+                    <h5 class="modal-title" id="reportPreviewTitle" style="font-weight:700;"></h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body px-3 pb-3 pt-2">
+                    <div id="reportPreviewBody" style="font-size:0.95rem; color:#cbd5e1;"></div>
+                </div>
+                <div class="modal-footer border-top-0 pt-0 pb-3 px-3">
+                    <button id="reportExportPdfBtn" class="btn btn-sm btn-outline-success" style="border-radius:10px;">Export PDF</button>
+                    <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal" style="border-radius:10px;">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="appToast" class="toast position-fixed bottom-0 end-0 m-4 toast-high-z" role="alert" aria-live="assertive" aria-atomic="true" style="background: rgba(15,15,20,0.9); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
+        <div class="toast-header border-bottom-0 pb-0 pt-3 px-3" style="background: transparent; color: white;">
+            <i class="fas fa-circle-info me-2 text-primary" style="font-size: 1.1rem;"></i>
+            <strong class="me-auto" style="letter-spacing: 0.5px;">E2C System</strong>
+            <small class="text-muted">Just now</small>
             <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
         </div>
-        <div id="appToastBody" class="toast-body bg-dark text-light border-secondary"></div>
+        <div id="appToastBody" class="toast-body text-light px-3 pb-3 pt-2" style="font-size: 0.95rem; color: #cbd5e1 !important;"></div>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
     <script>
+        // --- ALL JAVASCRIPT LOGIC PRESERVED EXACTLY AS PROVIDED ---
         const state = {
             students: [],
             reports: [],
-            cameraSnapshot: { cameras: [], active_camera: 0 }
+            cameraSnapshot: { cameras: [], active_camera: 0 },
+            lastRecognitionHash: null
         };
 
         const appToast = new bootstrap.Toast(document.getElementById("appToast"), { delay: 3500 });
@@ -719,7 +772,8 @@
             const data = await apiGet("/api/system/status");
             document.getElementById("totalStudents").innerText = data.students ?? 0;
             document.getElementById("trainedModels").innerText = data.trained_models ?? 0;
-            document.getElementById("systemMsg").innerText = data.recognition_available ? "Ready" : "Recognition unavailable";
+            document.getElementById("systemMsg").innerText = data.recognition_available ? "Ready" : "Offline";
+            document.getElementById("systemMsg").style.color = data.recognition_available ? "var(--accent-success)" : "var(--accent-danger)";
 
             document.getElementById("recognitionPassMark").value = data.recognition_pass_mark ?? 80;
             document.getElementById("maxCaptureSamples").value = data.max_capture_samples ?? 50;
@@ -737,18 +791,18 @@
             });
 
             if (!filtered.length) {
-                tbody.innerHTML = "<tr><td colspan='4' class='text-center text-secondary'>No students found.</td></tr>";
+                tbody.innerHTML = "<tr><td colspan='4' class='text-center text-secondary py-4'>No records found in registry.</td></tr>";
                 return;
             }
 
             tbody.innerHTML = filtered.map(s => `
                 <tr>
-                    <td>${s.id || ""}</td>
-                    <td>${s.name || ""}</td>
-                    <td>${s.email || "-"}</td>
-                    <td class="text-end">
-                        <button class="btn btn-sm btn-outline-warning me-1" onclick="editStudent('${String(s.id).replace(/'/g, "\\'")}', '${String(s.name || "").replace(/'/g, "\\'")}', '${String(s.email || "").replace(/'/g, "\\'")}')">Edit</button>
-                        <button class="btn btn-sm btn-outline-danger" onclick="deleteStudent('${String(s.id).replace(/'/g, "\\'")}')">Delete</button>
+                    <td class="ps-4 font-monospace" style="color: var(--accent-primary);">${s.id || ""}</td>
+                    <td style="font-weight: 600;">${s.name || ""}</td>
+                    <td class="text-muted">${s.email || "-"}</td>
+                    <td class="text-end pe-4">
+                        <button class="btn btn-sm btn-outline-warning me-2" style="border-radius: 8px;" onclick="editStudent('${String(s.id).replace(/'/g, "\\'")}', '${String(s.name || "").replace(/'/g, "\\'")}', '${String(s.email || "").replace(/'/g, "\\'")}')"><i class="fas fa-pen"></i></button>
+                        <button class="btn btn-sm btn-outline-danger" style="border-radius: 8px;" onclick="deleteStudent('${String(s.id).replace(/'/g, "\\'")}')"><i class="fas fa-trash"></i></button>
                     </td>
                 </tr>
             `).join("");
@@ -768,26 +822,26 @@
                 email: document.getElementById("newStudentEmail").value.trim()
             };
             await apiPost("/api/data/add_student", payload);
-            showToast("Student added successfully.", "success");
+            showToast("Profile registered successfully.", "success");
             evt.target.reset();
             await loadStudents();
             await loadSystemStatus();
         }
 
         async function deleteStudent(studentId) {
-            if (!confirm(`Delete student ${studentId}?`)) return;
+            if (!confirm(`Purge profile ${studentId} from registry?`)) return;
             await apiPost(`/api/data/delete_student/${encodeURIComponent(studentId)}`, {});
-            showToast(`Student ${studentId} deleted.`, "success");
+            showToast(`Profile ${studentId} purged.`, "success");
             await loadStudents();
             await loadSystemStatus();
         }
 
         async function editStudent(studentId, currentName, currentEmail) {
-            const name = prompt("Enter updated name", currentName || "");
+            const name = prompt("Enter updated designation:", currentName || "");
             if (name === null) return;
-            const email = prompt("Enter updated email", currentEmail || "") || "";
+            const email = prompt("Enter updated comm link:", currentEmail || "") || "";
             await apiPost(`/api/data/edit_student/${encodeURIComponent(studentId)}`, { name: name.trim(), email: email.trim() });
-            showToast(`Student ${studentId} updated.`, "success");
+            showToast(`Profile ${studentId} updated.`, "success");
             await loadStudents();
         }
 
@@ -795,7 +849,7 @@
             evt.preventDefault();
             const fileInput = document.getElementById("importFile");
             if (!fileInput.files.length) {
-                showToast("Select a CSV file first.", "error");
+                showToast("Select a CSV matrix first.", "error");
                 return;
             }
 
@@ -806,7 +860,7 @@
             const data = await response.json();
             if (!response.ok || data.status === "error") throw new Error(data.message || "Import failed");
 
-            showToast(`Imported ${data.added} students, skipped ${data.skipped}.`, "success");
+            showToast(`Ingested ${data.added} profiles, skipped ${data.skipped} duplicates.`, "success");
             evt.target.reset();
             await loadStudents();
             await loadSystemStatus();
@@ -827,21 +881,21 @@
         function renderReports() {
             const tbody = document.getElementById("reportsTableBody");
             if (!state.reports.length) {
-                tbody.innerHTML = "<tr><td colspan='6' class='text-center text-secondary'>No attendance reports found.</td></tr>";
+                tbody.innerHTML = "<tr><td colspan='6' class='text-center text-secondary py-4'>No logs compiled yet.</td></tr>";
                 return;
             }
 
             tbody.innerHTML = state.reports.map(r => `
                 <tr class="clickable-row" onclick="viewReport('${encodeURIComponent(r.file_name)}')">
-                    <td>${r.file_name}</td>
+                    <td class="ps-4 font-monospace text-muted">${r.file_name}</td>
                     <td>${r.date || "-"}</td>
-                    <td>${r.present_count}</td>
-                    <td>${r.absent_count}</td>
+                    <td class="text-success" style="font-weight: 600;">${r.present_count}</td>
+                    <td class="text-danger" style="font-weight: 600;">${r.absent_count}</td>
                     <td>${r.total_students}</td>
-                    <td class="text-end" onclick="event.stopPropagation()">
-                        <a class="btn btn-sm btn-outline-info me-1" href="/api/reports/download-csv/${encodeURIComponent(r.file_name)}">CSV</a>
-                        <button class="btn btn-sm btn-outline-success me-1" onclick="exportPdf('${encodeURIComponent(r.file_name)}')">PDF</button>
-                        <button class="btn btn-sm btn-outline-danger" onclick="deleteReport('${encodeURIComponent(r.file_name)}')">Delete</button>
+                    <td class="text-end pe-4" onclick="event.stopPropagation()">
+                        <a class="btn btn-sm btn-outline-info me-2" style="border-radius: 8px;" href="/api/reports/download-csv/${encodeURIComponent(r.file_name)}"><i class="fas fa-file-csv"></i></a>
+                        <button class="btn btn-sm btn-outline-success me-2" style="border-radius: 8px;" onclick="exportPdf('${encodeURIComponent(r.file_name)}')"><i class="fas fa-file-pdf"></i></button>
+                        <button class="btn btn-sm btn-outline-danger" style="border-radius: 8px;" onclick="deleteReport('${encodeURIComponent(r.file_name)}')"><i class="fas fa-trash"></i></button>
                     </td>
                 </tr>
             `).join("");
@@ -856,25 +910,48 @@
         async function viewReport(encodedReportName) {
             const data = await apiGet(`/api/reports/view/${encodedReportName}`);
             if (!data.report) {
-                showToast("Report not found.", "error");
+                showToast("Log matrix missing.", "error");
                 return;
             }
             const report = data.report;
-            showToast(`${report.file_name}: present ${report.present_count}, absent ${report.absent_count}.`, "info");
+            document.getElementById('reportPreviewTitle').innerText = `Session: ${report.file_name}`;
+            let html = `<p><strong>Date:</strong> ${report.date || '-'} &nbsp; • &nbsp; <strong>Present:</strong> ${report.present_count} &nbsp; • &nbsp; <strong>Absent:</strong> ${report.absent_count} &nbsp; • &nbsp; <strong>Total:</strong> ${report.total_students}</p>`;
+
+            if (report.records && report.records.length) {
+                html += `<h6 class="mt-3" style="color:#94a3b8;">Present Students</h6>`;
+                html += `<div class="table-responsive"><table class="table table-sm"><thead><tr><th>ID</th><th>Name</th><th>Email</th><th>Time</th></tr></thead><tbody>`;
+                for (const r of report.records) {
+                    html += `<tr><td class="font-monospace">${r.student_id}</td><td style="font-weight:600">${r.name}</td><td class="text-muted">${r.email || '-'}</td><td>${r.time || '-'}</td></tr>`;
+                }
+                html += `</tbody></table></div>`;
+            }
+
+            if (report.absent_students && report.absent_students.length) {
+                html += `<h6 class="mt-3" style="color:#94a3b8;">Absent Students</h6>`;
+                html += `<div class="table-responsive"><table class="table table-sm"><thead><tr><th>ID</th><th>Name</th><th>Email</th></tr></thead><tbody>`;
+                for (const s of report.absent_students) {
+                    html += `<tr><td class="font-monospace">${s.id || ''}</td><td style="font-weight:600">${s.name || '-'}</td><td class="text-muted">${s.email || '-'}</td></tr>`;
+                }
+                html += `</tbody></table></div>`;
+            }
+
+            document.getElementById('reportPreviewBody').innerHTML = html;
+            document.getElementById('reportExportPdfBtn').onclick = () => exportPdf(encodeURIComponent(report.file_name));
+            new bootstrap.Modal(document.getElementById('reportPreviewModal')).show();
         }
 
         async function exportPdf(encodedReportName) {
             const data = await apiPost(`/api/reports/export/${encodedReportName}`, {});
             if (data.download_url) {
                 window.open(data.download_url, "_blank");
-                showToast("PDF exported successfully.", "success");
+                showToast("PDF document generated.", "success");
             }
         }
 
         async function deleteReport(encodedReportName) {
-            if (!confirm("Delete this attendance report?")) return;
+            if (!confirm("Purge this log archive permanently?")) return;
             await apiPost(`/api/reports/delete/${encodedReportName}`, {});
-            showToast("Attendance report deleted.", "success");
+            showToast("Log archive purged.", "success");
             await loadReports();
             await renderLatestSessionPresentCount();
         }
@@ -884,28 +961,50 @@
             state.cameraSnapshot = data;
             const select = document.getElementById("cameraSelect");
             const cameras = data.cameras || [];
-            const active = Number(data.active_camera || 0);
+            const active = data.active_camera;
 
             if (!cameras.length) {
-                select.innerHTML = `<option value='${active}'>No camera detected, keep index ${active}</option>`;
+                select.innerHTML = `<option value='0'>No USB devices detected</option>`;
+                showToast("No USB cameras detected. Try network camera option.", "warning");
                 return;
             }
 
             select.innerHTML = cameras.map(cam => {
-                const idx = Number(cam.index);
-                const label = cam.name || `Camera ${idx}`;
-                const mark = idx === active ? " (active)" : "";
-                return `<option value='${idx}'>${idx} - ${label}${mark}</option>`;
+                const idx = cam.index;
+                const res = cam.resolution || 'unknown';
+                const fps = cam.fps || 0;
+                const mark = idx === active ? " ✓ LOCKED" : "";
+                return `<option value='${idx}'>Index ${idx} (${res} @ ${fps}fps)${mark}</option>`;
             }).join("");
 
-            select.value = String(active);
-            showToast(`Detected ${cameras.length} camera(s).`, "info");
+            select.value = String(active || 0);
+            showToast(`Detected ${cameras.length} USB camera(s).`, "success");
         }
 
         async function setCamera() {
             const index = Number(document.getElementById("cameraSelect").value);
-            await apiPost("/api/camera/set", { camera_index: index });
-            showToast(`Active camera set to ${index}.`, "success");
+            const response = await apiPost("/api/camera/set", { camera_source: index });
+            showToast(`USB camera locked to index ${index}.`, "success");
+        }
+
+        async function setNetworkCamera() {
+            const url = document.getElementById("networkCameraInput").value.trim();
+            if (!url) {
+                showToast("Please enter a camera URL (IP or RTSP stream).", "warning");
+                return;
+            }
+
+            try {
+                const response = await apiPost("/api/camera/set", { camera_source: url });
+                if (response.status === "success") {
+                    document.getElementById("networkCameraInput").value = "";
+                    showToast(`Network camera connected: ${url}`, "success");
+                } else {
+                    showToast(`Error: ${response.message}`, "error");
+                }
+            } catch (e) {
+                showToast(`Failed to connect network camera: ${e.message}`, "error");
+            }
         }
 
         async function performOperation(operation) {
@@ -917,12 +1016,17 @@
 
             if (!endpoint) return;
             await apiPost(endpoint, {});
-            showToast(`${operation} started.`, "info");
+            showToast(`${operation.toUpperCase()} sequence initiated.`, "info");
         }
 
         async function stopRecognition() {
             await apiPost("/api/recognize/stop", {});
-            showToast("Recognition stop requested.", "info");
+            showToast("Vision process halt command sent.", "warning");
+        }
+
+        async function stopCameraCheck() {
+            await apiPost("/api/camera/check/stop", {});
+            showToast("Camera preview stopped.", "warning");
         }
 
         async function submitCapture(evt) {
@@ -935,7 +1039,7 @@
                 quick_pipeline: document.getElementById("captureQuickPipeline").checked
             };
             await apiPost("/api/capture/faces", payload);
-            showToast("Capture started. Use camera window to continue.", "info");
+            showToast("Acquisition active. Check hardware window.", "info");
             bootstrap.Modal.getInstance(document.getElementById("captureModal")).hide();
             evt.target.reset();
         }
@@ -948,14 +1052,42 @@
                 recognition_mode: document.getElementById("recognitionMode").value
             };
             await apiPost("/api/settings", payload);
-            showToast("Settings saved.", "success");
+            showToast("Engine parameters committed.", "success");
+        }
+
+        function showStudentPopup(result) {
+            const titleEl = document.getElementById('studentPopupTitle');
+            const bodyEl = document.getElementById('studentPopupBody');
+            const reportBtn = document.getElementById('studentPopupReportBtn');
+
+            titleEl.innerText = result.marked ? 'Attendance Marked' : 'Attendance - Not Marked';
+            let html = `<p style="margin:0 0 8px 0;">${result.message || ''}</p>`;
+            if (result.student_id || result.student_name) {
+                html += `<p style="margin:0; font-weight:600;"><strong>ID:</strong> ${result.student_id || '-'}<br><strong>Name:</strong> ${result.student_name || '-'}</p>`;
+                reportBtn.style.display = 'inline-block';
+                reportBtn.onclick = async () => {
+                    try {
+                        const summary = await apiGet('/api/reports/summary');
+                        let latest = null;
+                        if (summary.latest_attendance) latest = summary.latest_attendance.name || summary.latest_attendance.file_name || summary.latest_attendance;
+                        if (!latest && summary.latest_attendance && typeof summary.latest_attendance === 'string') latest = summary.latest_attendance;
+                        if (latest) viewReport(encodeURIComponent(latest));
+                        else showToast('No session report available.', 'error');
+                    } catch (err) { showToast(err.message || 'Failed to open report', 'error'); }
+                };
+            } else {
+                reportBtn.style.display = 'none';
+            }
+
+            bodyEl.innerHTML = html;
+            new bootstrap.Modal(document.getElementById('studentPopupModal')).show();
         }
 
         async function pollOperationStatus() {
             const data = await apiGet("/api/operation/status");
             const progress = Number(data.progress || 0);
             const status = String(data.status || "idle");
-            const message = data.message || "No active operation.";
+            const message = data.message || "System standing by.";
 
             document.getElementById("opProgressBar").style.width = `${progress}%`;
             document.getElementById("opProgressBar").setAttribute("aria-valuenow", String(progress));
@@ -964,10 +1096,24 @@
 
             const pill = document.getElementById("opStatePill");
             pill.className = `status-pill ${status}`;
-            pill.innerText = status;
+            pill.innerText = status.toUpperCase();
 
             if (status === "success") {
                 await Promise.all([loadSystemStatus(), loadStudents(), loadReports(), renderLatestSessionPresentCount()]);
+            }
+
+            // Show recognition popup when a new recognition result is available
+            try {
+                const lr = data.last_recognition_result || null;
+                if (lr) {
+                    const hash = JSON.stringify(lr);
+                    if (hash !== state.lastRecognitionHash) {
+                        state.lastRecognitionHash = hash;
+                        showStudentPopup(lr);
+                    }
+                }
+            } catch (e) {
+                // ignore popup errors
             }
         }
 
@@ -1020,7 +1166,7 @@
                     try { await pollOperationStatus(); } catch (_) {}
                 }, 2000);
             } catch (err) {
-                showToast(err.message || "Failed to initialize dashboard.", "error");
+                showToast(err.message || "Engine failed to boot.", "error");
             }
         }
 

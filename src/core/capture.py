@@ -19,7 +19,7 @@ def is_number(s):
     return False
 
 
-def takeImages(storage_paths, data_manager=None, camera_index=0, max_samples=100, student_id=None, student_name=None):
+def takeImages(storage_paths, data_manager=None, camera_index=0, max_samples=100, student_id=None, student_name=None, frame_callback=None, show_window=True):
     """
     Capture face images from a camera and save into storage_paths['TrainingImages'].
     Parameters:
@@ -88,9 +88,22 @@ def takeImages(storage_paths, data_manager=None, camera_index=0, max_samples=100
     print(f"✓ Student found: {name} (ID: {Id})")
     print("Starting face capture...")
 
-    cam = cv2.VideoCapture(int(camera_index))
+    # Handle both USB cameras (index) and network cameras (URL)
+    try:
+        if isinstance(camera_index, str) and (camera_index.startswith('http') or camera_index.startswith('rtsp')):
+            # Network camera (URL/IP stream)
+            cam = cv2.VideoCapture(camera_index)
+            camera_label = camera_index
+        else:
+            # USB camera (numeric index)
+            cam = cv2.VideoCapture(int(camera_index))
+            camera_label = f"USB Index {camera_index}"
+    except Exception:
+        cam = cv2.VideoCapture(int(camera_index))
+        camera_label = f"USB Index {camera_index}"
+    
     if not cam.isOpened():
-        print(f"✗ Failed to open camera at index {camera_index}")
+        print(f"✗ Failed to open camera: {camera_label}")
         return
 
     # Haarcascade path: prefer the one bundled in project folder
@@ -144,7 +157,14 @@ def takeImages(storage_paths, data_manager=None, camera_index=0, max_samples=100
                 else:
                     cv2.rectangle(img, (x, y), (x + w, y + h), (0, 0, 255), 2)  # Red for multiple faces
             
-            cv2.imshow('frame', img)
+            if frame_callback:
+                try:
+                    frame_callback(img)
+                except Exception:
+                    pass
+
+            if show_window:
+                cv2.imshow('frame', img)
             
             # Only capture if exactly 1 face is detected
             if num_faces == 1:
@@ -158,8 +178,9 @@ def takeImages(storage_paths, data_manager=None, camera_index=0, max_samples=100
                 print("Capture paused until a single face is detected.")
             
             # Break conditions
-            if cv2.waitKey(100) & 0xFF == ord('q'):
-                break
+            if show_window:
+                if cv2.waitKey(100) & 0xFF == ord('q'):
+                    break
             if sampleNum >= int(max_samples):
                 break
     except KeyboardInterrupt:
@@ -167,7 +188,8 @@ def takeImages(storage_paths, data_manager=None, camera_index=0, max_samples=100
     finally:
         # release resources
         cam.release()
-        cv2.destroyAllWindows()
+        if show_window:
+            cv2.destroyAllWindows()
 
     # Save student details (only if not already exists)
     try:

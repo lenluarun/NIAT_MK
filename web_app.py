@@ -8,7 +8,8 @@ import sys
 import threading
 import time
 import csv
-from flask import Flask, render_template, request, jsonify, send_from_directory
+import cv2
+from flask import Flask, render_template, request, jsonify, send_from_directory, Response, stream_with_context
 from flask_cors import CORS
 import json
 
@@ -58,6 +59,36 @@ CORS(app)
 # Global operation status
 current_operation = {"status": "idle", "message": "", "progress": 0}
 last_recognition_result = {"marked": False, "student_id": None, "student_name": None, "message": ""}
+preview_state = {"active": False, "frame": None, "label": ""}
+camera_check_stop_event = threading.Event()
+
+
+def update_preview_frame(frame, label=None):
+    if frame is None:
+        return
+    ok, buffer = cv2.imencode('.jpg', frame)
+    if not ok:
+        return
+    preview_state["frame"] = buffer.tobytes()
+    if label is not None:
+        preview_state["label"] = label
+
+
+def clear_preview_frame():
+    preview_state["frame"] = None
+    preview_state["label"] = ""
+
+
+def preview_stream():
+    boundary = b'--frame\r\nContent-Type: image/jpeg\r\n\r\n'
+    while True:
+        frame = preview_state.get("frame")
+        if frame:
+            yield boundary + frame + b'\r\n'
+        else:
+            time.sleep(0.12)
+            continue
+        time.sleep(0.06)
 
 def emit_status(message, progress=0, status="running"):
     """Update status for polling"""
@@ -283,7 +314,6 @@ def system_status():
     attendance_count = len([f for f in os.listdir(storage_paths['Attendance']) if f.endswith(".csv")]) if storage_paths else 0
     student_count = len(data_manager.get_all_students()) if data_manager else 0
     latest_report = _recognition_snapshot()
-    camera_snapshot = _camera_scan_snapshot()
 
     return jsonify({
         "storage_path": storage_path,
@@ -301,7 +331,7 @@ def system_status():
         "hud_mode": app_settings.get('hud_mode', True) if app_settings else True,
         "recognition_available": RECOGNITION_AVAILABLE,
         "latest_attendance": latest_report['file_name'],
-        "camera_count": len(camera_snapshot['cameras']),
+        "camera_count": 1,
     })
 
 @app.route('/api/camera/check', methods=['POST'])
@@ -309,19 +339,35 @@ def camera_check():
     """Check camera functionality"""
     try:
         emit_status("Checking camera...", 0)
+        camera_check_stop_event.clear()  # Clear stop event on new check
         # Run camera check in thread to not block
         def run_check():
             try:
-                check_camera.camer(app_settings['camera_index'])
+                preview_state["active"] = True
+                check_camera.camer(app_settings['camera_index'], frame_callback=lambda frame: update_preview_frame(frame, "camera-check"), show_window=False, stop_event=camera_check_stop_event)
                 emit_status("Camera check completed successfully!", 100, "success")
             except Exception as e:
                 emit_status(f"Camera check failed: {str(e)}", 0, "error")
+            finally:
+                preview_state["active"] = False
+                clear_preview_frame()
 
         thread = threading.Thread(target=run_check)
         thread.daemon = True
         thread.start()
 
         return jsonify({"status": "started"})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+@app.route('/api/camera/check/stop', methods=['POST'])
+def stop_camera_check():
+    """Stop the camera check"""
+    try:
+        camera_check_stop_event.set()
+        emit_status("Camera check stopped.", 100, "warning")
+        return jsonify({"status": "stopped"})
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
 
@@ -337,22 +383,41 @@ def camera_scan():
 
 @app.route('/api/camera/set', methods=['POST'])
 def camera_set():
-    """Update the active camera index."""
+    """Update the active camera index (supports USB index or IP/URL for network cameras)."""
     global app_settings
     try:
         payload = request.get_json(silent=True) or {}
-        camera_index = payload.get('camera_index')
-        if camera_index is None:
-            return jsonify({"status": "error", "message": "camera_index is required"}), 400
+        camera_source = payload.get('camera_source')
+        
+        if camera_source is None:
+            return jsonify({"status": "error", "message": "camera_source is required"}), 400
 
+        # If it's numeric, treat as USB index
         try:
-            camera_index = int(camera_index)
+            camera_index = int(camera_source)
+            app_settings = update_setting('camera_index', camera_index)
+            emit_status(f"Active camera set to USB Index {camera_index}", 100, "success")
+            return jsonify({
+                "status": "success",
+                "camera_index": camera_index,
+                "camera_type": "usb"
+            })
         except (TypeError, ValueError):
-            return jsonify({"status": "error", "message": "camera_index must be numeric"}), 400
-
-        app_settings = update_setting('camera_index', camera_index)
-        emit_status(f"Active camera set to {camera_index}", 100, "success")
-        return jsonify({"status": "success", "camera_index": camera_index})
+            pass
+        
+        # If not numeric, treat as IP/URL for network camera
+        camera_source_str = str(camera_source).strip()
+        if not camera_source_str:
+            return jsonify({"status": "error", "message": "camera_source cannot be empty"}), 400
+        
+        # Support formats: http://192.168.1.100:8080/video or rtsp://... or IP address
+        app_settings = update_setting('camera_index', camera_source_str)
+        emit_status(f"Active camera set to network source: {camera_source_str}", 100, "success")
+        return jsonify({
+            "status": "success",
+            "camera_source": camera_source_str,
+            "camera_type": "network"
+        })
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
 
@@ -383,6 +448,7 @@ def capture_faces():
         def run_capture():
             global last_recognition_result
             try:
+                preview_state["active"] = True
                 if not data_manager.student_exists(student_id):
                     data_manager.add_student(student_id, student_name, student_email)
 
@@ -394,6 +460,8 @@ def capture_faces():
                     max_samples=max_samples,
                     student_id=student_id,
                     student_name=student_name,
+                    frame_callback=lambda frame: update_preview_frame(frame, "capture"),
+                    show_window=False,
                 )
 
                 if quick_pipeline:
@@ -418,6 +486,9 @@ def capture_faces():
                     emit_status("Face capture completed successfully!", 100, "success")
             except Exception as e:
                 emit_status(f"Face capture failed: {str(e)}", 0, "error")
+            finally:
+                preview_state["active"] = False
+                clear_preview_frame()
 
         thread = threading.Thread(target=run_capture)
         thread.daemon = True
@@ -462,17 +533,24 @@ def recognize_attendance():
         def run_recognition():
             global last_recognition_result
             try:
+                preview_state["active"] = True
                 recognize.recognize_attendence(
                     storage_paths,
                     data_manager,
                     camera_index=app_settings['camera_index'],
                     pass_mark=app_settings['recognition_pass_mark'],
-                    fast_mode=(app_settings.get("recognition_mode", "fast") == "fast")
+                    fast_mode=(app_settings.get("recognition_mode", "fast") == "fast"),
+                    frame_callback=lambda frame: update_preview_frame(frame, "recognition"),
+                    show_window=False,
+                    max_runtime_seconds=45,
                 )
                 last_recognition_result = _build_recognition_result(before_snapshot)
                 emit_status(last_recognition_result['message'], 100, "success")
             except Exception as e:
                 emit_status(f"Recognition failed: {str(e)}", 0, "error")
+            finally:
+                preview_state["active"] = False
+                clear_preview_frame()
 
         thread = threading.Thread(target=run_recognition)
         thread.daemon = True
@@ -966,7 +1044,19 @@ def update_system():
 @app.route('/api/operation/status')
 def operation_status():
     """Get current operation status"""
-    return jsonify(current_operation)
+    # Include last recognition result so the UI can display student popups
+    try:
+        result = dict(current_operation)
+        result['last_recognition_result'] = last_recognition_result
+        return jsonify(result)
+    except Exception:
+        return jsonify(current_operation)
+
+
+@app.route('/api/camera/preview')
+def camera_preview():
+    """Stream the current camera preview into the web UI."""
+    return Response(stream_with_context(preview_stream()), mimetype='multipart/x-mixed-replace; boundary=frame')
 
 if __name__ == '__main__':
     # Initialize system

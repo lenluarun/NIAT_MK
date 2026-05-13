@@ -23,7 +23,7 @@ def get_student_image_path(training_dir, student_id):
     return None
 
 
-def recognize_attendence(storage_paths=None, data_manager=None, camera_index=0, pass_mark=80, fast_mode=True):
+def recognize_attendence(storage_paths=None, data_manager=None, camera_index=0, pass_mark=80, fast_mode=True, frame_callback=None, show_window=True, max_runtime_seconds=None):
     recognizer = cv2.face.LBPHFaceRecognizer_create()
     trained_dir = storage_paths.get('TrainedModels') if storage_paths else "TrainingImageLabel"
     trainer_path = os.path.join(trained_dir, "Trainner.yml")
@@ -78,8 +78,20 @@ def recognize_attendence(storage_paths=None, data_manager=None, camera_index=0, 
     auto_exit_after_mark = True  # Exit automatically after marking first student
     exit_recognition = False  # Flag to exit the recognition loop
 
-    # start realtime video capture with optimized settings
-    cam = cv2.VideoCapture(camera_index, cv2.CAP_DSHOW)
+    # Handle both USB cameras (index) and network cameras (URL)
+    try:
+        if isinstance(camera_index, str) and (camera_index.startswith('http') or camera_index.startswith('rtsp')):
+            # Network camera (URL/IP stream)
+            cam = cv2.VideoCapture(camera_index)
+            camera_label = camera_index
+        else:
+            # USB camera (numeric index)
+            cam = cv2.VideoCapture(int(camera_index))
+            camera_label = f"USB Index {camera_index}"
+    except Exception:
+        cam = cv2.VideoCapture(int(camera_index))
+        camera_label = f"USB Index {camera_index}"
+    
     # Optimize camera settings for speed
     cam.set(3, 640)  # Width
     cam.set(4, 480)  # Height
@@ -100,8 +112,11 @@ def recognize_attendence(storage_paths=None, data_manager=None, camera_index=0, 
     print(f"{Colors.BRIGHT_CYAN}╔══════════════════════════════════════════════════════════════════════════════╗{Colors.RESET}")
     print(f"{Colors.BRIGHT_CYAN}║{Colors.RESET}{Colors.BRIGHT_WHITE}                    FACE RECOGNITION IN PROGRESS{Colors.RESET}{Colors.BRIGHT_CYAN}                      ║{Colors.RESET}")
     print(f"{Colors.BRIGHT_CYAN}╚══════════════════════════════════════════════════════════════════════════════╝{Colors.RESET}")
-    print(f"{Colors.BRIGHT_WHITE}Camera: {camera_index} | Confidence Threshold: {pass_mark} | Fast Mode: {fast_mode} | Immediate Marking | Auto-Exit: {auto_exit_after_mark}{Colors.RESET}")
-    print(f"{Colors.BRIGHT_WHITE}Press 'Q' in video window to save & exit{Colors.RESET}")
+    print(f"{Colors.BRIGHT_WHITE}Camera: {camera_label} | Confidence Threshold: {pass_mark} | Fast Mode: {fast_mode} | Immediate Marking | Auto-Exit: {auto_exit_after_mark}{Colors.RESET}")
+    if show_window:
+        print(f"{Colors.BRIGHT_WHITE}Press 'Q' in video window to save & exit{Colors.RESET}")
+    else:
+        print(f"{Colors.BRIGHT_WHITE}Running in web preview mode. The browser view will show the camera stream.{Colors.RESET}")
     print(f"{Colors.BRIGHT_YELLOW}{'─' * 80}{Colors.RESET}")
     print(f"{Colors.BRIGHT_GREEN}Recognition started... Looking for faces...{Colors.RESET}\n")
 
@@ -121,10 +136,19 @@ def recognize_attendence(storage_paths=None, data_manager=None, camera_index=0, 
             if frame_count % process_every_n_frames != 0:
                 # Still show the video feed but skip heavy processing
                 cv2.putText(im, "Fast Mode Active", (10, 30), font, 0.6, (0, 255, 0), 2)
-                cv2.imshow('Attendance', im)
-                key = cv2.waitKey(1) & 0xFF
-                if key == ord('q') or key == ord('Q'):
-                    print(f"\n✓ Saving attendance for {len(attendance)} students...")
+                if frame_callback:
+                    try:
+                        frame_callback(im)
+                    except Exception:
+                        pass
+                if show_window:
+                    cv2.imshow('Attendance', im)
+                    key = cv2.waitKey(1) & 0xFF
+                    if key == ord('q') or key == ord('Q'):
+                        print(f"\n✓ Saving attendance for {len(attendance)} students...")
+                        break
+                if max_runtime_seconds and (time.time() - start_time) >= max_runtime_seconds:
+                    print(f"\n✓ Max runtime reached; saving attendance for {len(attendance)} students...")
                     break
                 continue
 
@@ -195,7 +219,8 @@ def recognize_attendence(storage_paths=None, data_manager=None, camera_index=0, 
                                     resized_img = cv2.resize(student_img, (200, 200))
                                     cv2.putText(resized_img, f"Matched: {name}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
                                     cv2.putText(resized_img, f"ID: {Id_str}", (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
-                                    cv2.imshow(f'Matched-{name}', resized_img)
+                                    if show_window:
+                                        cv2.imshow(f'Matched-{name}', resized_img)
                             except:
                                 pass  # Skip if image loading fails
 
@@ -264,18 +289,29 @@ def recognize_attendence(storage_paths=None, data_manager=None, camera_index=0, 
                 cv2.putText(im, status_text, (10, 30), font, 0.6, (255, 255, 255), 2)
             cv2.putText(im, "Press 'Q' to save & exit (Auto-exit after mark)", (10, 50), font, 0.5, (255, 255, 255), 1)
 
-            cv2.imshow('Attendance', im)
+            if frame_callback:
+                try:
+                    frame_callback(im)
+                except Exception:
+                    pass
+
+            if show_window:
+                cv2.imshow('Attendance', im)
 
             # Check for key presses
-            key = cv2.waitKey(1) & 0xFF
+            key = cv2.waitKey(1) & 0xFF if show_window else 0
             if key == ord('q') or key == ord('Q') or exit_recognition:
                 print(f"\n✓ Saving attendance for {len(attendance)} students...")
+                break
+            if max_runtime_seconds and (time.time() - start_time) >= max_runtime_seconds:
+                print(f"\n✓ Max runtime reached; saving attendance for {len(attendance)} students...")
                 break
     except KeyboardInterrupt:
         print("\n⚠ Recognition interrupted by user (Ctrl+C).")
 
     cam.release()
-    cv2.destroyAllWindows()
+    if show_window:
+        cv2.destroyAllWindows()
 
     if not attendance.empty:
         ts = time.time()
