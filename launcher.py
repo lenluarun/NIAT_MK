@@ -43,7 +43,11 @@ def print_menu():
     print("   + Pull the latest code and refresh dependencies")
     print("   + Best used after committing local changes")
     print()
-    print("4. [X] Exit")
+    print("4. [I] Install Dependencies")
+    print("   + Install all required Python packages")
+    print("   + Use this on first setup or after updating")
+    print()
+    print("5. [X] Exit")
     print("-"*50)
 
 
@@ -71,6 +75,59 @@ def update_system():
         if result.get("details"):
             print(result["details"])
 
+    input("\nPress ENTER to return to launcher...")
+
+def install_dependencies():
+    """Install all required dependencies from requirements.txt"""
+    print("\n[INSTALL] Installing dependencies...")
+    print("-"*50)
+    
+    requirements_file = os.path.join(os.path.dirname(__file__), "requirements.txt")
+    
+    if not os.path.exists(requirements_file):
+        print("[ERROR] requirements.txt file not found!")
+        input("\nPress ENTER to return to launcher...")
+        return
+    
+    try:
+        python_exe = get_project_python()
+        print(f"[INFO] Using Python: {python_exe}")
+        print(f"[INFO] Installing from: {requirements_file}\n")
+        
+        # First, try to ensure pip is installed
+        print("[INFO] Checking/installing pip...")
+        ensurepip_process = subprocess.Popen(
+            [python_exe, "-m", "ensurepip", "--upgrade"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE
+        )
+        ensurepip_process.wait()
+        
+        if ensurepip_process.returncode != 0:
+            print("[WARN] Could not upgrade pip using ensurepip, continuing anyway...")
+        else:
+            print("[OK] pip is ready\n")
+        
+        # Run pip install with requirements.txt
+        process = subprocess.Popen(
+            [python_exe, "-m", "pip", "install", "-r", requirements_file],
+            cwd=os.path.dirname(__file__)
+        )
+        
+        print("[INFO] Please wait while dependencies are being installed...")
+        process.wait()
+        
+        if process.returncode == 0:
+            print("\n[OK] All dependencies installed successfully!")
+            print("[INFO] You can now use the Terminal or Web interface.")
+        else:
+            print("\n[ERROR] Installation failed with return code:", process.returncode)
+            print("[INFO] Please check the error messages above for details.")
+            print("[INFO] Try running: python -m ensurepip --upgrade")
+    
+    except Exception as e:
+        print(f"\n[ERROR] Error installing dependencies: {e}")
+    
     input("\nPress ENTER to return to launcher...")
 
 def launch_terminal_interface():
@@ -131,7 +188,7 @@ def main():
         print_menu()
 
         try:
-            choice = input(">>> Enter your choice (1-4): ").strip()
+            choice = input(">>> Enter your choice (1-5): ").strip()
 
             if choice == "1":
                 launch_terminal_interface()
@@ -140,11 +197,13 @@ def main():
             elif choice == "3":
                 update_system()
             elif choice == "4":
+                install_dependencies()
+            elif choice == "5":
                 print("\n[EXIT] Thank you for using Smart Attendance System!")
                 print("[INFO] Powered by E2C TEAM\n")
                 sys.exit(0)
             else:
-                print("\n[ERROR] Invalid choice! Please enter 1, 2, 3, or 4.")
+                print("\n[ERROR] Invalid choice! Please enter 1, 2, 3, 4, or 5.")
                 input("Press ENTER to continue...")
 
         except KeyboardInterrupt:
