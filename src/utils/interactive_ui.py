@@ -7,6 +7,8 @@ import importlib
 import os
 import sys
 import time
+import shutil
+import textwrap
 from typing import Optional
 
 # Enable UTF-8 output safely without replacing stdio objects.
@@ -130,12 +132,95 @@ def _render_e2c_banner():
         print(line)
 
 
+def _render_terminal_chrome():
+    """Render the full styled header area for the interactive terminal."""
+    _render_e2c_header()
+    _render_e2c_banner()
+    print(colored("[INFO] Running stylish keyboard mode.", Colors.BRIGHT_YELLOW))
+    print(colored("[INFO] Use ↑/↓ and Enter to navigate the terminal menus.", Colors.BRIGHT_CYAN))
+
+
 def _render_menu_options():
     """Render professional menu with styled options."""
     menu = []
 
     for line in menu:
         print(line)
+
+
+def _get_panel_width(min_width: int = 76, max_width: int = 96) -> int:
+    """Return a safe terminal width for the choice panel."""
+    terminal_width = shutil.get_terminal_size((100, 24)).columns
+    return max(min_width, min(max_width, terminal_width - 4))
+
+
+def _read_choice_key():
+    """Read one navigation key from the keyboard."""
+    if os.name == "nt":
+        try:
+            import msvcrt
+
+            while True:
+                key = msvcrt.getwch()
+                if key in ("\r", "\n"):
+                    return "enter"
+                if key == "\x1b":
+                    return "escape"
+                if key in ("\x00", "\xe0"):
+                    extended = msvcrt.getwch()
+                    return {
+                        "H": "up",
+                        "P": "down",
+                        "K": "left",
+                        "M": "right",
+                    }.get(extended)
+                if key.lower() in ("w", "s"):
+                    return {"w": "up", "s": "down"}[key.lower()]
+                if key.isdigit():
+                    return key
+        except Exception:
+            return None
+
+    try:
+        value = input("Select option: ").strip()
+    except EOFError:
+        return None
+
+    if value in {"", "q", "Q"}:
+        return None
+    return value
+
+
+def _render_choice_panel(title: str, text: str, buttons, selected_index: int, theme: str = "e2c"):
+    """Render a stylized choice panel with the current selection highlighted."""
+    panel_width = _get_panel_width()
+    inner_width = panel_width - 2
+    title_text = title.center(inner_width)
+    accent_color = Colors.BRIGHT_CYAN if theme in ("neon", "e2c", "ocean") else Colors.BRIGHT_GREEN
+
+    print()
+    print(colored("┏" + "━" * panel_width + "┓", accent_color))
+    print(colored(f"┃ {title_text} ┃", accent_color))
+    print(colored("┣" + "━" * panel_width + "┫", accent_color))
+
+    if text:
+        for raw_line in text.splitlines():
+            wrapped_lines = textwrap.wrap(raw_line, width=inner_width - 2) or [""]
+            for line in wrapped_lines:
+                print(colored(f"┃ {line.ljust(inner_width - 2)} ┃", Colors.BRIGHT_WHITE))
+        print(colored("┣" + "━" * panel_width + "┫", accent_color))
+
+    for idx, (label, _value) in enumerate(buttons):
+        marker = "▶" if idx == selected_index else " "
+        shortcut = f"[{idx + 1}]"
+        line = f" {marker} {shortcut} {label}"
+        color = Colors.BRIGHT_GREEN if idx == selected_index else Colors.BRIGHT_WHITE
+        print(colored(f"┃ {line.ljust(inner_width - 2)} ┃", color))
+
+    print(colored("┣" + "━" * panel_width + "┫", accent_color))
+    help_line = "Use ↑/↓ to move, Enter to select, or press a number key for a shortcut."
+    print(colored(f"┃ {help_line.ljust(inner_width - 2)} ┃", Colors.BRIGHT_BLACK))
+    print(colored("┗" + "━" * panel_width + "┛", accent_color))
 
 
 def _text_message(title: str, text: str):
@@ -157,8 +242,36 @@ def _text_input(title: str, prompt: str, default: str = "") -> Optional[str]:
     return value
 
 
-def _text_choice(title: str, text: str, buttons):
+def _text_choice(title: str, text: str, buttons, header_renderer=None):
     """Choose an option using a styled keyboard-driven terminal menu."""
+    if not buttons:
+        return None
+
+    key_map = {str(idx): value for idx, (_label, value) in enumerate(buttons, start=1)}
+    selected_index = 0
+
+    while True:
+        os.system("cls" if os.name == "nt" else "clear")
+        if header_renderer:
+            header_renderer()
+        _render_choice_panel(title=title, text=text, buttons=buttons, selected_index=selected_index)
+
+        choice = _read_choice_key()
+        if choice is None:
+            return None
+        if choice == "up":
+            selected_index = (selected_index - 1) % len(buttons)
+            continue
+        if choice == "down":
+            selected_index = (selected_index + 1) % len(buttons)
+            continue
+        if choice == "enter":
+            return buttons[selected_index][1]
+        if choice == "escape":
+            return None
+        if choice in key_map:
+            return key_map[choice]
+
     print()
     print(colored("┏" + "━" * 72 + "┓", Colors.BRIGHT_CYAN))
     print(colored(f"┃ {title.center(70)} ┃", Colors.BRIGHT_CYAN))
@@ -387,33 +500,30 @@ def launch_stylish_terminal():
     """Keyboard-first stylish terminal mode."""
     _enable_auto_stylish_console()
     while True:
-        _render_e2c_header()
-        _render_e2c_banner()
-        print("")
-        _render_menu_options()
-        print(colored("\n[7] ↹ RETURN TO MAIN LAUNCHER", Colors.BRIGHT_CYAN))
-        print(colored("[0] ⟳ EXIT ENHANCED TERMINAL", Colors.BRIGHT_RED))
+        action = _text_choice(
+            title="E2C Stylish Terminal",
+            text="Navigate with the arrow keys for a smoother console experience.",
+            buttons=[
+                ("Camera", "camera"),
+                ("Capture", "capture"),
+                ("Train", "train"),
+                ("Recognize", "recognize"),
+                ("Data", "data"),
+                ("Settings", "settings"),
+                ("Return to Main Launcher", "launcher"),
+                ("Exit Enhanced Terminal", "exit"),
+            ],
+            header_renderer=_render_terminal_chrome,
+        )
 
-        choice = input("\nSelect option (0-7): ").strip()
-        mapping = {
-            "1": "camera",
-            "2": "capture",
-            "3": "train",
-            "4": "recognize",
-            "5": "data",
-            "6": "settings",
-        }
-
-        if choice == "7":
+        if action == "launcher":
             return "launcher"
-        if choice == "0":
+        if action == "exit":
             return "exit"
-
-        action = mapping.get(choice)
         if action:
             _execute_enhanced_action(action)
         else:
-            print("Invalid choice. Please select a number from 0 to 7.")
+            print("Invalid choice. Please use the arrow keys or a number shortcut.")
             input("Press ENTER to continue...")
 
 
@@ -443,21 +553,11 @@ def launch_interactive():
             "hud_mode": True,
         }
 
-    _render_e2c_header()
-    time.sleep(0.5)
-    _render_e2c_banner()
-    time.sleep(0.3)
-
-    print(colored("[INFO] Running stylish keyboard mode.", Colors.BRIGHT_YELLOW))
-    print(colored("[INFO] Use the numbered menu to navigate all terminal features.", Colors.BRIGHT_CYAN))
+    _render_terminal_chrome()
     time.sleep(0.8)
 
     while True:
         try:
-            print("")
-            _render_menu_options()
-            print("")
-
             result: Optional[str] = _text_choice(
                 title="E2C Command Center - Select Operation",
                 text="",
@@ -471,6 +571,7 @@ def launch_interactive():
                     ("Normal Terminal", "normal"),
                     ("Exit", "exit"),
                 ],
+                header_renderer=_render_terminal_chrome,
             )
 
             if result is None or result == "exit":

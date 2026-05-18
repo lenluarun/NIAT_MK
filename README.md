@@ -14,6 +14,12 @@ Offline face recognition attendance with a keyboard-first terminal experience, e
 
 </div>
 
+## Preview
+
+![Terminal UI preview](IMGS/IMG%201.png)
+
+[Watch the web UI preview video](IMGS/WEB%20UI%20VIDEO.mp4)
+
 ---
 
 ## Overview
