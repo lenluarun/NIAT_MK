@@ -41,17 +41,26 @@
 
 ## 🔌 Hardware Integration
 
-The system supports a distributed architecture with dedicated hardware nodes:
+The system supports a distributed architecture with dedicated hardware nodes. 
 
-### 📹 ESP32-CAM (Vision Node)
-- **Wireless Streaming**: MJPEG live feed over WiFi.
-- **Remote Capture**: High-res image capture for dataset training.
-- **Local Logging**: SD Card support for standalone backups.
+### 📟 Wiring & Connections
 
-### ☝️ ESP32 Controller (Biometric Node)
-- **R307 Fingerprint**: Sub-second matching with 1000+ slot capacity.
-- **OLED Display**: SSD1306 display for status, names, and "Live Cam" thumbnails.
-- **Physical Feedback**: Buzzer, Dual-LED status, and Relay for door control.
+#### 1. ESP32 Controller (Biometric Node)
+| Component | ESP32 Pin | Note |
+| :--- | :--- | :--- |
+| **Fingerprint (R307)** | TX: 25, RX: 26 | Serial2 (57600 baud) |
+| **OLED (SSD1306)** | SDA: 21, SCL: 22 | I2C (0x3C) |
+| **Relay Module** | GPIO 4 | Controls electronic lock |
+| **Green LED** | GPIO 14 | Access Granted indicator |
+| **Red LED** | GPIO 15 | Access Denied indicator |
+| **Active Buzzer** | GPIO 2 | Audio feedback |
+
+#### 2. ESP32-CAM (Vision Node)
+| Component | ESP32 Pin | Note |
+| :--- | :--- | :--- |
+| **Flash LED** | GPIO 4 | Remote toggle via Dashboard |
+| **SD Card** | SDMMC Mode | Pins 2, 4, 12, 13, 14, 15 |
+| **Camera Module** | AI-Thinker | Standard Pinout |
 
 ---
 
