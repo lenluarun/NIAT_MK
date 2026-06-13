@@ -9,6 +9,7 @@ import threading
 import time
 import csv
 import cv2
+import pandas as pd
 from flask import Flask, render_template, request, jsonify, send_from_directory, Response, stream_with_context
 from flask_cors import CORS
 import json
@@ -33,11 +34,13 @@ from src.utils.camera_utils import detect_available_cameras
 from src.core.storage import get_storage_path, create_storage_folders
 from src.core.data import DataManager
 from src.utils.settings_manager import load_settings, update_setting
+from src.core.biometric import BiometricManager
 
 # Global variables
 storage_path = None
 storage_paths = None
 data_manager = None
+biometric_manager = None
 app_settings = None
 recognize = None
 RECOGNITION_AVAILABLE = False
@@ -59,8 +62,11 @@ CORS(app)
 # Global operation status
 current_operation = {"status": "idle", "message": "", "progress": 0}
 last_recognition_result = {"marked": False, "student_id": None, "student_name": None, "message": ""}
+pending_enrollment = {"student_id": None, "slot": 0}
 preview_state = {"active": False, "frame": None, "label": ""}
 camera_check_stop_event = threading.Event()
+capture_stop_event = threading.Event()
+recognition_stop_event = threading.Event()
 
 
 def update_preview_frame(frame, label=None):
@@ -280,7 +286,7 @@ def _export_attendance_pdf_file(report_data):
 
 def init_system():
     """Initialize the system and set up storage"""
-    global storage_path, storage_paths, data_manager, app_settings
+    global storage_path, storage_paths, data_manager, app_settings, biometric_manager
 
     emit_status("Setting up offline storage...", 10)
     storage_path = get_storage_path()
@@ -295,6 +301,9 @@ def init_system():
     emit_status("Initializing data manager...", 50)
     data_manager = DataManager(storage_paths)
     app_settings = load_settings()
+    
+    emit_status("Initializing biometric manager...", 75)
+    biometric_manager = BiometricManager(storage_paths, data_manager)
 
     emit_status("System initialized successfully!", 100, "success")
     return True
@@ -444,6 +453,7 @@ def capture_faces():
             return jsonify({"status": "error", "message": "Student database is not available"}), 500
 
         emit_status("Starting face capture process...", 0)
+        capture_stop_event.clear()
 
         def run_capture():
             global last_recognition_result
@@ -462,7 +472,12 @@ def capture_faces():
                     student_name=student_name,
                     frame_callback=lambda frame: update_preview_frame(frame, "capture"),
                     show_window=False,
+                    stop_event=capture_stop_event
                 )
+
+                if capture_stop_event.is_set():
+                    emit_status("Face capture stopped by user.", 100, "warning")
+                    return
 
                 if quick_pipeline:
                     emit_status("Training model from captured images...", 70)
@@ -470,13 +485,15 @@ def capture_faces():
 
                     if RECOGNITION_AVAILABLE:
                         emit_status("Running attendance recognition...", 85)
+                        recognition_stop_event.clear()
                         before_snapshot = _recognition_snapshot()
                         recognize.recognize_attendence(
                             storage_paths,
                             data_manager,
                             camera_index=app_settings['camera_index'],
                             pass_mark=app_settings['recognition_pass_mark'],
-                            fast_mode=(app_settings.get("recognition_mode", "fast") == "fast")
+                            fast_mode=(app_settings.get("recognition_mode", "fast") == "fast"),
+                            stop_event=recognition_stop_event
                         )
                         last_recognition_result = _build_recognition_result(before_snapshot)
                         emit_status(last_recognition_result['message'], 100, "success")
@@ -528,8 +545,21 @@ def recognize_attendance():
 
     try:
         emit_status("Starting attendance recognition...", 0)
+        recognition_stop_event.clear()
         before_snapshot = _recognition_snapshot()
 
+        def handle_face_match(student_id, name):
+            """Handle face recognition match for OLED and Web"""
+            if biometric_manager:
+                biometric_manager.last_match = {
+                    "type": "Face",
+                    "id": student_id,
+                    "name": name,
+                    "timestamp": time.time()
+                }
+            
+            # This will be picked up by the next poll
+            
         def run_recognition():
             global last_recognition_result
             try:
@@ -541,9 +571,16 @@ def recognize_attendance():
                     pass_mark=app_settings['recognition_pass_mark'],
                     fast_mode=(app_settings.get("recognition_mode", "fast") == "fast"),
                     frame_callback=lambda frame: update_preview_frame(frame, "recognition"),
+                    match_callback=handle_face_match,
                     show_window=False,
                     max_runtime_seconds=45,
+                    stop_event=recognition_stop_event
                 )
+                
+                if recognition_stop_event.is_set():
+                    emit_status("Recognition stopped by user", 100, "warning")
+                    return
+
                 last_recognition_result = _build_recognition_result(before_snapshot)
                 emit_status(last_recognition_result['message'], 100, "success")
             except Exception as e:
@@ -560,13 +597,25 @@ def recognize_attendance():
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
 
+
+@app.route('/api/capture/stop', methods=['POST'])
+def stop_capture():
+    """Stop the face capture process"""
+    try:
+        capture_stop_event.set()
+        recognition_stop_event.set() # Also stop recognition if in quick pipeline
+        emit_status("Capture process stopping...", 100, "warning")
+        return jsonify({"status": "stopped"})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
 @app.route('/api/recognize/stop', methods=['POST'])
 def stop_recognition():
     """Stop attendance recognition"""
     try:
-        # This would need to be implemented to stop the recognition process
-        # For now, just return success
-        emit_status("Recognition stopped by user", 0, "idle")
+        recognition_stop_event.set()
+        emit_status("Recognition process stopping...", 100, "warning")
         return jsonify({"status": "stopped"})
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
@@ -630,6 +679,7 @@ def reset_database():
         payload = request.get_json(silent=True) or {}
         confirmation = str(payload.get('confirmation', '')).strip().upper()
         password = str(payload.get('password', '')).strip()
+        full_reset = bool(payload.get('full_reset', False))
 
         if confirmation != 'RESET':
             return jsonify({"status": "error", "message": "Type RESET to confirm the reset"}), 400
@@ -640,6 +690,9 @@ def reset_database():
         ok, message = data_manager.reset_database(password)
         if not ok:
             return jsonify({"status": "error", "message": message}), 400
+            
+        if full_reset and biometric_manager:
+            biometric_manager.empty_sensor_db = True
 
         emit_status(message, 100, "success")
         return jsonify({"status": "success", "message": message})
@@ -828,7 +881,55 @@ def delete_pdf_report(pdf_name):
         return jsonify({"status": "error", "message": str(e)}), 500
 
 
-@app.route('/api/reports/download-csv/<path:report_name>')
+@app.route('/api/reports/close_session/<report_name>', methods=['POST'])
+def close_session(report_name):
+    """Close the session and send absent emails to students not marked present."""
+    if not data_manager:
+        return jsonify({"status": "error", "message": "System not initialized"}), 500
+
+    try:
+        csv_path = os.path.join(_attendance_directory(), report_name)
+        if not os.path.exists(csv_path):
+            return jsonify({"status": "error", "message": "Report file not found"}), 404
+
+        # Extract date from filename (e.g., Attendance_2026-06-09.csv -> 2026-06-09)
+        date_str = report_name.replace('Attendance_', '').replace('.csv', '')
+
+        # Get present students
+        present_df = pd.read_csv(csv_path, dtype={'Id': str})
+        if 'Id' not in present_df.columns:
+            return jsonify({"status": "error", "message": "Invalid report format"}), 400
+
+        present_ids = set(present_df['Id'].astype(str).str.strip().str.lstrip('0'))
+
+        # Get all students
+        all_students = data_manager.get_all_students()
+        absent_students = []
+        for s in all_students:
+            sid = str(s.get('id', '')).strip().lstrip('0')
+            if sid and sid not in present_ids:
+                absent_students.append(s)
+
+        if not absent_students:
+            return jsonify({"status": "success", "absent_count": 0, "message": "All students are present."})
+
+        # Send emails in a background thread to prevent UI blocking
+        import threading
+        from src.core.email_service import send_absent_email
+
+        def notify_absentees():
+            for s in absent_students:
+                send_absent_email(s.get('name', 'Unknown Student'), s.get('email', ''), date_str)
+
+        t = threading.Thread(target=notify_absentees)
+        t.daemon = True
+        t.start()
+
+        return jsonify({"status": "success", "absent_count": len(absent_students), "message": f"Sending absent notices to {len(absent_students)} students."})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+@app.route('/api/reports/download-csv/<report_name>')
 def download_attendance_csv(report_name):
     """Download attendance CSV file"""
     attendance_dir = _attendance_directory()
@@ -1057,6 +1158,287 @@ def operation_status():
 def camera_preview():
     """Stream the current camera preview into the web UI."""
     return Response(stream_with_context(preview_stream()), mimetype='multipart/x-mixed-replace; boundary=frame')
+
+# ─── BIOMETRIC INTEGRATION ROUTES ───
+
+@app.route('/api/controller/poll', methods=['GET'])
+def controller_poll():
+    """Endpoint for ESP32 Controller to poll for commands"""
+    if not biometric_manager:
+        return jsonify({"status": "error"}), 500
+    
+    sensor_ready = request.args.get('sensor_ready', '0') == '1'
+    biometric_manager.controller_status = "online" if sensor_ready else "online (sensor error)"
+    
+    # Check for recent matches to display on OLED
+    oled_line1 = "SYSTEM READY" if sensor_ready else "SENSOR ERROR"
+    oled_line2 = "Face & Finger"
+    oled_line3 = "Scan now..."
+    
+    enroll_slot = 0
+    if pending_enrollment.get("slot", 0) > 0:
+        enroll_slot = pending_enrollment["slot"]
+        oled_line1 = "ENROLL MODE"
+        oled_line2 = f"Slot #{enroll_slot}"
+        oled_line3 = "Place finger..."
+    elif hasattr(biometric_manager, "last_match") and (time.time() - biometric_manager.last_match.get("timestamp", 0)) < 5:
+        # Show match for 5 seconds
+        match = biometric_manager.last_match
+        oled_line1 = f"{match['type']} MATCHED!"
+        oled_line2 = match['name'][:20] # Truncate if too long
+        oled_line3 = f"ID: {match['id']}"
+    
+    response = {
+        "esp32_cam_ip": biometric_manager.esp32_cam_ip,
+        "oled_line1": oled_line1,
+        "oled_line2": oled_line2,
+        "oled_line3": oled_line3,
+        "enroll_slot": enroll_slot,
+        "delete_slot": 0,  # Set to > 0 to trigger deletion
+        "empty_sensor_db": getattr(biometric_manager, "empty_sensor_db", False), # Set to True to wipe sensor
+        "unlock_duration": getattr(biometric_manager, "unlock_duration", 0),
+        "hazard": getattr(biometric_manager, "hazard", False),
+        "preview_active": preview_state.get("active", False)
+    }
+    
+    # Auto-reset one-time triggers
+    if getattr(biometric_manager, "unlock_duration", 0) > 0:
+        biometric_manager.unlock_duration = 0
+    if getattr(biometric_manager, "empty_sensor_db", False):
+        biometric_manager.empty_sensor_db = False
+        
+    return jsonify(response)
+
+@app.route('/api/controller/event', methods=['POST'])
+def controller_event():
+    """Endpoint for ESP32 Controller to post events (matches, errors)"""
+    global last_recognition_result, pending_enrollment
+    if not biometric_manager:
+        return jsonify({"status": "error"}), 500
+        
+    data = request.get_json(silent=True) or {}
+    action = data.get('action', '')
+    slot = data.get('slot', 0)
+    status = data.get('status', '')
+    confidence = data.get('confidence', 0)
+    
+    biometric_manager.last_fp_event = {
+        "slot": slot,
+        "action": action,
+        "timestamp": time.time()
+    }
+    
+    if action == "enroll_success" and slot > 0:
+        student_id = pending_enrollment["student_id"]
+        if student_id:
+            biometric_manager.map_slot_to_student(slot, student_id)
+            emit_status(f"Fingerprint enrolled successfully for ID {student_id}", 100, "success")
+            
+            # Sync to ESP32-CAM SD Card for name lookup
+            threading.Thread(target=biometric_manager.sync_hardware_database, daemon=True).start()
+
+        pending_enrollment = {"student_id": None, "slot": 0}
+        return jsonify({"status": "success"})
+        
+    if action.startswith("enroll_fail") or action == "enroll_duplicate":
+        pending_enrollment = {"student_id": None, "slot": 0}
+        emit_status(f"Fingerprint enrollment failed: {status}", 0, "error")
+        return jsonify({"status": "failed"})
+
+    if action == "match" and slot > 0:
+        student_id = biometric_manager.get_student_id_from_slot(slot)
+        if student_id:
+            success, message = biometric_manager.mark_attendance(student_id)
+            student = next((s for s in data_manager.get_all_students() if str(s.get('id', '')).strip().lstrip('0') == student_id), None)
+            
+            last_recognition_result = {
+                'marked': success,
+                'student_id': student_id,
+                'student_name': student.get('name') if student else 'Unknown',
+                'message': f"Fingerprint: {message}",
+            }
+            emit_status(last_recognition_result['message'], 100, "success")
+            
+            return jsonify({
+                "status": "success",
+                "name": student.get('name') if student else "Access Granted",
+                "id": student_id
+            })
+    
+    return jsonify({"status": "received"})
+
+@app.route('/api/biometric/enroll', methods=['POST'])
+def trigger_enrollment():
+    """Trigger fingerprint enrollment for a student"""
+    global pending_enrollment
+    if not biometric_manager:
+        return jsonify({"status": "error", "message": "Biometric manager not ready"}), 500
+        
+    data = request.get_json(silent=True) or {}
+    student_id = str(data.get('student_id', '')).strip().lstrip('0')
+    
+    if not student_id:
+        return jsonify({"status": "error", "message": "Student ID required"}), 400
+        
+    # Find an available slot (1-1000 for R307S)
+    students = data_manager.get_all_students()
+    occupied_slots = {int(s['fp_slot']) for s in students if s.get('fp_slot') and str(s['fp_slot']).isdigit()}
+    
+    target_slot = 1
+    while target_slot in occupied_slots:
+        target_slot += 1
+        
+    if target_slot > 1000:
+        return jsonify({"status": "error", "message": "No available slots"}), 500
+        
+    pending_enrollment = {"student_id": student_id, "slot": target_slot}
+    preview_state["active"] = False # Stop live cam during enrollment
+    emit_status(f"Please place finger on sensor to enroll for student {student_id}", 0, "running")
+    
+    return jsonify({"status": "success", "slot": target_slot})
+
+@app.route('/api/camera/poll', methods=['GET'])
+def camera_poll():
+    """Endpoint for ESP32-CAM to poll and register its IP"""
+    if biometric_manager:
+        # Capture the remote address as the ESP32-CAM IP
+        biometric_manager.esp32_cam_ip = request.remote_addr
+    
+    return jsonify({"flash": getattr(biometric_manager, "flash", False)})
+
+@app.route('/api/hardware/control', methods=['POST'])
+def hardware_control():
+    """Trigger hardware events like flash, unlock, or hazard"""
+    if not biometric_manager:
+        return jsonify({"status": "error"}), 500
+        
+    data = request.get_json(silent=True) or {}
+    
+    if 'flash' in data:
+        biometric_manager.flash = bool(data['flash'])
+    if 'hazard' in data:
+        biometric_manager.hazard = bool(data['hazard'])
+    if 'unlock' in data:
+        biometric_manager.unlock_duration = int(data['unlock'])
+        
+    return jsonify({"status": "success", "flash": getattr(biometric_manager, "flash", False), "hazard": getattr(biometric_manager, "hazard", False)})
+
+@app.route('/api/controller/custom_oled', methods=['GET', 'POST'])
+def custom_oled_endpoint():
+    """Receive or send custom OLED byte arrays"""
+    if not biometric_manager:
+        return Response(b'\x00' * 1024, mimetype='application/octet-stream')
+        
+    if request.method == 'POST':
+        # Accept binary data
+        data = request.get_data()
+        if len(data) == 1024:
+            biometric_manager.custom_oled_image = data
+            biometric_manager.custom_oled_trigger = True
+            return jsonify({"status": "success"})
+        return jsonify({"status": "error", "message": "Invalid length"}), 400
+        
+    # GET request from hardware
+    image = getattr(biometric_manager, "custom_oled_image", None)
+    if not image or len(image) != 1024:
+        image = b'\x00' * 1024
+    return Response(image, mimetype='application/octet-stream')
+
+@app.route('/api/fingerprint/upload_image', methods=['POST'])
+def fp_upload_image():
+    """Receive fingerprint image from controller"""
+    slot = request.args.get('slot', 0)
+    # Save image if needed, or just acknowledge
+    return jsonify({"status": "success"})
+
+@app.route('/api/fingerprint/upload_template', methods=['POST'])
+def fp_upload_template():
+    """Receive fingerprint template from controller"""
+    slot = request.args.get('slot', 0)
+    # Save template if needed
+    return jsonify({"status": "success"})
+
+@app.route('/api/controller/live_face', methods=['GET'])
+def controller_live_face():
+    """Provide a small 128x64 bitmap of the last face detected for the OLED"""
+    frame_bytes = preview_state.get("frame")
+    if not frame_bytes:
+        return Response(b'\x00' * 1024, mimetype='application/octet-stream')
+
+    # Cache to avoid re-processing same frame
+    if hasattr(controller_live_face, "last_frame") and controller_live_face.last_frame == frame_bytes:
+        return Response(controller_live_face.last_packed, mimetype='application/octet-stream')
+
+    try:
+        import numpy as np
+        # Decode JPG
+        np_arr = np.frombuffer(frame_bytes, np.uint8)
+        img = cv2.imdecode(np_arr, cv2.IMREAD_GRAYSCALE)
+
+        if img is None:
+            return Response(b'\x00' * 1024, mimetype='application/octet-stream')
+
+        h, w = img.shape
+        target_aspect = 128.0 / 64.0
+        current_aspect = w / float(h)
+        if current_aspect > target_aspect:
+            new_w = int(h * target_aspect)
+            x_offset = (w - new_w) // 2
+            img = img[:, x_offset:x_offset+new_w]
+        else:
+            new_h = int(w / target_aspect)
+            y_offset = (h - new_h) // 2
+            img = img[y_offset:y_offset+new_h, :]
+
+        resized = cv2.resize(img, (128, 64))
+
+        # Simple threshold
+        _, bw = cv2.threshold(resized, 128, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)
+
+        packed = np.zeros((1024,), dtype=np.uint8)
+        bw_flat = bw.flatten()
+        for i in range(1024):
+            byte_val = 0
+            for bit in range(8):
+                idx = i * 8 + bit
+                if bw_flat[idx] > 128:
+                    byte_val |= (1 << (7 - bit))
+            packed[i] = byte_val
+
+        packed_bytes = packed.tobytes()
+        controller_live_face.last_frame = frame_bytes
+        controller_live_face.last_packed = packed_bytes
+
+        return Response(packed_bytes, mimetype='application/octet-stream')
+    except Exception as e:
+        print("Error generating OLED frame:", e)
+        return Response(b'\x00' * 1024, mimetype='application/octet-stream')
+
+@app.route('/api/biometric/config', methods=['GET', 'POST'])
+def biometric_config():
+    """Get or update biometric configuration and mappings"""
+    if not biometric_manager:
+        return jsonify({"status": "error"}), 500
+        
+    if request.method == 'GET':
+        students = data_manager.get_all_students()
+        # Student dicts already contain fp_slot from data_manager.get_all_students()
+            
+        return jsonify({
+            "esp32_cam_ip": biometric_manager.esp32_cam_ip,
+            "controller_status": biometric_manager.controller_status,
+            "students": students
+        })
+        
+    data = request.get_json(silent=True) or {}
+    student_id = str(data.get('student_id', '')).strip().lstrip('0')
+    slot = data.get('slot', 0)
+    
+    if student_id and slot > 0:
+        biometric_manager.map_slot_to_student(slot, student_id)
+        return jsonify({"status": "success"})
+        
+    return jsonify({"status": "error"}), 400
 
 if __name__ == '__main__':
     # Initialize system

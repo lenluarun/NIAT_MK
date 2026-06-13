@@ -19,7 +19,7 @@ def is_number(s):
     return False
 
 
-def takeImages(storage_paths, data_manager=None, camera_index=0, max_samples=100, student_id=None, student_name=None, frame_callback=None, show_window=True):
+def takeImages(storage_paths, data_manager=None, camera_index=0, max_samples=100, student_id=None, student_name=None, frame_callback=None, show_window=True, stop_event=None):
     """
     Capture face images from a camera and save into storage_paths['TrainingImages'].
     Parameters:
@@ -29,7 +29,10 @@ def takeImages(storage_paths, data_manager=None, camera_index=0, max_samples=100
       max_samples: maximum number of face samples to capture
             student_id: optional pre-filled student identifier from a browser form
             student_name: optional pre-filled student name from a browser form
+      stop_event: optional threading.Event to stop the capture process
     """
+    # ... (rest of the function setup)
+    # (Update the loop to check for stop_event)
     # Validate storage_paths
     training_dir = None
     student_csv_dir = None
@@ -124,6 +127,11 @@ def takeImages(storage_paths, data_manager=None, camera_index=0, max_samples=100
 
     try:
         while True:
+            # Check if stop event is set
+            if stop_event and stop_event.is_set():
+                print("✓ Face capture stopped by user.")
+                break
+
             ret, img = cam.read()
             if not ret or img is None:
                 print("✗ Failed to read frame from camera. Stopping capture.")

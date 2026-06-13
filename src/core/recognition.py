@@ -7,6 +7,7 @@ import numpy as np
 from ..utils.colors import Colors
 from ..utils import ui as ui_console
 import pyfiglet
+from .email_service import send_attendance_email
 
 
 def get_student_image_path(training_dir, student_id):
@@ -23,7 +24,7 @@ def get_student_image_path(training_dir, student_id):
     return None
 
 
-def recognize_attendence(storage_paths=None, data_manager=None, camera_index=0, pass_mark=80, fast_mode=True, frame_callback=None, show_window=True, max_runtime_seconds=None):
+def recognize_attendence(storage_paths=None, data_manager=None, camera_index=0, pass_mark=80, fast_mode=True, frame_callback=None, match_callback=None, show_window=True, max_runtime_seconds=None, stop_event=None):
     recognizer = cv2.face.LBPHFaceRecognizer_create()
     trained_dir = storage_paths.get('TrainedModels') if storage_paths else "TrainingImageLabel"
     trainer_path = os.path.join(trained_dir, "Trainner.yml")
@@ -125,6 +126,11 @@ def recognize_attendence(storage_paths=None, data_manager=None, camera_index=0, 
 
     try:
         while True:
+            # Check if stop event is set
+            if stop_event and stop_event.is_set():
+                print("✓ Recognition stopped by user.")
+                break
+
             ret, im = cam.read()
             if not ret or im is None:
                 print("✗ Failed to read frame from camera. Stopping recognition.")
@@ -202,6 +208,17 @@ def recognize_attendence(storage_paths=None, data_manager=None, camera_index=0, 
                         'time': timeStamp,
                         'confidence': conf
                     }
+
+                    if match_callback:
+                        try:
+                            match_callback(Id_str, name)
+                        except Exception:
+                            pass
+
+                    import threading
+                    email_thread = threading.Thread(target=send_attendance_email, args=(name, student_details['email'], timeStamp))
+                    email_thread.daemon = True
+                    email_thread.start()
 
                     if auto_exit_after_mark:
                         exit_recognition = True

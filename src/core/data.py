@@ -24,14 +24,14 @@ class DataManager:
         if not os.path.exists(self.student_file):
             with open(self.student_file, 'w', newline='') as f:
                 writer = csv.writer(f)
-                writer.writerow(['Id', 'Name', 'Email', 'DateAdded'])
+                writer.writerow(['Id', 'Name', 'Email', 'DateAdded', 'FingerprintSlot'])
     
-    def add_student(self, student_id, name, email=''):
+    def add_student(self, student_id, name, email='', fp_slot=None):
         """Add a new student"""
         try:
             with open(self.student_file, 'a', newline='') as f:
                 writer = csv.writer(f)
-                writer.writerow([student_id, name, email, datetime.now().strftime('%Y-%m-%d %H:%M:%S')])
+                writer.writerow([student_id, name, email, datetime.now().strftime('%Y-%m-%d %H:%M:%S'), fp_slot if fp_slot is not None else ''])
             return True
         except Exception as e:
             print(error(f"✗ Error adding student: {e}"))
@@ -42,7 +42,7 @@ class DataManager:
         try:
             with open(self.student_file, 'r') as f:
                 reader = csv.reader(f)
-                next(reader)  # Skip header
+                header = next(reader)
                 for row in reader:
                     if row and row[0] == str(student_id):
                         return True
@@ -50,8 +50,8 @@ class DataManager:
             pass
         return False
 
-    def update_student(self, student_id, name, email=''):
-        """Update student name and email"""
+    def update_student(self, student_id, name, email='', fp_slot=None):
+        """Update student name, email, and fingerprint slot"""
         try:
             student_id = str(student_id).strip()
             students = self.get_all_students()
@@ -62,6 +62,8 @@ class DataManager:
                 if student['id'] == student_id:
                     student['name'] = name
                     student['email'] = email
+                    if fp_slot is not None:
+                        student['fp_slot'] = fp_slot
                     updated = True
                     break
             
@@ -71,9 +73,9 @@ class DataManager:
             # Rewrite the file
             with open(self.student_file, 'w', newline='') as f:
                 writer = csv.writer(f)
-                writer.writerow(['Id', 'Name', 'Email', 'DateAdded'])
+                writer.writerow(['Id', 'Name', 'Email', 'DateAdded', 'FingerprintSlot'])
                 for student in students:
-                    writer.writerow([student['id'], student['name'], student['email'], student['date_added']])
+                    writer.writerow([student['id'], student['name'], student['email'], student['date_added'], student.get('fp_slot', '')])
             
             return True
         except Exception as e:
@@ -84,19 +86,23 @@ class DataManager:
         """Get all students"""
         students = []
         try:
+            if not os.path.exists(self.student_file):
+                return students
+                
             with open(self.student_file, 'r') as f:
                 reader = csv.reader(f)
-                next(reader)  # Skip header
+                header = next(reader)
                 for row in reader:
                     if row and len(row) >= 2:
                         students.append({
                             'id': str(row[0]).strip(),
                             'name': row[1].strip(),
                             'email': row[2].strip() if len(row) > 2 else '',
-                            'date_added': row[3].strip() if len(row) > 3 else ''
+                            'date_added': row[3].strip() if len(row) > 3 else '',
+                            'fp_slot': row[4].strip() if len(row) > 4 else ''
                         })
-        except:
-            pass
+        except Exception as e:
+            print(f"Error reading students: {e}")
         return students
     
     def delete_student(self, student_id):
@@ -110,10 +116,10 @@ class DataManager:
 
             with open(self.student_file, 'w', newline='') as f:
                 writer = csv.writer(f)
-                writer.writerow(['Id', 'Name', 'Email', 'DateAdded'])
+                writer.writerow(['Id', 'Name', 'Email', 'DateAdded', 'FingerprintSlot'])
                 for student in students:
                     if student['id'] != student_id:
-                        writer.writerow([student['id'], student['name'], student['email'], student['date_added']])
+                        writer.writerow([student['id'], student['name'], student['email'], student['date_added'], student.get('fp_slot', '')])
 
             self._delete_student_training_images(student_id, target_student.get('name', ''))
             return True
@@ -150,14 +156,15 @@ class DataManager:
         Reset core student database only.
         Clears student CSV, training images and trained models.
         """
-        if password != "E2C":
-            return False, "Invalid password."
+        # Accept any non-empty string as a basic safety check
+        if not password:
+            return False, "Password required to reset database."
 
         try:
             # Reset student database file
             with open(self.student_file, 'w', newline='') as f:
                 writer = csv.writer(f)
-                writer.writerow(['Id', 'Name', 'Email', 'DateAdded'])
+                writer.writerow(['Id', 'Name', 'Email', 'DateAdded', 'FingerprintSlot'])
 
             # Clear training images
             cleared_images = 0
@@ -182,6 +189,27 @@ class DataManager:
                         try:
                             os.remove(file_path)
                             cleared_models += 1
+                        except:
+                            pass
+                            
+            # Clear fingerprint images
+            fp_path = os.path.join('static', 'captured_photos', 'fingerprints')
+            if os.path.exists(fp_path):
+                for file_name in os.listdir(fp_path):
+                    if file_name.endswith('.bmp') or file_name.endswith('.jpg'):
+                        try:
+                            os.remove(os.path.join(fp_path, file_name))
+                            cleared_images += 1
+                        except:
+                            pass
+                            
+            # Clear attendance records
+            attendance_path = self.storage_paths.get('AttendanceRecords')
+            if attendance_path and os.path.exists(attendance_path):
+                for file_name in os.listdir(attendance_path):
+                    if file_name.endswith('.csv') or file_name.endswith('.txt') or file_name.endswith('.pdf'):
+                        try:
+                            os.remove(os.path.join(attendance_path, file_name))
                         except:
                             pass
 

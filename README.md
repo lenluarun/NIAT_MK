@@ -1,310 +1,143 @@
-# NIAT MK Smart Face Recognition Attendance System
+# 🛡️ NIAT MK: Smart Biometric Attendance System
 
 <div align="center">
 
-[![Python](https://img.shields.io/badge/Python-3.11%2B-blue.svg)](https://www.python.org/)
-[![OpenCV](https://img.shields.io/badge/OpenCV-Contrib-green.svg)](https://opencv.org/)
-[![Flask](https://img.shields.io/badge/Flask-Web%20Dashboard-red.svg)](https://flask.palletsprojects.com/)
-[![ReportLab](https://img.shields.io/badge/ReportLab-PDF%20Reports-orange.svg)](https://www.reportlab.com/)
-[![Status](https://img.shields.io/badge/Status-Active-success.svg)]()
+![Project Banner](IMGS/IMG%201.png)
 
-Offline face recognition attendance with a keyboard-first terminal experience, editable settings, local reports, and a browser dashboard.
+**A Privacy-First, Multi-Modal Attendance & Access Control Solution**
 
-[Download](#download-and-setup) • [How to Use](#how-to-use) • [Settings](#settings) • [Project Structure](#project-structure) • [Troubleshooting](#troubleshooting)
+[![Python](https://img.shields.io/badge/Python-3.11%2B-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
+[![OpenCV](https://img.shields.io/badge/OpenCV-4.8%2B-5C3EE8?style=for-the-badge&logo=opencv&logoColor=white)](https://opencv.org/)
+[![Flask](https://img.shields.io/badge/Flask-Web%20App-000000?style=for-the-badge&logo=flask&logoColor=white)](https://flask.palletsprojects.com/)
+[![ESP32](https://img.shields.io/badge/Hardware-ESP32-E7352C?style=for-the-badge&logo=espressif&logoColor=white)](https://www.espressif.com/en/products/socs/esp32)
+[![License](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](LICENSE)
+
+[Features](#-key-features) • [Hardware](#-hardware-integration) • [Setup](#-quick-start) • [Usage](#-how-to-use) • [Structure](#-project-structure)
 
 </div>
 
-## Preview
+---
 
-![Terminal UI preview](IMGS/IMG%201.png)
+## 🌟 Overview
 
-[Watch the web UI preview video](IMGS/WEB%20UI%20VIDEO.mp4)
+**NIAT MK** is an advanced, fully offline attendance system designed for high-privacy environments like classrooms, laboratories, and small offices. By combining **Face Recognition** (OpenCV LBPH) and **Biometric Fingerprint Matching** (R307 Sensor), it provides a robust, fail-safe solution for attendance tracking and physical access control.
+
+> **Privacy-First:** All data processing, model training, and biometric storage happen locally. No cloud, no internet dependencies, no data leaks.
 
 ---
 
-## Overview
+## 🚀 Key Features
 
-NIAT MK is a fully offline attendance system built for local classrooms, labs, and small organizations. It uses webcam-based face capture and recognition to mark attendance, stores everything on the machine, and generates attendance reports without depending on cloud services.
-
-The current version includes:
-
-- A launcher-driven workflow through `launcher.py`
-- A stylish keyboard-only terminal interface
-- A normal terminal menu for quick local workflows
-- Editable system settings instead of a read-only settings page
-- Student detail management from the settings console
-- Local CSV attendance logs and PDF report generation
-- A Flask web dashboard for browser-based use
+| Feature | Description |
+| :--- | :--- |
+| **Dual-Biometric** | Support for Face Recognition (Webcam/ESP32-CAM) and Fingerprint matching. |
+| **Offline AI** | Uses LBPH algorithms for high-speed, local face recognition and training. |
+| **Smart Reports** | Automated generation of Daily Text summaries and Professional PDF reports. |
+| **Dual Interface** | Choose between a **Power-User Terminal** or a **Modern Web Dashboard**. |
+| **Access Control** | Integrated relay control for electronic door locks via ESP32. |
+| **Live Monitoring** | Real-time MJPEG streaming from remote ESP32-CAM nodes. |
 
 ---
 
-## What Is New
+## 🔌 Hardware Integration
 
-This release updates the original project into a cleaner and more usable system.
+The system supports a distributed architecture with dedicated hardware nodes:
 
-- The launcher now prefers the project `.venv` so the app uses the correct dependencies.
-- The enhanced terminal interface now runs in keyboard-only mode.
-- The settings screen now lets you change real values such as camera index, pass mark, sample count, theme, and HUD options.
-- Report generation now includes richer attendance details and a daily text report.
-- Student records can be added from the enhanced settings console.
+### 📹 ESP32-CAM (Vision Node)
+- **Wireless Streaming**: MJPEG live feed over WiFi.
+- **Remote Capture**: High-res image capture for dataset training.
+- **Local Logging**: SD Card support for standalone backups.
 
----
-
-## Core Features
-
-### Attendance and Recognition
-
-- Real-time face detection and recognition
-- Student attendance marking during live camera sessions
-- Capture workflow for collecting training images
-- Model training from stored face samples
-- Attendance CSV output plus PDF and text report generation
-
-### Interface Modes
-
-- Keyboard-first enhanced terminal interface
-- Normal stylish terminal mode for keyboard users
-- Web dashboard access for browser-based control
-
-### Administration
-
-- Add and manage student details
-- Update pass mark and capture limits
-- Change camera index and camera scan range
-- Toggle HUD display and boot animation
-- View current settings before applying changes
-
-### Storage and Reports
-
-- Local storage under the project workspace
-- Student CSV database
-- Attendance history by date
-- Human-readable daily reports
-- PDF attendance reports
+### ☝️ ESP32 Controller (Biometric Node)
+- **R307 Fingerprint**: Sub-second matching with 1000+ slot capacity.
+- **OLED Display**: SSD1306 display for status, names, and "Live Cam" thumbnails.
+- **Physical Feedback**: Buzzer, Dual-LED status, and Relay for door control.
 
 ---
 
-## Download And Setup
+## 🛠️ Tech Stack
 
-### 1. Get the project
+### Software
+- **Core**: Python 3.11+
+- **Vision**: OpenCV (contrib-python), Pillow
+- **Data**: Pandas, NumPy, Scikit-learn
+- **Web**: Flask, Bootstrap 5, Jinja2
+- **Reporting**: ReportLab
 
-Clone the repository to your machine:
+### Hardware
+- **Controllers**: ESP32 DevKit V1, ESP32-CAM (AI-Thinker)
+- **Sensors**: R307 Optical Fingerprint Module
+- **Displays**: 0.96" I2C OLED (SSD1306)
+- **Actuators**: 5V Relay Module, Active Buzzer
 
+---
+
+## 📦 Quick Start
+
+### 1. Clone & Prep
 ```bash
 git clone https://github.com/lenluarun/NIAT_MK.git
 cd NIAT_MK
-```
-
-### 2. Create the virtual environment
-
-Use the project environment the launcher expects:
-
-```bash
 python -m venv .venv
-```
-
-### 3. Activate it on Windows
-
-```powershell
-.\.venv\Scripts\Activate.ps1
-```
-
-If PowerShell blocks activation, run:
-
-```powershell
-Set-ExecutionPolicy -Scope Process -ExecutionPolicy RemoteSigned
-.\.venv\Scripts\Activate.ps1
-```
-
-### 4. Install dependencies
-
-```bash
+source .venv/bin/activate  # Windows: .\.venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-The important packages include:
+### 2. Configure Hardware
+- Open `FP/ESP32_CONTROLLER/ESP32_CONTROLLER.ino` or `FP/ESP32_CAM_SOLO/ESP32_CAM_SOLO.ino`.
+- Update `STASSID`, `STAPSK`, and `SERVER_IP` to match your local network.
+- Flash the firmware using Arduino IDE.
 
-- `opencv-contrib-python`
-- `numpy`
-- `pandas`
-- `Pillow`
-- `scikit-learn`
-- `Flask`
-- `Flask-CORS`
-- `reportlab`
-
-### 5. Start the app
-
-On Windows, the simplest option is:
-
-```powershell
-.\run.bat
-```
-
-You can also launch directly:
-
+### 3. Launch System
 ```bash
+# Start the main launcher
 python launcher.py
-```
 
----
-
-## How To Use
-
-### Recommended startup flow
-
-1. Run `run.bat` or `python launcher.py`.
-2. Choose the terminal interface or the web interface.
-3. Check the camera first.
-4. Add student details and capture face samples.
-5. Train the recognizer.
-6. Start attendance recognition.
-7. Review the generated attendance reports.
-
-### Normal Stylish Terminal
-
-Use this if you prefer keyboard input and a simple command-style flow.
-
-The terminal UI uses numbered menus and plain text prompts only.
-
-### Web Interface
-
-If you want browser-based control, run:
-
-```bash
+# OR start the web dashboard directly
 python web_app.py
 ```
 
-Then open:
+---
 
-```text
-http://localhost:5000
-```
+## 🖥️ How To Use
+
+1. **Registration**: Add student details via the Terminal or Web UI.
+2. **Capture**: Collect 100+ face samples or enroll fingerprints via the ESP32 node.
+3. **Train**: Run the training module to update the local `.yml` model.
+4. **Attendance**: 
+   - **Face Mode**: Start the recognizer. Once a face is matched, attendance is logged.
+   - **Finger Mode**: Place finger on sensor. The node identifies the student and notifies the server.
+5. **Report**: Check the `src/data/Attendance/` folder for PDF and Text reports.
 
 ---
 
-## Settings
-
-The enhanced settings console is now editable.
-
-You can change:
-
-- Camera index
-- Camera scan range
-- Capture sample limit
-- Recognition pass mark
-- Recognition mode
-- UI theme
-- Boot animation
-- HUD display
-- Student details
-
-Settings are stored locally in the configuration files under `config/` and loaded on startup.
-
----
-
-## Reports And Data
-
-The system stores and generates data locally.
-
-- Student list: `src/data/StudentDetails/StudentDetails.csv`
-- Attendance logs: `src/data/Attendance/`
-- Daily text summary: `Daily_Report_YYYY-MM-DD.txt`
-- PDF report: `Attendance_YYYY-MM-DD_Report.pdf`
-
-The reports include marked students, timestamps, and summary details.
-
----
-
-## Project Structure
+## 📂 Project Structure
 
 ```text
 NIAT_MK/
-├── launcher.py
-├── main.py
-├── web_app.py
-├── run.bat
-├── requirements.txt
-├── config/
-├── docs/
+├── launcher.py            # Unified interface selector
+├── web_app.py             # Flask Web Dashboard
+├── config/                # JSON System Settings
 ├── src/
-│   ├── core/
-│   ├── data/
-│   ├── models/
-│   ├── reports/
-│   └── utils/
-└── templates/
+│   ├── core/              # Recognition, Biometric, & Data logic
+│   ├── models/            # Trained Models & Haar Cascades
+│   ├── data/              # Student Database & Reports
+│   └── utils/             # UI Engines & Settings Managers
+├── FP/                    # ESP32 Firmware (C++/Arduino)
+└── templates/             # Web UI HTML Assets
 ```
 
-Key files:
-
-- `launcher.py` is the main entry point.
-- `main.py` contains the core business actions.
-- `src/utils/interactive_ui.py` contains the enhanced interface.
-- `src/core/data.py` manages students and reports.
-- `src/core/recognition.py` handles recognition and attendance.
-- `src/utils/settings_manager.py` stores editable settings.
-
 ---
 
-## Requirements
+## 🤝 Contributing & License
 
-- Python 3.11 or newer is recommended
-- Webcam or camera device
-- Windows PowerShell or Command Prompt for the main launcher flow
-- OpenCV contrib build for face recognition support
-
-If face recognition fails to import, make sure `opencv-contrib-python` is installed instead of only the base OpenCV package.
-
----
-
-## Troubleshooting
-
-### Camera does not open
-
-- Check Windows camera permissions.
-- Try a different camera index in Settings.
-- Close other apps that may already be using the webcam.
-
-### Recognition does not work
-
-- Capture new face samples first.
-- Train the model before starting recognition.
-- Confirm the trained model file exists in the models folder.
-
-### Terminal text looks broken
-
-- Use Windows Terminal or modern PowerShell.
-- Keep the project launcher and terminal on UTF-8 capable settings.
-
----
-
-## Notes For Developers
-
-- `launcher.py` is the preferred entry point.
-- Do not run `main.py` directly unless you are debugging internals.
-- Keep changes aligned with the enhanced interface flow.
-- Update the README whenever you add a new mode, action, or report format.
-
----
-
-## License
-
-This project is provided under the MIT License.
-
----
-
-## Acknowledgments
-
-- OpenCV for the face detection and recognition tooling
-- Flask for the web dashboard
-- ReportLab for PDF generation
-- The contributors and maintainers of this project
+This project is maintained by **E2C TEAM**.
+Distributed under the **MIT License**. See `LICENSE` for more information.
 
 ---
 
 <div align="center">
 
-If you want the next update, I can also rewrite the docs in `docs/` so they match this README exactly.
+**Developed with ❤️ for secure and efficient attendance management.**
 
 </div>

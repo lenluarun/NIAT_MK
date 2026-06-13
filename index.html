@@ -867,27 +867,6 @@
             margin-bottom: 6px;
         }
 
-        .stop-button {
-            margin-left: auto;
-            background: var(--rose);
-            color: white;
-            border: none;
-            border-radius: 6px;
-            padding: 4px 10px;
-            font-size: 0.75rem;
-            font-weight: 600;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            transition: all 0.2s;
-        }
-
-        .stop-button:hover {
-            background: #be123c;
-            transform: scale(1.05);
-        }
-
         .status-icon {
             width: 32px;
             height: 32px;
@@ -1443,6 +1422,7 @@
                 min-width: 0;
             }
         }
+
         /* ── Hardware Panels ── */
         .hw-status-row {
             display: grid;
@@ -1788,7 +1768,7 @@
     <header class="topbar">
         <a class="topbar-brand" href="#">
             <div class="brand-icon"><i class="fas fa-fingerprint"></i></div>
-            <span>Authentication Portal</span>
+            <span>E2C (ERROR TO CLEAR)</span>
         </a>
         <div class="topbar-divider"></div>
         <span class="topbar-subtitle">Smart Face Recognition & Attendance</span>
@@ -1842,7 +1822,7 @@
             </button>
 
             <div class="sidebar-section">Hardware</div>
-            <button class="sidebar-item" onclick="highlightSidebar(this); showBiometricModal()">
+            <button class="sidebar-item" onclick="highlightSidebar(this); showFpInfoModal()">
                 <i class="fas fa-fingerprint"></i>
                 <span>Fingerprint Sensor</span>
             </button>
@@ -2071,19 +2051,6 @@
 
                 <div class="action-card">
                     <div class="action-card-top">
-                        <div class="action-icon icon-amber"><i class="fas fa-file-import"></i></div>
-                        <span class="action-chip chip-amber">Ingestion</span>
-                    </div>
-                    <div class="action-title">Bulk Import</div>
-                    <div class="action-desc">Rapidly ingest a large batch of student records from a CSV spreadsheet into the system database.</div>
-                    <form id="dashboardImportForm" style="display:flex; gap:8px; margin-top:auto;">
-                        <input id="dashboardImportFile" type="file" accept=".csv" required style="font-size: 0.8rem; width: 100%;">
-                        <button type="submit" class="btn btn-amber btn-sm"><i class="fas fa-upload"></i></button>
-                    </form>
-                </div>
-
-                <div class="action-card">
-                    <div class="action-card-top">
                         <div class="action-icon icon-violet"><i class="fas fa-chart-pie"></i></div>
                         <span class="action-chip chip-blue">Analytics</span>
                     </div>
@@ -2122,59 +2089,81 @@
                 </div>
             </div>
 
-            <!-- Hardware Panels -->
+            <!-- Hardware Control Row -->
+            <div style="margin-bottom:12px; animation: fadeUp 0.5s 0.35s ease both;">
+                <div class="page-label" style="margin-bottom:14px;">Hardware Integration</div>
+            </div>
             <div class="hw-status-row">
-                <!-- ESP32 Controller -->
+                <!-- Fingerprint Sensor Card -->
                 <div class="hw-card">
                     <div class="hw-card-header">
                         <div class="hw-card-header-left">
-                            <i class="fas fa-microchip" style="color:var(--text-muted);"></i>
-                            <span class="hw-card-title">Main Controller</span>
+                            <div class="action-icon icon-rose" style="width:36px;height:36px;border-radius:10px;font-size:0.9rem;"><i class="fas fa-fingerprint"></i></div>
+                            <div class="hw-card-title">Hardware Feed</div>
                         </div>
-                        <div class="hw-dot" id="controller-dot"></div>
+                        <div class="hw-dot" id="fpSensorDot"></div>
                     </div>
-                    <div class="hw-card-body">
-                        <div class="hw-stat-row"><span>Status</span> <span id="controller-hw-status">Offline</span></div>
-                        <div class="hw-stat-row"><span>IP Addr</span> <span id="controller-hw-ip">Local</span></div>
+                    <div class="hw-card-body" style="align-items:center; justify-content:center; min-height:160px; position:relative;">
+                        <!-- Latest Fingerprint Scan Area -->
+                        <div id="latestScanPlaceholder" style="text-align:center; opacity:0.3;">
+                            <i class="fas fa-fingerprint" style="font-size:3.5rem; margin-bottom:10px; display:block;"></i>
+                            <div style="font-size:0.75rem;">Wait for scan...</div>
+                        </div>
+                        <img id="latestScanImg" src="" 
+                             style="display:none; width:110px; height:125px; background:#000; border-radius:8px; border:2px solid var(--accent); image-rendering:pixelated;" 
+                             alt="Latest Scan">
                         
-                        <div class="hw-actions">
-                            <button class="btn btn-ghost btn-sm" onclick="toggleHardwareFeature('hazard')"><i class="fas fa-exclamation-triangle" style="color:var(--amber);"></i> Hazard</button>
-                            <button class="btn btn-ghost btn-sm" onclick="toggleHardwareFeature('unlock')"><i class="fas fa-unlock-alt" style="color:var(--emerald);"></i> Unlock</button>
+                        <!-- Recognition Info Overlay -->
+                        <div id="scanResultOverlay" style="display:none; position:absolute; bottom:0; left:0; right:0; background:rgba(0,0,0,0.85); padding:6px 10px; border-radius:6px; border:1px solid var(--border);">
+                            <div id="scanResultTitle" style="font-weight:700; font-size:0.75rem; color:var(--accent);">—</div>
                         </div>
                     </div>
                 </div>
-                
-                <!-- ESP32-CAM -->
+
+                <!-- SD Card Explorer Card -->
                 <div class="hw-card">
                     <div class="hw-card-header">
                         <div class="hw-card-header-left">
-                            <i class="fas fa-camera" style="color:var(--text-muted);"></i>
-                            <span class="hw-card-title">Vision Module</span>
+                            <div class="action-icon icon-teal" style="width:36px;height:36px;border-radius:10px;font-size:0.9rem;"><i class="fas fa-sd-card"></i></div>
+                            <div class="hw-card-title">MicroSD Card</div>
                         </div>
-                        <div class="hw-dot offline" id="cam-dot"></div>
+                        <div class="hw-dot" id="sdCardDot"></div>
                     </div>
                     <div class="hw-card-body">
-                        <div class="hw-stat-row"><span>Stream</span> <span id="cam-hw-status">Offline</span></div>
-                        <div class="hw-stat-row"><span>Flash</span> <span id="cam-hw-flash">Off</span></div>
+                        <div class="hw-stat-row">
+                            <span class="hw-stat-label">ESP32-CAM</span>
+                            <span class="hw-stat-value" id="espCamIp">Not connected</span>
+                        </div>
+                        <div class="hw-stat-row">
+                            <span class="hw-stat-label">SD Status</span>
+                            <span class="hw-stat-value" id="sdCardStatus">Unknown</span>
+                        </div>
                         <div class="hw-actions">
-                            <button class="btn btn-ghost btn-sm" onclick="toggleHardwareFeature('flash')"><i class="fas fa-bolt" style="color:var(--amber);"></i> Toggle Flash</button>
+                            <button class="btn btn-teal btn-sm" onclick="showSdExplorerModal()"><i class="fas fa-folder-open"></i> Explorer</button>
+                            <button class="btn btn-ghost btn-sm" onclick="formatSdCard()"><i class="fas fa-eraser"></i> Format</button>
                         </div>
                     </div>
                 </div>
-                
-                <!-- Storage (SD) -->
+
+                <!-- Door Control Card -->
                 <div class="hw-card">
                     <div class="hw-card-header">
                         <div class="hw-card-header-left">
-                            <i class="fas fa-sd-card" style="color:var(--text-muted);"></i>
-                            <span class="hw-card-title">Edge Storage</span>
+                            <div class="action-icon icon-green" style="width:36px;height:36px;border-radius:10px;font-size:0.9rem;"><i class="fas fa-door-open"></i></div>
+                            <div class="hw-card-title">Access Control</div>
                         </div>
+                        <div class="hw-dot" id="controllerDot"></div>
                     </div>
                     <div class="hw-card-body">
-                        <div class="hw-stat-row"><span>Usage</span> <span>45%</span></div>
-                        <div class="capacity-bar"><div class="capacity-fill" style="width: 45%;"></div></div>
-                        <div class="hw-actions" style="margin-top:12px;">
-                            <button class="btn btn-slate btn-sm btn-full" onclick="showSdExplorerModal()"><i class="fas fa-folder-open"></i> Browse SD Card</button>
+                        <div class="oled-display" id="oledDisplay">DOOR LOCKED\nSystem Armed\nPlace finger...</div>
+                        <div class="hw-stat-row">
+                            <span class="hw-stat-label">Controller</span>
+                            <span class="hw-stat-value" id="espControlIp">Not connected</span>
+                        </div>
+                        <div class="hw-actions">
+                            <button class="btn btn-green btn-sm" onclick="remoteUnlock()"><i class="fas fa-lock-open"></i> Unlock</button>
+                            <button class="btn btn-ghost btn-sm" onclick="toggleFlash()"><i class="fas fa-bolt"></i> Flash</button>
+                            <button class="btn btn-ghost btn-sm" onclick="toggleHazard()"><i class="fas fa-exclamation-triangle"></i> Hazard</button>
                         </div>
                     </div>
                 </div>
@@ -2188,9 +2177,6 @@
         <div class="status-header">
             <div class="status-icon" id="statusIcon"><i class="fas fa-info-circle"></i></div>
             <div class="status-title" id="statusTitle">System Ready</div>
-            <button class="stop-button" id="stopButton" style="display: none;" onclick="stopCurrentOperation()">
-                <i class="fas fa-stop"></i> Stop
-            </button>
         </div>
         <div class="status-message" id="statusMessage">All systems operational</div>
         <div class="progress-bar">
@@ -2274,6 +2260,11 @@
                         <input type="email" class="form-input" id="captureStudentEmail" placeholder="contact@example.com">
                     </div>
                     <div class="form-group">
+                        <label class="form-label">Fingerprint Slot ID <span style="color:var(--text-light); font-weight:400;">(optional)</span></label>
+                        <input type="number" class="form-input" id="captureSlotId" placeholder="1-127 (leave empty to skip FP enrollment)" min="0" max="127">
+                        <div class="form-hint">Assign an R307 sensor slot to enroll fingerprint after face capture</div>
+                    </div>
+                    <div class="form-group">
                         <label class="form-label">Vector Depth (Samples)</label>
                         <input type="number" class="form-input" id="captureMaxSamples" value="100" min="20" max="500">
                     </div>
@@ -2310,104 +2301,297 @@
         </div>
     </div>
 
-    <!-- OLED Converter Modal -->
-    <div class="modal" id="oledModal">
-        <div class="modal-content wide">
-            <div class="modal-header">
-                <div class="modal-header-left">
-                    <div class="modal-icon icon-slate"><i class="fas fa-tv"></i></div>
-                    <div class="modal-title">OLED Bitmap Converter</div>
-                </div>
-                <button class="modal-close" onclick="closeModal('oledModal')"><i class="fas fa-times"></i></button>
-            </div>
-            <div class="modal-body">
-                <div class="oled-grid">
-                    <div>
-                        <div class="oled-card">
-                            <h3><i class="fas fa-upload"></i> Source Image</h3>
-                            <input type="file" id="oledImageInput" accept="image/*" class="form-input" style="margin-bottom: 12px;">
-                            <img id="oledSourcePreview" style="max-width: 100%; border-radius: 8px; display: none;">
-                        </div>
-                    </div>
-                    <div>
-                        <div class="oled-card">
-                            <h3><i class="fas fa-microchip"></i> 128x64 Preview</h3>
-                            <canvas id="oledCanvas" width="128" height="64" class="oled-preview-canvas"></canvas>
-                            <div class="form-actions">
-                                <button class="btn btn-primary btn-full" onclick="generateOledCode()"><i class="fas fa-code"></i> Generate C Array</button>
-                                <button class="btn btn-teal btn-full" onclick="sendToOled()"><i class="fas fa-wifi"></i> Send to OLED Screen</button>
-                            </div>
-                        </div>
-                        <div class="oled-card">
-                            <div class="oled-control-label"><span>C Byte Array (PROGMEM)</span></div>
-                            <textarea id="oledOutputCode" class="oled-code-box" readonly placeholder="Output will appear here..."></textarea>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- SD Explorer Modal -->
-    <div class="modal" id="sdExplorerModal">
+    <!-- Fingerprint Info Modal -->
+    <div class="modal" id="fpInfoModal">
         <div class="modal-content">
             <div class="modal-header">
                 <div class="modal-header-left">
+                    <div class="modal-icon icon-rose"><i class="fas fa-fingerprint"></i></div>
+                    <div class="modal-title">Fingerprint Sensor Info</div>
+                </div>
+                <button class="modal-close" onclick="closeModal('fpInfoModal')"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body" id="fpInfoContent">
+                <p style="color:var(--text-muted);">Loading sensor info...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- SD Card Explorer Modal -->
+    <div class="modal" id="sdExplorerModal">
+        <div class="modal-content wide">
+            <div class="modal-header">
+                <div class="modal-header-left">
                     <div class="modal-icon icon-teal"><i class="fas fa-sd-card"></i></div>
-                    <div class="modal-title">SD Card Explorer</div>
+                    <div class="modal-title">MicroSD Card Explorer</div>
                 </div>
                 <button class="modal-close" onclick="closeModal('sdExplorerModal')"><i class="fas fa-times"></i></button>
             </div>
-            <div class="modal-body">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
-                    <strong style="font-size:0.82rem; text-transform:uppercase; letter-spacing:0.5px; color:var(--text-muted);">/fingerprints</strong>
-                    <button class="btn btn-ghost btn-sm" onclick="loadSdFiles()"><i class="fas fa-sync"></i> Refresh</button>
+            <div class="modal-body" id="sdExplorerContent">
+                <p style="color:var(--text-muted);">Loading SD card files...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Duplicate Fingerprint Resolution Modal -->
+    <div class="modal" id="duplicateModal">
+        <div class="modal-content" style="max-width: 440px;">
+            <div class="modal-header">
+                <div class="modal-header-left">
+                    <div class="modal-icon icon-amber"><i class="fas fa-exclamation-triangle"></i></div>
+                    <div class="modal-title">Duplicate Fingerprint</div>
                 </div>
-                <div class="sd-file-list" id="sdFileList">
-                    <div style="text-align:center; padding: 20px; color:var(--text-muted);">Loading files...</div>
+                <button class="modal-close" onclick="closeModal('duplicateModal')"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body">
+                <p style="color:var(--text-muted); margin-bottom:16px;">This fingerprint is already enrolled under a different student.</p>
+                <div style="background:var(--surface); padding:14px; border-radius:10px; margin-bottom:12px;">
+                    <div style="font-size:0.72rem; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; color:var(--rose); margin-bottom:6px;">Existing Registration</div>
+                    <div style="font-weight:700; color:var(--ink);"><span id="dupStudentName">—</span></div>
+                    <div style="font-size:0.82rem; color:var(--text-muted);">Slot #<span id="dupStudentSlot">—</span></div>
+                </div>
+                <div style="background:var(--surface); padding:14px; border-radius:10px; margin-bottom:16px;">
+                    <div style="font-size:0.72rem; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; color:var(--emerald); margin-bottom:6px;">New Registration</div>
+                    <div style="font-weight:700; color:var(--ink);"><span id="newStudentName">—</span></div>
+                    <div style="font-size:0.82rem; color:var(--text-muted);">ID: <span id="newStudentId">—</span> · Slot #<span id="newStudentSlot">—</span></div>
+                </div>
+                <div class="form-actions">
+                    <button class="btn btn-amber" onclick="overwriteDuplicateFromModal()"><i class="fas fa-exchange-alt"></i> Overwrite</button>
+                    <button class="btn btn-ghost" onclick="closeModal('duplicateModal')">Cancel</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Biometric Management Modal -->
-    <div class="modal" id="biometricModal">
-        <div class="modal-content wide">
+    <!-- Fingerprint Preview Modal -->
+    <div class="modal" id="fpPreviewModal">
+        <div class="modal-content" style="max-width: 300px;">
             <div class="modal-header">
                 <div class="modal-header-left">
-                    <div class="modal-icon icon-violet"><i class="fas fa-fingerprint"></i></div>
-                    <div class="modal-title">Biometric Hub</div>
+                    <div class="modal-icon icon-rose"><i class="fas fa-fingerprint"></i></div>
+                    <div class="modal-title">Fingerprint Image</div>
                 </div>
-                <button class="modal-close" onclick="closeModal('biometricModal')"><i class="fas fa-times"></i></button>
+                <button class="modal-close" onclick="closeModal('fpPreviewModal')"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body" style="text-align:center; padding: 20px;">
+                <img id="fullFpImage" src="" style="width: 256px; height: 288px; background: #000; image-rendering: pixelated; border: 2px solid var(--border); border-radius: 8px;" alt="Fingerprint">
+                <div id="fpImageMeta" style="margin-top: 12px; font-size: 0.82rem; color: var(--text-muted);">Slot #—</div>
+                <div class="form-actions" style="margin-top: 20px; justify-content: center;">
+                    <button class="btn btn-ghost btn-sm" onclick="closeModal('fpPreviewModal')">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- OLED Converter Modal -->
+    <div class="modal" id="oledConverterModal">
+        <div class="modal-content wide" style="max-width: 950px; width: 95vw;">
+            <div class="modal-header">
+                <div class="modal-header-left">
+                    <div class="modal-icon icon-violet"><i class="fas fa-tv"></i></div>
+                    <div class="modal-title">OLED Video Converter &amp; Simulator</div>
+                </div>
+                <button class="modal-close" onclick="closeModal('oledConverterModal')"><i class="fas fa-times"></i></button>
             </div>
             <div class="modal-body">
-                <div class="stats-grid" style="grid-template-columns: repeat(2, 1fr);">
-                    <div class="stat-item">
-                        <div class="stat-value" id="controller-status" style="font-size: 1.2rem; color: var(--emerald);">Checking...</div>
-                        <div class="stat-label">Controller Status</div>
+                <div class="oled-grid">
+                    <!-- Left Column: Controls -->
+                    <div class="oled-col">
+                        <div class="oled-card">
+                            <h3><i class="fas fa-file-video"></i> Input &amp; Settings</h3>
+                            <div class="form-group">
+                                <label class="form-label">Upload Video File</label>
+                                <input type="file" id="oledUpload" class="form-input" accept="video/*">
+                                <button id="oledRotateBtn" class="btn btn-ghost btn-full" style="margin-top: 10px;">
+                                    <i class="fas fa-redo"></i> Rotate Video 90°
+                                </button>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Color Conversion Method</label>
+                                <select id="oledDitherMode" class="form-input">
+                                    <option value="threshold">Solid Threshold (Pure Black/White)</option>
+                                    <option value="bayer" selected>Bayer 8x8 Dithering (Super Smooth)</option>
+                                    <option value="floyd">Floyd-Steinberg (Highly Detailed)</option>
+                                    <option value="atkinson">Atkinson Dithering (Prevents Shadow Blocking)</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Screen Scaling Mode</label>
+                                <select id="oledScaleMode" class="form-input">
+                                    <option value="fit">Best Fit (Proportional with Borders)</option>
+                                    <option value="cover">Fill / Cover (Crop &amp; Center)</option>
+                                    <option value="stretch">Stretch (Force 128x64)</option>
+                                    <option value="custom">Custom (Manual Scale)</option>
+                                </select>
+                            </div>
+
+                            <div id="oledCustomControls" style="display: none; background: rgba(0,0,0,0.03); padding: 12px; border-radius: 8px; margin-bottom: 15px;">
+                                <div class="form-group" id="oledGrpW">
+                                    <div class="oled-control-label">Width: <span id="oledCwVal">128</span></div>
+                                    <input type="range" id="oledCustomW" class="form-input" min="10" max="256" value="128" style="padding: 0;">
+                                </div>
+                                <div class="form-group" id="oledGrpH">
+                                    <div class="oled-control-label">Height: <span id="oledChVal">64</span></div>
+                                    <input type="range" id="oledCustomH" class="form-input" min="10" max="128" value="64" style="padding: 0;">
+                                </div>
+                                <div class="form-group">
+                                    <div class="oled-control-label">Pan X: <span id="oledCxVal">0</span> <button class="btn btn-ghost" id="oledResetX" style="padding: 2px 6px; font-size: 0.7rem; min-height: 0;">Reset</button></div>
+                                    <input type="range" id="oledCustomX" class="form-input" min="-128" max="128" value="0" style="padding: 0;">
+                                </div>
+                                <div class="form-group">
+                                    <div class="oled-control-label">Pan Y: <span id="oledCyVal">0</span> <button class="btn btn-ghost" id="oledResetY" style="padding: 2px 6px; font-size: 0.7rem; min-height: 0;">Reset</button></div>
+                                    <input type="range" id="oledCustomY" class="form-input" min="-64" max="64" value="0" style="padding: 0;">
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <div class="oled-control-label">Target FPS: <span id="oledFpsVal">10</span> <button class="btn btn-ghost" id="oledResetFps" style="padding: 2px 6px; font-size: 0.7rem; min-height: 0;">Reset</button></div>
+                                <input type="range" id="oledFps" class="form-input" min="1" max="30" value="10" style="padding: 0;">
+                            </div>
+                        </div>
+
+                        <div class="oled-card">
+                            <h3><i class="fas fa-sliders-h"></i> Image Adjustments</h3>
+                            
+                            <div class="form-group">
+                                <div class="oled-control-label">Line Thickness: <span id="oledThickVal">Normal</span> <button class="btn btn-ghost" id="oledResetThick" style="padding: 2px 6px; font-size: 0.7rem; min-height: 0;">Reset</button></div>
+                                <div style="display: flex; gap: 10px; align-items: center;">
+                                    <input type="range" id="oledThickness" class="form-input" min="-3" max="3" value="0" step="0.1" style="padding:0; flex:1;">
+                                    <input type="number" id="oledThickNum" class="form-input" min="-3" max="3" value="0" step="0.1" style="width: 70px; padding: 6px;">
+                                </div>
+                                <div class="form-hint">← Darken Lines | Lighten Lines →</div>
+                            </div>
+
+                            <div class="form-group">
+                                <div class="oled-control-label">B/W Threshold: <span id="oledThreshVal">128</span> <button class="btn btn-ghost" id="oledResetThresh" style="padding: 2px 6px; font-size: 0.7rem; min-height: 0;">Reset</button></div>
+                                <input type="range" id="oledThreshold" class="form-input" min="0" max="255" value="128" style="padding: 0;">
+                            </div>
+
+                            <div class="form-group">
+                                <div class="oled-control-label">Contrast: <span id="oledContrastVal">100%</span> <button class="btn btn-ghost" id="oledResetContrast" style="padding: 2px 6px; font-size: 0.7rem; min-height: 0;">Reset</button></div>
+                                <input type="range" id="oledContrast" class="form-input" min="0" max="300" value="100" style="padding: 0;">
+                            </div>
+
+                            <div class="form-group">
+                                <div class="oled-control-label">Brightness: <span id="oledBrightVal">100%</span> <button class="btn btn-ghost" id="oledResetBrightness" style="padding: 2px 6px; font-size: 0.7rem; min-height: 0;">Reset</button></div>
+                                <input type="range" id="oledBrightness" class="form-input" min="0" max="200" value="100" style="padding: 0;">
+                            </div>
+
+                            <div class="form-group" style="display:flex; align-items:center; gap:8px;">
+                                <input type="checkbox" id="oledInvert" style="width:18px; height:18px; cursor:pointer;">
+                                <label class="form-label" for="oledInvert" style="margin-bottom:0; cursor:pointer;">Invert Colors</label>
+                            </div>
+
+                            <div class="form-group" style="display:flex; align-items:center; gap:8px; margin-top: 12px; margin-bottom: 12px; padding: 10px; background: rgba(139, 92, 246, 0.05); border: 1px dashed var(--border); border-radius: 8px;">
+                                <input type="checkbox" id="oledStreamEnable" style="width:18px; height:18px; cursor:pointer;" onchange="toggleOledStream(this.checked)">
+                                <label class="form-label" for="oledStreamEnable" style="margin-bottom:0; cursor:pointer; font-weight:700; color:var(--text-light);">Stream to Physical OLED</label>
+                            </div>
+
+                            <button id="oledConvertBtn" class="btn btn-primary btn-full" disabled style="margin-top: 5px;">
+                                <i class="fas fa-play-circle"></i> Start Frame Extraction
+                            </button>
+                        </div>
                     </div>
-                    <div class="stat-item">
-                        <div class="stat-value" id="esp32-cam-status" style="font-size: 1.2rem;">0.0.0.0</div>
-                        <div class="stat-label">ESP32-CAM IP</div>
-                    </div>
-                </div>
-                
-                <div style="margin-top: 24px;">
-                    <strong style="font-size:0.82rem; text-transform:uppercase; letter-spacing:0.5px; color:var(--text-muted);">Student Fingerprint Mapping</strong>
-                    <div style="margin-top: 12px; max-height: 400px; overflow-y: auto;">
-                        <table class="small-table">
-                            <thead>
-                                <tr>
-                                    <th>Student ID</th>
-                                    <th>Name</th>
-                                    <th>Fingerprint Slot</th>
-                                    <th>Action</th>
-                                </tr>
-                            </thead>
-                            <tbody id="biometric-mapping-body">
-                                <!-- Populated by JS -->
-                            </tbody>
-                        </table>
+
+                    <!-- Right Column: Previews & Results -->
+                    <div class="oled-col">
+                        <div class="oled-card">
+                            <h3><i class="fas fa-tv"></i> Live Preview</h3>
+                            <video id="oledVideo" class="oled-preview-video" controls muted loop></video>
+                            <canvas id="oledCanvas" class="oled-preview-canvas" width="128" height="64"></canvas>
+                            
+                            <div style="background: var(--white); padding: 12px; border-radius: 8px; border: 1px solid var(--border); margin-top: 15px;">
+                                <p id="oledStatus" style="color: var(--amber); margin: 0 0 6px 0; font-weight: 700; font-size: 0.82rem;">Status: Waiting for video...</p>
+                                <p style="margin: 0; font-size: 0.78rem; font-weight:600;">Total Extracted: <b id="oledFrameCount" style="color: var(--accent); font-size: 0.9rem;">0</b></p>
+                            </div>
+                        </div>
+
+                        <div class="oled-card">
+                            <h3><i class="fas fa-code"></i> C++ Output (VideoFrame.h)</h3>
+                            <p class="form-hint" style="margin-bottom: 8px;">Create a file named <b>VideoFrame.h</b> in Arduino IDE and paste this.</p>
+                            <button id="oledCopyArrayBtn" class="btn btn-ghost btn-full" style="margin-bottom: 10px;">
+                                <i class="fas fa-copy"></i> Copy C++ Array
+                            </button>
+                            <textarea id="oledOutputArray" class="oled-code-box" readonly placeholder="Output array will appear here..."></textarea>
+                        </div>
+
+                        <div class="oled-card">
+                            <h3><i class="fas fa-code"></i> C++ Main Code (Main.ino)</h3>
+                            <p class="form-hint" style="margin-bottom: 8px;">Paste this into your main sketch.</p>
+                            <button id="oledCopyMainBtn" class="btn btn-ghost btn-full" style="margin-bottom: 10px;">
+                                <i class="fas fa-copy"></i> Copy Main.ino
+                            </button>
+                            <textarea id="oledOutputMain" class="oled-code-box" readonly style="height: 120px;">
+#include &lt;Wire.h&gt;
+#include &lt;Adafruit_GFX.h&gt;
+#include "VideoFrame.h" 
+
+#define SCREEN_WIDTH 128
+#define SCREEN_HEIGHT 64
+#define OLED_RESET    -1
+
+#define PAKAI_SSD1306
+//#define PAKAI_SH1106
+
+#ifdef PAKAI_SSD1306
+  #include &lt;Adafruit_SSD1306.h&gt;
+  Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &amp;Wire, OLED_RESET);
+  #define WARNA_LAYAR WHITE
+
+#elif defined(PAKAI_SH1106)
+  #include &lt;Adafruit_SH110X.h&gt;
+  Adafruit_SH1106G display = Adafruit_SH1106G(SCREEN_WIDTH, SCREEN_HEIGHT, &amp;Wire, OLED_RESET);
+  #define WARNA_LAYAR SH110X_WHITE
+#endif
+
+unsigned long previousMillis = 0;
+int currentFrame = 0;
+
+void setup() {
+  Serial.begin(115200);
+
+  #ifdef PAKAI_SSD1306
+    if(!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) { 
+      Serial.println(F("OLED SSD1306 failed."));
+      for(;;); 
+    }
+  #elif defined(PAKAI_SH1106)
+    if(!display.begin(0x3C, true)) {
+      Serial.println(F("OLED SH1106 failed."));
+      for(;;); 
+    }
+  #endif
+
+  Wire.setClock(800000); 
+
+  display.clearDisplay();
+  display.display();
+}
+
+void loop() {
+  unsigned long currentMillis = millis();
+
+  if (currentMillis - previousMillis &gt;= FRAME_DELAY) {
+    previousMillis = currentMillis;
+    display.clearDisplay();
+    display.drawBitmap(0, 0, video_frames[currentFrame], SCREEN_WIDTH, SCREEN_HEIGHT, WARNA_LAYAR);
+    display.display();
+
+    currentFrame++;
+    if (currentFrame &gt;= TOTAL_FRAMES) {
+      currentFrame = 0;
+    }
+  }
+}
+                            </textarea>
+                        </div>
+
+                        <div class="oled-card">
+                            <h3><i class="fas fa-play"></i> Wokwi Simulator</h3>
+                            <iframe src="https://wokwi.com/projects/460502579013039105" style="width:100%; height:320px; border: 1px solid var(--border); border-radius: 8px;"></iframe>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -2421,6 +2605,7 @@
         let lastStatusSignature = '';
         let activeReportName = '';
         let isRecognizing = false;
+        let cachedSystemState = {};
 
         // Date in topbar
         document.getElementById('topbar-date').textContent = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
@@ -2428,6 +2613,7 @@
         // Initialize
         document.addEventListener('DOMContentLoaded', function () {
             refreshStatus();
+            refreshHardwareKPIs();
             startStatusPolling();
             updateStatus('idle', 'System ready for operations', 0);
         });
@@ -2471,6 +2657,7 @@
         }
 
         // Status polling
+        let lastDuplicateSignature = '';
         function startStatusPolling() {
             statusInterval = setInterval(async () => {
                 try {
@@ -2483,8 +2670,42 @@
                         const hash = JSON.stringify(lr);
                         if (hash !== lastRecognitionHash) {
                             lastRecognitionHash = hash;
+                            
+                            // ─── Update Hardware Feed Card ───
+                            const latestImg = document.getElementById('latestScanImg');
+                            const placeholder = document.getElementById('latestScanPlaceholder');
+                            const overlay = document.getElementById('scanResultOverlay');
+                            const title = document.getElementById('scanResultTitle');
+                            
+                            if (lr.image_url) {
+                                latestImg.src = lr.image_url;
+                                latestImg.style.display = 'block';
+                                placeholder.style.display = 'none';
+                                
+                                title.textContent = lr.marked ? lr.student_name : 'No Match';
+                                title.style.color = lr.marked ? 'var(--emerald)' : 'var(--rose)';
+                                overlay.style.display = 'block';
+                            }
+
                             if (lr.marked || lr.student_id) {
                                 showStudentPopup(lr);
+                            }
+                        }
+                    }
+
+                    // Check for duplicate fingerprint event
+                    const le = data.last_event || null;
+                    if (le && le.status === 'Duplicate Fingerprint') {
+                        const duplicateSignature = `${le.time}|${le.slot}|${le.id}`;
+                        if (duplicateSignature !== lastDuplicateSignature) {
+                            lastDuplicateSignature = duplicateSignature;
+                            if (le.new_student) {
+                                document.getElementById('dupStudentName').textContent = le.name;
+                                document.getElementById('dupStudentSlot').textContent = le.slot;
+                                document.getElementById('newStudentName').textContent = le.new_student.name;
+                                document.getElementById('newStudentId').textContent = le.new_student.id;
+                                document.getElementById('newStudentSlot').textContent = le.new_student.slot;
+                                document.getElementById('duplicateModal').classList.add('show');
                             }
                         }
                     }
@@ -2492,11 +2713,11 @@
                     const signature = `${data.status}|${data.message}|${data.progress}`;
                     if (signature !== lastStatusSignature) {
                         lastStatusSignature = signature;
-                        if (data.message && (data.message.includes('Recognized and marked') || data.message.includes('No user recognized') || data.message.includes('failed') || data.message.includes('Failed'))) {
+                        if (data.message && (data.message.includes('Recognized and marked') || data.message.includes('No user recognized') || data.message.includes('failed') || data.message.includes('Failed') || data.message.includes('enrollment') || data.message.includes('Fingerprint'))) {
                             showToast(
-                                data.status === 'success' ? 'Recognition Result' : 'Recognition Update',
+                                data.status === 'success' ? 'Biometrics Event' : 'System Update',
                                 data.message,
-                                data.status === 'success' ? 'success' : 'error'
+                                data.status === 'success' ? 'success' : 'info'
                             );
                         }
                     }
@@ -2510,20 +2731,6 @@
             if (statusInterval) { clearInterval(statusInterval); statusInterval = null; }
         }
 
-        async function stopCurrentOperation() {
-            try {
-                // Stop all possible operations
-                await Promise.all([
-                    fetch('/api/camera/check/stop', { method: 'POST' }),
-                    fetch('/api/capture/stop', { method: 'POST' }),
-                    fetch('/api/recognize/stop', { method: 'POST' })
-                ]);
-                showToast('Interruption', 'System received stop signal.', 'info');
-            } catch (error) {
-                showToast('Error', 'Failed to transmit stop signal.', 'error');
-            }
-        }
-
         function updateStatus(status, message, progress) {
             currentStatus = status;
             const panel = document.getElementById('statusPanel');
@@ -2531,18 +2738,10 @@
             const title = document.getElementById('statusTitle');
             const msg = document.getElementById('statusMessage');
             const fill = document.getElementById('progressFill');
-            const stopBtn = document.getElementById('stopButton');
 
             panel.className = `status-panel status-${status}`;
             msg.textContent = message;
             fill.style.width = `${progress}%`;
-
-            // Handle stop button visibility
-            if (status === 'running') {
-                stopBtn.style.display = 'flex';
-            } else {
-                stopBtn.style.display = 'none';
-            }
 
             switch (status) {
                 case 'idle':
@@ -2602,10 +2801,17 @@
 
         function captureFaces() {
             document.getElementById('captureModal').classList.add('show');
+            // Clear form for fresh capture
+            document.getElementById('captureStudentId').value = '';
+            document.getElementById('captureStudentName').value = '';
+            document.getElementById('captureStudentEmail').value = '';
+            document.getElementById('captureSlotId').value = '';
             
             const form = document.getElementById('captureForm');
             form.onsubmit = async function (e) {
                 e.preventDefault();
+                const slotVal = document.getElementById("captureSlotId").value.trim();
+                const slotId = slotVal ? parseInt(slotVal) : 0;
                 const payload = {
                     student_id: document.getElementById("captureStudentId").value.trim(),
                     name: document.getElementById("captureStudentName").value.trim(),
@@ -2624,6 +2830,56 @@
                         closeModal('captureModal');
                         updateStatus('running', 'Face acquisition active. Check camera.', 0);
                         showToast('Capture In Progress', 'Look at the camera to acquire face samples.', 'info');
+                        // If slot specified, queue fingerprint enrollment after a delay
+                        if (slotId > 0) {
+                            setTimeout(() => {
+                                enrollFingerprint(payload.student_id, payload.name, payload.email, slotId);
+                            }, 3000);
+                        }
+                    } else {
+                        showToast('Capture Error', data.message || 'Failed to start capture', 'error');
+                    }
+                } catch (err) {
+                    showToast('Capture Error', err.message || 'Failed to connect to server', 'error');
+                }
+            };
+        }
+
+        function startFaceCaptureFromRow(id, name, email) {
+            document.getElementById('captureModal').classList.add('show');
+            document.getElementById('captureStudentId').value = id;
+            document.getElementById('captureStudentName').value = name;
+            document.getElementById('captureStudentEmail').value = email || '';
+            document.getElementById('captureSlotId').value = '';
+            // Re-bind submit handler via captureFaces logic
+            const form = document.getElementById('captureForm');
+            form.onsubmit = async function (e) {
+                e.preventDefault();
+                const slotVal = document.getElementById("captureSlotId").value.trim();
+                const slotId = slotVal ? parseInt(slotVal) : 0;
+                const payload = {
+                    student_id: document.getElementById("captureStudentId").value.trim(),
+                    name: document.getElementById("captureStudentName").value.trim(),
+                    email: document.getElementById("captureStudentEmail").value.trim(),
+                    max_samples: Number(document.getElementById("captureMaxSamples").value || 100),
+                    quick_pipeline: document.getElementById("captureQuickPipeline").checked
+                };
+                try {
+                    const response = await fetch("/api/capture/faces", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(payload)
+                    });
+                    const data = await response.json();
+                    if (data.status === "started") {
+                        closeModal('captureModal');
+                        updateStatus('running', 'Face acquisition active. Check camera.', 0);
+                        showToast('Capture In Progress', `Acquiring biometric data for ${payload.name}...`, 'info');
+                        if (slotId > 0) {
+                            setTimeout(() => {
+                                enrollFingerprint(payload.student_id, payload.name, payload.email, slotId);
+                            }, 3000);
+                        }
                     } else {
                         showToast('Capture Error', data.message || 'Failed to start capture', 'error');
                     }
@@ -2690,6 +2946,83 @@
             }
         }
 
+        let isPreviewActive = false;
+
+        async function toggleLivePreviewState() {
+            const nextState = !isPreviewActive;
+            try {
+                const res = await fetch('/api/camera/preview_state', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ active: nextState })
+                });
+                const data = await res.json();
+                if (data.status === 'success') {
+                    updatePreviewUI(data.preview_active);
+                }
+            } catch (e) {
+                showToast('Error', 'Failed to toggle preview state', 'error');
+            }
+        }
+
+        function updatePreviewUI(active) {
+            isPreviewActive = active;
+            const btn = document.getElementById('togglePreviewBtn');
+            const img = document.getElementById('cameraPreviewImage');
+            const placeholder = document.getElementById('cameraPlaceholderText');
+            const dot = document.getElementById('previewPulseDot');
+            const txt = document.getElementById('previewStatusText');
+            
+            if (active) {
+                if (btn) {
+                    btn.innerHTML = '<i class="fas fa-stop"></i> Stop Preview';
+                    btn.className = 'btn btn-rose';
+                }
+                if (img) {
+                    img.src = '/api/camera/preview?t=' + new Date().getTime();
+                    img.style.display = 'block';
+                }
+                if (placeholder) placeholder.style.display = 'none';
+                if (dot) {
+                    dot.style.backgroundColor = 'var(--emerald)';
+                    dot.classList.add('pulse');
+                }
+                if (txt) txt.textContent = 'Live Preview';
+            } else {
+                if (btn) {
+                    btn.innerHTML = '<i class="fas fa-play"></i> Start Preview';
+                    btn.className = 'btn btn-ghost';
+                }
+                if (img) {
+                    img.src = '';
+                    img.style.display = 'none';
+                }
+                if (placeholder) placeholder.style.display = 'block';
+                if (dot) {
+                    dot.style.backgroundColor = 'var(--text-muted)';
+                    dot.classList.remove('pulse');
+                }
+                if (txt) txt.textContent = 'Preview Idle';
+            }
+        }
+
+        async function toggleCameraSource(source) {
+            try {
+                const res = await fetch('/api/camera/set_source', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ source: source })
+                });
+                const data = await res.json();
+                if (data.status === 'success') {
+                    showToast('Camera Source', `Switched camera to ${source === 'webcam' ? 'USB Webcam' : 'ESP32-CAM'}`, 'success');
+                    refreshStatus();
+                }
+            } catch (e) {
+                showToast('Error', 'Failed to update camera source', 'error');
+            }
+        }
+
         async function refreshStatus() {
             try {
                 const response = await fetch('/api/system/status');
@@ -2700,8 +3033,323 @@
                 document.getElementById('attendance-count').textContent = data.attendance_records;
                 document.getElementById('ov-students').textContent = data.students;
                 document.getElementById('ov-sessions').textContent = data.attendance_records;
+                
+                // Sync select and preview UI
+                const selectEl = document.getElementById('cameraSourceSelect');
+                if (selectEl) selectEl.value = data.camera_source || 'webcam';
+                updatePreviewUI(data.preview_active);
             } catch (error) {
                 console.error('Failed to refresh status:', error);
+            }
+        }
+
+        async function refreshHardwareKPIs() {
+            try {
+                // Fingerprint info
+                const fpRes = await fetch('/api/fingerprint/info');
+                const fpData = await fpRes.json();
+                const fpOnline = fpData.online;
+                const fpCount = fpData.template_count || 0;
+                const fpCapacity = fpData.capacity || 127;
+                document.getElementById('fp-count').textContent = fpCount;
+                const fpDot = document.getElementById('fpSensorDot');
+                const fpTrend = document.getElementById('fp-status-trend');
+                const fpStatusEl = document.getElementById('fpSensorStatus');
+                const fpEnrolledEl = document.getElementById('fpEnrolledCount');
+                const fpCapFill = document.getElementById('fpCapacityFill');
+                if (fpOnline) {
+                    fpDot.className = 'hw-dot';
+                    fpTrend.innerHTML = '<i class="fas fa-circle" style="font-size:0.5rem;"></i> Online';
+                    fpTrend.style.color = 'var(--emerald)';
+                    fpStatusEl.textContent = 'Online';
+                } else {
+                    fpDot.className = 'hw-dot offline';
+                    fpTrend.innerHTML = '<i class="fas fa-circle" style="font-size:0.5rem;"></i> Offline';
+                    fpTrend.style.color = 'var(--rose)';
+                    fpStatusEl.textContent = 'Offline';
+                }
+                fpEnrolledEl.textContent = fpCount;
+                const pct = Math.min((fpCount / fpCapacity) * 100, 100);
+                fpCapFill.style.width = pct + '%';
+                fpCapFill.className = pct > 80 ? 'capacity-fill warning' : 'capacity-fill';
+            } catch (e) {
+                document.getElementById('fp-count').textContent = '—';
+                document.getElementById('fpSensorDot').className = 'hw-dot offline';
+                document.getElementById('fpSensorStatus').textContent = 'Unreachable';
+            }
+
+            try {
+                // System state from operation status
+                const stRes = await fetch('/api/operation/status');
+                const stData = await stRes.json();
+                // Store for later use
+                cachedSystemState = stData;
+            } catch (e) {
+                console.error('Failed to fetch system state:', e);
+            }
+        }
+
+        // ── Hardware JS Helpers ──
+        async function enrollFingerprint(id, name, email, slot) {
+            if (!confirm(`Do you want to initiate FP capture for Student ID ${id}?`)) return;
+            try {
+                const res = await fetch('/api/fingerprint/enroll', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id, name, email, slot })
+                });
+                const data = await res.json();
+                if (data.status === 'enrollment_initiated') {
+                    showToast('Enrollment Started', `Place finger on sensor for Slot #${slot}`, 'info');
+                } else {
+                    showToast('Enrollment Error', data.message || 'Failed to initiate enrollment', 'error');
+                }
+            } catch (e) {
+                showToast('Enrollment Error', e.message, 'error');
+            }
+        }
+
+        async function deleteFingerprint(slot) {
+            if (!confirm(`Delete fingerprint from Slot #${slot}? This removes it from the sensor and database.`)) return;
+            try {
+                const res = await fetch('/api/fingerprint/delete', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ slot })
+                });
+                const data = await res.json();
+                if (data.status === 'success') {
+                    showToast('Fingerprint Deleted', data.message, 'success');
+                    refreshHardwareKPIs();
+                    showFpInfoModal(); // Refresh modal
+                } else {
+                    showToast('Delete Error', data.message, 'error');
+                }
+            } catch (e) {
+                showToast('Delete Error', e.message, 'error');
+            }
+        }
+
+        async function showFpInfoModal() {
+            document.getElementById('fpInfoModal').classList.add('show');
+            const contentEl = document.getElementById('fpInfoContent');
+            contentEl.innerHTML = '<p style="color:var(--text-muted);">Loading sensor info...</p>';
+            try {
+                const [fpRes, studRes] = await Promise.all([
+                    fetch('/api/fingerprint/info'),
+                    fetch('/api/data/students')
+                ]);
+                const fpData = await fpRes.json();
+                const studData = await studRes.json();
+                const enrolled = (studData.students || []).filter(s => parseInt(s.slot || 0) > 0);
+                const capacity = fpData.capacity || 127;
+                const pct = Math.min((enrolled.length / capacity) * 100, 100);
+
+                let html = `<div class="stats-grid" style="grid-template-columns: repeat(3, 1fr); margin-bottom:20px;">
+                    <div class="stat-item"><div class="stat-value" style="color:${fpData.online ? 'var(--emerald)' : 'var(--rose)'}">${fpData.online ? 'Online' : 'Offline'}</div><div class="stat-label">Sensor</div></div>
+                    <div class="stat-item"><div class="stat-value">${enrolled.length}</div><div class="stat-label">Enrolled</div></div>
+                    <div class="stat-item"><div class="stat-value">${capacity}</div><div class="stat-label">Capacity</div></div>
+                </div>
+                <div style="margin-bottom:20px;">
+                    <div style="display:flex; justify-content:space-between; font-size:0.78rem; color:var(--text-muted); margin-bottom:4px;"><span>Usage</span><span>${pct.toFixed(1)}%</span></div>
+                    <div class="capacity-bar" style="height:10px;"><div class="capacity-fill${pct > 80 ? ' warning' : ''}" style="width:${pct}%"></div></div>
+                </div>`;
+
+                if (enrolled.length > 0) {
+                    html += `<div style="font-size:0.78rem; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; color:var(--text-muted); margin-bottom:8px;">Enrolled Students</div>
+                    <div style="overflow-x:auto;"><table class="small-table">
+                        <thead><tr><th>Slot</th><th>ID</th><th>Name</th><th>Email</th><th></th></tr></thead>
+                        <tbody>`;
+                    enrolled.forEach(s => {
+                        html += `<tr>
+                            <td><strong>#${s.slot}</strong></td>
+                            <td>${s.id}</td>
+                            <td>${s.name}</td>
+                            <td>${s.email || '—'}</td>
+                            <td><button class="btn btn-rose btn-sm" onclick="deleteFingerprint(${s.slot})" style="padding:4px 8px;"><i class="fas fa-trash"></i></button></td>
+                        </tr>`;
+                    });
+                    html += '</tbody></table></div>';
+                } else {
+                    html += '<div style="text-align:center; padding:24px 0; color:var(--text-muted);"><i class="fas fa-fingerprint" style="font-size:2rem; opacity:0.3; display:block; margin-bottom:8px;"></i>No fingerprints enrolled yet</div>';
+                }
+
+                html += `<div class="form-actions" style="margin-top:16px;">
+                    <button class="btn btn-ghost" onclick="closeModal('fpInfoModal')">Close</button>
+                </div>`;
+                contentEl.innerHTML = html;
+            } catch (e) {
+                contentEl.innerHTML = `<p style="color:var(--rose);">Failed to load sensor info: ${e.message}</p>`;
+            }
+        }
+
+        async function showSdExplorerModal() {
+            document.getElementById('sdExplorerModal').classList.add('show');
+            const contentEl = document.getElementById('sdExplorerContent');
+            contentEl.innerHTML = '<p style="color:var(--text-muted);">Loading SD card files...</p>';
+            try {
+                const res = await fetch('/api/sd/files');
+                const data = await res.json();
+                if (data.status === 'error') {
+                    contentEl.innerHTML = `<div style="text-align:center; padding:32px 0;"><i class="fas fa-sd-card" style="font-size:2.5rem; color:var(--text-light); opacity:0.3; display:block; margin-bottom:12px;"></i><div style="font-weight:600; color:var(--ink); font-size:0.9rem;">${data.message}</div><div style="font-size:0.82rem; color:var(--text-muted); margin-top:6px;">Connect the ESP32-CAM board to access SD card files.</div></div>`;
+                    return;
+                }
+                const files = Array.isArray(data) ? data : (data.files || []);
+                let html = `<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+                    <div style="font-size:0.82rem; color:var(--text-muted);">${files.length} file(s) on card</div>
+                    <div style="display:flex; gap:6px;">
+                        <button class="btn btn-ghost btn-sm" onclick="showSdExplorerModal()"><i class="fas fa-sync"></i> Refresh</button>
+                        <button class="btn btn-rose btn-sm" onclick="formatSdCard()"><i class="fas fa-eraser"></i> Format</button>
+                    </div>
+                </div>`;
+                if (files.length > 0) {
+                    html += '<div class="sd-file-list">';
+                    files.forEach(f => {
+                        const name = typeof f === 'string' ? f : (f.name || f.path || 'unknown');
+                        const size = f.size ? `${(f.size / 1024).toFixed(1)} KB` : '';
+                        const icon = name.endsWith('.json') ? 'fa-file-code' : name.endsWith('.csv') ? 'fa-file-csv' : name.endsWith('.bin') ? 'fa-microchip' : name.endsWith('.jpg') || name.endsWith('.png') ? 'fa-file-image' : 'fa-file';
+                        html += `<div class="sd-file-row">
+                            <div class="sd-file-info">
+                                <i class="fas ${icon} sd-file-icon"></i>
+                                <span class="sd-file-name">${name}</span>
+                                <span class="sd-file-size">${size}</span>
+                            </div>
+                            <div class="sd-file-actions">
+                                <button class="btn btn-ghost-accent btn-sm" onclick="viewSdFile('${name}')" style="padding:4px 8px;"><i class="fas fa-eye"></i></button>
+                                <button class="btn btn-rose btn-sm" onclick="deleteSdFile('${name}')" style="padding:4px 8px;"><i class="fas fa-trash"></i></button>
+                            </div>
+                        </div>`;
+                    });
+                    html += '</div>';
+                } else {
+                    html += '<div style="text-align:center; padding:32px 0; color:var(--text-muted);"><i class="fas fa-folder-open" style="font-size:2rem; opacity:0.3; display:block; margin-bottom:8px;"></i>SD card is empty</div>';
+                }
+                html += `<div class="form-actions" style="margin-top:16px;"><button class="btn btn-ghost" onclick="closeModal('sdExplorerModal')">Close</button></div>`;
+                contentEl.innerHTML = html;
+            } catch (e) {
+                contentEl.innerHTML = `<p style="color:var(--rose);">Failed to load SD files: ${e.message}</p>`;
+            }
+        }
+
+        function viewSdFile(path) {
+            window.open(`/api/sd/view_file?path=${encodeURIComponent(path)}`, '_blank');
+        }
+
+        async function deleteSdFile(path) {
+            if (!confirm(`Delete ${path} from MicroSD card?`)) return;
+            try {
+                const res = await fetch('/api/sd/delete_file', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ path })
+                });
+                const data = await res.json();
+                if (data.status === 'success') {
+                    showToast('File Deleted', `${path} removed from SD card.`, 'success');
+                    showSdExplorerModal(); // Refresh listing
+                } else {
+                    showToast('Delete Failed', data.message || 'Failed to delete file', 'error');
+                }
+            } catch (e) {
+                showToast('Delete Error', e.message, 'error');
+            }
+        }
+
+        async function formatSdCard() {
+            const pw = prompt('Enter password to format SD card (WARNING: all data will be erased):');
+            if (!pw) return;
+            try {
+                const res = await fetch('/api/system/format_sd', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ password: pw })
+                });
+                const data = await res.json();
+                if (data.status === 'success') {
+                    showToast('SD Formatted', data.message, 'success');
+                    showSdExplorerModal(); // Refresh
+                } else {
+                    showToast('Format Failed', data.message, 'error');
+                }
+            } catch (e) {
+                showToast('Format Error', e.message, 'error');
+            }
+        }
+
+        async function remoteUnlock() {
+            try {
+                const res = await fetch('/api/controller/unlock', { method: 'POST' });
+                const data = await res.json();
+                showToast('Door Unlocked', 'Remote unlock command sent to controller.', 'success');
+            } catch (e) {
+                showToast('Unlock Error', e.message, 'error');
+            }
+        }
+
+        async function toggleFlash() {
+            try {
+                const res = await fetch('/api/camera/flash', { method: 'POST' });
+                const data = await res.json();
+                showToast('Flash', data.flash_on ? 'Flash LED turned ON' : 'Flash LED turned OFF', 'info');
+            } catch (e) {
+                showToast('Flash Error', e.message, 'error');
+            }
+        }
+
+        async function toggleHazard() {
+            try {
+                const res = await fetch('/api/camera/hazard', { method: 'POST' });
+                const data = await res.json();
+                showToast('Hazard', data.hazard_on ? 'Hazard mode ACTIVATED' : 'Hazard mode DEACTIVATED', 'info');
+            } catch (e) {
+                showToast('Hazard Error', e.message, 'error');
+            }
+        }
+
+        async function switchCameraSource(source) {
+            try {
+                const res = await fetch('/api/camera/set_source', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ source })
+                });
+                const data = await res.json();
+                if (data.status === 'success') {
+                    showToast('Camera Source', `Switched to ${source === 'esp32_cam' ? 'ESP32-CAM' : 'USB Webcam'}`, 'success');
+                } else {
+                    showToast('Switch Error', data.message, 'error');
+                }
+            } catch (e) {
+                showToast('Switch Error', e.message, 'error');
+            }
+        }
+
+        function overwriteDuplicateFromModal() {
+            const deleteSlot = parseInt(document.getElementById('dupStudentSlot').textContent) || 0;
+            const newId = document.getElementById('newStudentId').textContent;
+            const newName = document.getElementById('newStudentName').textContent;
+            const enrollSlot = parseInt(document.getElementById('newStudentSlot').textContent) || 0;
+            if (deleteSlot > 0 && enrollSlot > 0 && newId && newName) {
+                overwriteDuplicate(deleteSlot, enrollSlot, newId, newName, '');
+            }
+            closeModal('duplicateModal');
+        }
+
+        async function overwriteDuplicate(deleteSlot, enrollSlot, id, name, email) {
+            try {
+                const res = await fetch('/api/fingerprint/overwrite', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ delete_slot: deleteSlot, enroll_slot: enrollSlot, id, name, email })
+                });
+                const data = await res.json();
+                if (data.status === 'success') {
+                    showToast('Overwrite Initiated', data.message, 'success');
+                } else {
+                    showToast('Overwrite Error', data.message, 'error');
+                }
+            } catch (e) {
+                showToast('Overwrite Error', e.message, 'error');
             }
         }
 
@@ -2720,8 +3368,29 @@
             loadReports();
         }
 
+        let isOledStreamingEnabled = false;
+        let isOledStreamSending = false;
+
+        function toggleOledStream(enabled) {
+            isOledStreamingEnabled = enabled;
+            if (!enabled) {
+                fetch('/api/controller/clear_live_face', { method: 'POST' }).catch(err => {});
+                showToast('OLED Streaming', 'Streaming to physical OLED stopped.', 'info');
+            } else {
+                showToast('OLED Streaming', 'Streaming to physical OLED started.', 'success');
+            }
+        }
+
         function closeModal(modalId) {
             document.getElementById(modalId).classList.remove('show');
+            if (modalId === 'oledConverterModal') {
+                const oledVid = document.getElementById('oledVideo');
+                if (oledVid) oledVid.pause();
+                
+                const chk = document.getElementById('oledStreamEnable');
+                if (chk) chk.checked = false;
+                toggleOledStream(false);
+            }
         }
 
         // Close modal on backdrop click
@@ -2761,29 +3430,6 @@
             }
         }
 
-        async function enrollFingerprint(studentId) {
-            if (!confirm(`Do you want to initiate FP capture for Student ID ${studentId}?`)) return;
-            try {
-                updateStatus('running', `Initializing fingerprint enrollment for ${studentId}...`, 10);
-                const response = await fetch('/api/biometric/enroll', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ student_id: studentId })
-                });
-                const data = await response.json();
-                if (data.status === 'success') {
-                    showToast('Enrollment Started', `Sensor ready for Student ${studentId} in slot ${data.slot}. Please place finger on the sensor.`, 'info');
-                    updateStatus('running', `Please place finger on sensor (Slot ${data.slot})...`, 30);
-                } else {
-                    showToast('Enrollment Failed', data.message || 'Failed to start enrollment.', 'error');
-                    updateStatus('error', data.message || 'Enrollment failed', 0);
-                }
-            } catch (error) {
-                showToast('Enrollment Error', 'Network or server error.', 'error');
-                updateStatus('error', 'Enrollment error', 0);
-            }
-        }
-
         async function loadStudentData() {
             try {
                 const response = await fetch('/api/data/students');
@@ -2791,13 +3437,23 @@
 
                 let html = `<div style="margin-bottom:16px;">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; gap: 12px; flex-wrap: wrap;">
-                    <button class="btn btn-primary" onclick="showAddStudentForm()">
-                        <i class="fas fa-plus"></i> Enroll New Student
-                    </button>
-                    <form id="importStudentsForm" style="display:flex; gap:8px; align-items:center;">
-                        <input id="importFile" type="file" accept=".csv" required style="font-size: 0.8rem; max-width: 180px;">
-                        <button type="submit" class="btn btn-ghost btn-sm"><i class="fas fa-file-import"></i> Bulk Import</button>
-                    </form>
+                    <div style="display:flex; gap:10px;">
+                        <button class="btn btn-primary" onclick="showAddStudentForm()">
+                            <i class="fas fa-plus"></i> Enroll New Student
+                        </button>
+                        <button class="btn btn-teal" onclick="syncDatabaseToSD()">
+                            <i class="fas fa-sync"></i> Sync DB to SD
+                        </button>
+                    </div>
+                    <div style="display:flex; gap:10px;">
+                        <button class="btn btn-rose" onclick="resetSystemDatabase()">
+                            <i class="fas fa-trash-alt"></i> Reset Database
+                        </button>
+                        <form id="importStudentsForm" style="display:flex; gap:8px; align-items:center;">
+                            <input id="importFile" type="file" accept=".csv" required style="font-size: 0.8rem; max-width: 180px;">
+                            <button type="submit" class="btn btn-ghost btn-sm"><i class="fas fa-file-import"></i> Bulk Import</button>
+                        </form>
+                    </div>
                 </div>
                 <input type="text" id="studentSearch" class="form-input" placeholder="Search students by ID, Name or Email..." style="margin-bottom:12px;" oninput="filterStudents()">`;
 
@@ -2809,11 +3465,18 @@
                         <div class="student-avatar">${initials}</div>
                         <div class="student-info">
                             <div class="student-name">${student.name}</div>
-                            <div class="student-meta">ID: ${student.id} · Slot: ${student.fp_slot || '—'}${student.email ? ` · ${student.email}` : ''}</div>
+                            <div class="student-meta">ID: ${student.id} · Slot: ${student.slot || student.fp_id || '—'}${student.email ? ` · ${student.email}` : ''}</div>
                         </div>
-                        <div style="display:flex; gap:6px; align-items: center;">
-                            <button class="btn btn-ghost-accent btn-sm" onclick="enrollFingerprint('${student.id}')" title="Enroll Fingerprint">
-                                <i class="fas fa-fingerprint"></i>
+                        <div style="display:flex; gap:10px; align-items:center;">
+                            <!-- Fingerprint BMP Thumbnail -->
+                            <div class="fp-thumb-container" onclick="viewFullFingerprint('${student.slot || student.fp_id}')" title="View Captured Fingerprint">
+                                <img src="/static/captured_photos/fingerprints/fp_${student.slot || student.fp_id}.bmp" 
+                                     onerror="this.parentElement.style.display='none'"
+                                     class="fp-thumb" alt="FP">
+                            </div>
+                            
+                            <button class="btn btn-ghost-accent btn-sm" onclick="startFaceCaptureFromRow('${student.id}', '${student.name.replace(/'/g, "\\'")}', '${(student.email || '').replace(/'/g, "\\'")}')" title="Register Biometrics">
+                                <i class="fas fa-camera"></i>
                             </button>
                             <button class="btn btn-ghost-accent btn-sm" onclick="editStudent('${student.id}', '${student.name.replace(/'/g, "\\'")}', '${(student.email || '').replace(/'/g, "\\'")}')">
                                 <i class="fas fa-edit"></i>
@@ -2978,6 +3641,34 @@
                             <button type="button" class="btn btn-ghost btn-sm" onclick="connectSettingsNetworkCamera()"><i class="fas fa-link"></i> Connect</button>
                         </div>
                         <div class="form-hint">Connect to an RTSP or HTTP video stream source</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Active Camera Source</label>
+                        <div style="display:flex; gap:8px;">
+                            <button type="button" class="btn btn-primary btn-sm" onclick="switchCameraSource('esp32_cam')"><i class="fas fa-satellite-dish"></i> ESP32-CAM</button>
+                            <button type="button" class="btn btn-ghost btn-sm" onclick="switchCameraSource('webcam')"><i class="fas fa-usb"></i> USB Webcam</button>
+                        </div>
+                        <div class="form-hint">Toggle between ESP32-CAM (network) and USB webcam for face capture</div>
+                    </div>
+
+                    <div style="font-weight:700; font-size:0.85rem; text-transform:uppercase; letter-spacing:0.5px; color:var(--text-muted); margin-top:24px; margin-bottom:12px;">ESP32 Hardware</div>
+
+                    <div class="form-group">
+                        <label class="form-label">ESP32-CAM IP</label>
+                        <input type="text" class="form-input" id="settingsEspCamIp" value="Auto-detected" readonly style="opacity:0.7;">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">ESP32 Controller IP</label>
+                        <input type="text" class="form-input" id="settingsEspCtrlIp" value="Auto-detected" readonly style="opacity:0.7;">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">SD Card & Sensor Actions</label>
+                        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                            <button type="button" class="btn btn-teal btn-sm" onclick="showSdExplorerModal()"><i class="fas fa-sd-card"></i> SD Explorer</button>
+                            <button type="button" class="btn btn-rose btn-sm" onclick="showFpInfoModal()"><i class="fas fa-fingerprint"></i> FP Sensor</button>
+                            <button type="button" class="btn btn-ghost btn-sm" onclick="formatSdCard()"><i class="fas fa-eraser"></i> Format SD</button>
+                        </div>
                     </div>
 
                     <div style="font-weight:700; font-size:0.85rem; text-transform:uppercase; letter-spacing:0.5px; color:var(--text-muted); margin-top:24px; margin-bottom:12px;">Engine Settings</div>
@@ -3252,7 +3943,6 @@
                 }
                 html += `</tbody></table></div></div>
                 <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:16px;">
-                    <button class="btn btn-amber btn-sm" onclick="closeSession('${report.file_name}')"><i class="fas fa-paper-plane"></i> Close Session & Email Absentees</button>
                     <button class="btn btn-green btn-sm" onclick="exportReportPdf('${report.file_name}')"><i class="fas fa-file-pdf"></i> Export PDF</button>
                     <a class="btn btn-ghost btn-sm" href="/api/reports/download-csv/${encodeURIComponent(report.file_name)}"><i class="fas fa-file-csv"></i> Download CSV</a>
                     <button class="btn btn-rose btn-sm" onclick="deleteReport('${report.file_name}')"><i class="fas fa-trash"></i> Delete Session Log</button>
@@ -3279,453 +3969,459 @@
             }
         }
 
-        async function closeSession(fileName) {
-            if (!confirm(`Are you sure you want to close the session for ${fileName}? This will send absence notification emails to all students who were not marked present.`)) return;
-            
-            try {
-                showToast('Processing', 'Analyzing attendance and sending emails...', 'info');
-                const response = await fetch(`/api/reports/close_session/${encodeURIComponent(fileName)}`, { method: 'POST' });
-                const data = await response.json();
-                if (data.status === 'success') {
-                    showToast('Session Closed', `Sent absence notices to ${data.absent_count} student(s).`, 'success');
-                } else {
-                    showToast('Error', data.message || 'Failed to close session.', 'error');
-                }
-            } catch (error) {
-                showToast('Error', 'Network error closing session.', 'error');
-            }
-        }
-
-        // ─── BIOMETRIC INTEGRATION & ADVANCED UI SCRIPT ───
-
-        function showSdExplorerModal() {
-            document.getElementById('sdExplorerModal').classList.add('show');
-            loadSdFiles();
-        }
-
-        async function loadSdFiles() {
-            const list = document.getElementById('sdFileList');
-            list.innerHTML = '<div style="text-align:center; padding: 20px; color:var(--text-muted);"><i class="fas fa-circle-notch fa-spin"></i> Loading...</div>';
-            
-            try {
-                const configRes = await fetch('/api/biometric/config');
-                const config = await configRes.json();
-                if (!config.esp32_cam_ip || config.esp32_cam_ip === '0.0.0.0') {
-                    throw new Error('ESP32-CAM is offline.');
-                }
-                
-                // Fetch from ESP32-CAM directly
-                const url = `http://${config.esp32_cam_ip}:81/sd/list?path=/fingerprints`;
-                const response = await fetch(url);
-                
-                // Read text first to prevent JSON parse errors on HTML 404s
-                const textData = await response.text();
-                let files = [];
-                try {
-                    files = JSON.parse(textData);
-                } catch (e) {
-                    throw new Error('Received invalid data from hardware (might be offline or SD unmounted).');
-                }
-                
-                if (files.error) {
-                    throw new Error(files.error);
-                }
-                
-                if (!Array.isArray(files) || files.length === 0) {
-                    list.innerHTML = '<div style="text-align:center; padding: 20px; color:var(--text-muted);">No files found on SD card.</div>';
-                    return;
-                }
-                
-                let html = '';
-                files.forEach(f => {
-                    html += `<div class="sd-file-row">
-                        <div class="sd-file-info">
-                            <div class="sd-file-icon"><i class="fas fa-file-code"></i></div>
-                            <div class="sd-file-name">${f.name}</div>
-                            <div class="sd-file-size">${f.size} bytes</div>
-                        </div>
-                        <div class="sd-file-actions">
-                            <a class="btn btn-ghost btn-sm" href="http://${config.esp32_cam_ip}:81/sd/read?path=/fingerprints/${f.name}" target="_blank"><i class="fas fa-download"></i></a>
-                        </div>
-                    </div>`;
-                });
-                list.innerHTML = html;
-            } catch (err) {
-                list.innerHTML = `<div style="text-align:center; padding: 20px; color:var(--rose);">Error: ${err.message}</div>`;
-            }
-        }
-
+        // OLED Converter Logic
         function showOledConverterModal() {
-            document.getElementById('oledModal').classList.add('show');
+            document.getElementById('oledConverterModal').classList.add('show');
+            initOledConverterLogic();
         }
 
-        document.getElementById('oledImageInput')?.addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = function(event) {
-                const img = new Image();
-                img.onload = function() {
-                    document.getElementById('oledSourcePreview').src = event.target.result;
-                    document.getElementById('oledSourcePreview').style.display = 'block';
-                    
-                    const canvas = document.getElementById('oledCanvas');
-                    const ctx = canvas.getContext('2d');
-                    
-                    // Draw and scale to 128x64
-                    ctx.fillStyle = "white";
-                    ctx.fillRect(0, 0, 128, 64);
-                    
-                    // Calculate aspect ratio fit
-                    const scale = Math.min(128 / img.width, 64 / img.height);
-                    const w = img.width * scale;
-                    const h = img.height * scale;
-                    const x = (128 - w) / 2;
-                    const y = (64 - h) / 2;
-                    
-                    ctx.drawImage(img, x, y, w, h);
-                    
-                    // Convert to 1-bit monochrome (dithering or thresholding)
-                    const imgData = ctx.getImageData(0, 0, 128, 64);
-                    const pixels = imgData.data;
-                    for (let i = 0; i < pixels.length; i += 4) {
-                        const r = pixels[i];
-                        const g = pixels[i+1];
-                        const b = pixels[i+2];
-                        const gray = (0.299 * r + 0.587 * g + 0.114 * b);
-                        const val = gray < 128 ? 0 : 255;
-                        pixels[i] = pixels[i+1] = pixels[i+2] = val;
-                    }
-                    ctx.putImageData(imgData, 0, 0);
-                }
-                img.src = event.target.result;
-            }
-            reader.readAsDataURL(file);
-        });
+        let oledLogicInitialized = false;
+        function initOledConverterLogic() {
+            if (oledLogicInitialized) return;
+            oledLogicInitialized = true;
 
-        function generateOledCode() {
-            const canvas = document.getElementById('oledCanvas');
-            const ctx = canvas.getContext('2d');
-            const imgData = ctx.getImageData(0, 0, 128, 64).data;
+            const oledUpload = document.getElementById('oledUpload');
+            const oledVideo = document.getElementById('oledVideo');
             
-            let hexStr = 'const unsigned char bitmap_image [] PROGMEM = {\n  ';
-            let byteVal = 0;
-            let bitIdx = 0;
-            let byteCount = 0;
+            // Canvas Utama
+            const oledCanvas = document.getElementById('oledCanvas');
+            const oledCtx = oledCanvas.getContext('2d', { willReadFrequently: true });
+            oledCtx.imageSmoothingEnabled = true;
+            oledCtx.imageSmoothingQuality = "high";
             
-            for (let y = 0; y < 64; y++) {
-                for (let x = 0; x < 128; x++) {
-                    const i = (y * 128 + x) * 4;
-                    // Check brightness (white background = 0 bit in OLED, black = 1 bit usually)
-                    // We assume black pixels are ON (1) for OLED if normal mode, but Adafruit GFX expects 1 to be white.
-                    // We'll map white pixel to 1, black to 0. 
-                    const isWhite = imgData[i] > 128; 
-                    const bit = isWhite ? 0 : 1; 
-                    
-                    byteVal |= (bit << (7 - bitIdx));
-                    bitIdx++;
-                    
-                    if (bitIdx === 8) {
-                        hexStr += '0x' + byteVal.toString(16).padStart(2, '0').toUpperCase() + ', ';
-                        byteVal = 0;
-                        bitIdx = 0;
-                        byteCount++;
-                        if (byteCount % 16 === 0) hexStr += '\n  ';
-                    }
-                }
-            }
-            hexStr += '\n};';
+            // Offscreen Canvas (Pre-process)
+            const oledOffscreen = document.createElement('canvas');
+            const oledOffCtx = oledOffscreen.getContext('2d', { willReadFrequently: true });
+            oledOffCtx.imageSmoothingEnabled = true;
+            oledOffCtx.imageSmoothingQuality = "high";
             
-            document.getElementById('oledOutputCode').value = hexStr;
-            showToast('Code Generated', 'OLED C array created successfully!', 'success');
-        }
+            const oledOutputArray = document.getElementById('oledOutputArray');
+            const oledOutputMain = document.getElementById('oledOutputMain');
+            const oledStatus = document.getElementById('oledStatus');
+            
+            const oledConvertBtn = document.getElementById('oledConvertBtn');
+            const oledCopyArrayBtn = document.getElementById('oledCopyArrayBtn');
+            const oledCopyMainBtn = document.getElementById('oledCopyMainBtn');
+            const oledRotateBtn = document.getElementById('oledRotateBtn');
+            const oledFrameCountSpan = document.getElementById('oledFrameCount');
 
-        async function sendToOled() {
-            const canvas = document.getElementById('oledCanvas');
-            const ctx = canvas.getContext('2d');
-            const imgData = ctx.getImageData(0, 0, 128, 64).data;
-            const packed = new Uint8Array(1024);
+            // Settings Elements
+            const oledDitherModeInput = document.getElementById('oledDitherMode');
+            const oledScaleModeInput = document.getElementById('oledScaleMode');
+            const oledCustomControls = document.getElementById('oledCustomControls');
+            const oledFpsInput = document.getElementById('oledFps');
             
-            for (let i = 0; i < 1024; i++) {
-                let byteVal = 0;
-                for (let bit = 0; bit < 8; bit++) {
-                    const idx = (i * 8 + bit) * 4;
-                    if (imgData[idx] > 128) {
-                        byteVal |= (1 << (7 - bit));
-                    }
-                }
-                packed[i] = byteVal;
-            }
+            const oledThicknessInput = document.getElementById('oledThickness');
+            const oledThickNumInput = document.getElementById('oledThickNum');
             
-            try {
-                const response = await fetch('/api/controller/custom_oled', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/octet-stream' },
-                    body: packed
+            const oledThresholdInput = document.getElementById('oledThreshold');
+            const oledContrastInput = document.getElementById('oledContrast');
+            const oledBrightnessInput = document.getElementById('oledBrightness');
+            const oledInvertInput = document.getElementById('oledInvert');
+            
+            const oledCustomW = document.getElementById('oledCustomW');
+            const oledCustomH = document.getElementById('oledCustomH');
+            const oledCustomX = document.getElementById('oledCustomX');
+            const oledCustomY = document.getElementById('oledCustomY');
+
+            let oledIsConverting = false;
+            let oledAnimationFrameId = null;
+            let oledRotationAngle = 0;
+
+            // MATRIKS BAYER 8x8 (Standar Image2Cpp)
+            const bayer8x8 = [
+                [ 0, 32,  8, 40,  2, 34, 10, 42],
+                [48, 16, 56, 24, 50, 18, 58, 26],
+                [12, 44,  4, 36, 14, 46,  6, 38],
+                [60, 28, 52, 20, 62, 30, 54, 22],
+                [ 3, 35, 11, 43,  1, 33,  9, 41],
+                [51, 19, 59, 27, 49, 17, 57, 25],
+                [15, 47,  7, 39, 13, 45,  5, 37],
+                [63, 31, 55, 23, 61, 29, 53, 21]
+            ];
+
+            // UI Listeners
+            const bindLabel = (input, labelId, suffix = '') => {
+                input.addEventListener('input', () => {
+                    const el = document.getElementById(labelId);
+                    if (el) el.innerText = input.value + suffix;
                 });
-                const result = await response.json();
-                if (result.status === 'success') {
-                    showToast('Sent to OLED', 'Image pushed to the hardware screen.', 'success');
+            };
+            
+            bindLabel(oledFpsInput, 'oledFpsVal');
+            bindLabel(oledThresholdInput, 'oledThreshVal');
+            bindLabel(oledContrastInput, 'oledContrastVal', '%');
+            bindLabel(oledBrightnessInput, 'oledBrightVal', '%');
+            bindLabel(oledCustomW, 'oledCwVal');
+            bindLabel(oledCustomH, 'oledChVal');
+            bindLabel(oledCustomX, 'oledCxVal');
+            bindLabel(oledCustomY, 'oledCyVal');
+
+            const updateThickLabel = () => {
+                const val = parseFloat(oledThicknessInput.value);
+                let text = "Normal";
+                if(val < 0) text = `Darken +${Math.abs(val)}`;
+                if(val > 0) text = `Lighten +${val}`;
+                const thickValEl = document.getElementById('oledThickVal');
+                if (thickValEl) thickValEl.innerText = text;
+            };
+            oledThicknessInput.addEventListener('input', updateThickLabel);
+
+            oledThicknessInput.addEventListener('input', (e) => { oledThickNumInput.value = e.target.value; });
+            oledThickNumInput.addEventListener('input', (e) => {
+                let val = parseFloat(e.target.value);
+                if(val > 3) val = 3; if(val < -3) val = -3;
+                oledThicknessInput.value = val;
+                updateThickLabel();
+            });
+
+            const updateCustomUI = () => {
+                const mode = oledScaleModeInput.value;
+                if (mode === 'custom') {
+                    oledCustomControls.style.display = 'block';
+                    document.getElementById('oledGrpW').style.display = 'block';
+                    document.getElementById('oledGrpH').style.display = 'block';
+                } else if (mode === 'cover') {
+                    oledCustomControls.style.display = 'block';
+                    document.getElementById('oledGrpW').style.display = 'none';
+                    document.getElementById('oledGrpH').style.display = 'none';
                 } else {
-                    showToast('Error', 'Failed to send image.', 'error');
+                    oledCustomControls.style.display = 'none';
+                }
+            };
+
+            // Triggers
+            [oledDitherModeInput, oledScaleModeInput, oledFpsInput, oledThicknessInput, oledThickNumInput, oledThresholdInput, oledContrastInput, oledBrightnessInput, oledInvertInput, oledCustomW, oledCustomH, oledCustomX, oledCustomY].forEach(el => {
+                el.addEventListener('input', () => {
+                    if(oledVideo.paused && !oledIsConverting) drawFrame();
+                });
+            });
+
+            const setupReset = (btnId, inputEls, defaultVal, labelId, suffix = '', customFunc = null) => {
+                const btn = document.getElementById(btnId);
+                if (btn) {
+                    btn.addEventListener('click', () => {
+                        if (Array.isArray(inputEls)) {
+                            inputEls.forEach(el => el.value = defaultVal);
+                        } else {
+                            inputEls.value = defaultVal;
+                        }
+                        const labelEl = document.getElementById(labelId);
+                        if (labelEl) labelEl.innerText = defaultVal + suffix;
+                        if (customFunc) customFunc();
+                        if (oledVideo.paused && !oledIsConverting) drawFrame();
+                    });
+                }
+            };
+            setupReset('oledResetFps', oledFpsInput, 10, 'oledFpsVal');
+            setupReset('oledResetThick', [oledThicknessInput, oledThickNumInput], 0, null, '', updateThickLabel);
+            setupReset('oledResetThresh', oledThresholdInput, 128, 'oledThreshVal');
+            setupReset('oledResetContrast', oledContrastInput, 100, 'oledContrastVal', '%');
+            setupReset('oledResetBrightness', oledBrightnessInput, 100, 'oledBrightVal', '%');
+            setupReset('oledResetX', oledCustomX, 0, 'oledCxVal');
+            setupReset('oledResetY', oledCustomY, 0, 'oledCyVal');
+
+            oledScaleModeInput.addEventListener('change', () => {
+                updateCustomUI();
+                if (oledVideo.paused && !oledIsConverting) drawFrame();
+            });
+
+            oledRotateBtn.addEventListener('click', () => {
+                oledRotationAngle = (oledRotationAngle + 90) % 360;
+                if (oledVideo.paused && !oledIsConverting) drawFrame();
+            });
+
+            oledUpload.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if(file) {
+                    oledVideo.src = URL.createObjectURL(file);
+                    oledConvertBtn.disabled = false;
+                    oledRotationAngle = 0; 
+                    oledStatus.innerText = "Video loaded. Adjust settings, then click Start.";
+                }
+            });
+
+            function renderLoop() {
+                if (!oledVideo.paused && !oledVideo.ended && !oledIsConverting) drawFrame();
+                oledAnimationFrameId = requestAnimationFrame(renderLoop);
+            }
+
+            oledVideo.addEventListener('play', () => { if (!oledAnimationFrameId) renderLoop(); });
+            oledVideo.addEventListener('pause', () => {
+                if (oledAnimationFrameId) { cancelAnimationFrame(oledAnimationFrameId); oledAnimationFrameId = null; }
+                if (!oledIsConverting) drawFrame(); 
+            });
+            oledVideo.addEventListener('timeupdate', () => { if (oledVideo.paused && !oledIsConverting) drawFrame(); });
+
+            // FUNGSI UTAMA PENGGAMBARAN
+            function drawFrame() {
+                if (oledVideo.videoWidth === 0 || oledVideo.videoHeight === 0) return;
+
+                let vW = oledVideo.videoWidth;
+                let vH = oledVideo.videoHeight;
+                let isRotated = (oledRotationAngle % 180 !== 0);
+                let effW = isRotated ? vH : vW;
+                let effH = isRotated ? vW : vH;
+
+                // 1. Pre-process Offscreen Canvas
+                if (oledOffscreen.width !== effW || oledOffscreen.height !== effH) {
+                    oledOffscreen.width = effW;
+                    oledOffscreen.height = effH;
+                }
+                
+                const bright = oledBrightnessInput.value;
+                const cont = oledContrastInput.value;
+                const inv = oledInvertInput.checked ? 'invert(100%)' : 'invert(0%)';
+                
+                oledOffCtx.filter = `brightness(${bright}%) contrast(${cont}%) ${inv}`;
+                oledOffCtx.save();
+                oledOffCtx.translate(effW / 2, effH / 2);
+                oledOffCtx.rotate(oledRotationAngle * Math.PI / 180);
+                let drawOffW = isRotated ? effH : effW;
+                let drawOffH = isRotated ? effW : effH;
+                oledOffCtx.drawImage(oledVideo, -drawOffW / 2, -drawOffH / 2, drawOffW, drawOffH);
+                oledOffCtx.restore();
+                oledOffCtx.filter = 'none';
+
+                // 2. Clear Main Canvas
+                oledCtx.filter = 'none';
+                oledCtx.fillStyle = "black";
+                oledCtx.fillRect(0, 0, 128, 64);
+
+                let targetX = 0, targetY = 0, targetW = 128, targetH = 64;
+
+                if (oledScaleModeInput.value === 'stretch') {
+                    targetX = 0; targetY = 0; targetW = 128; targetH = 64;
+                } else if (oledScaleModeInput.value === 'fit') {
+                    const scale = Math.min(128 / effW, 64 / effH);
+                    targetW = effW * scale;
+                    targetH = effH * scale;
+                    targetX = (128 - targetW) / 2;
+                    targetY = (64 - targetH) / 2;
+                } else if (oledScaleModeInput.value === 'cover') {
+                    const scale = Math.max(128 / effW, 64 / effH);
+                    targetW = effW * scale;
+                    targetH = effH * scale;
+                    targetX = ((128 - targetW) / 2) + parseInt(oledCustomX.value);
+                    targetY = ((64 - targetH) / 2) + parseInt(oledCustomY.value);
+                } else if (oledScaleModeInput.value === 'custom') {
+                    targetW = parseInt(oledCustomW.value);
+                    targetH = parseInt(oledCustomH.value);
+                    targetX = parseInt(oledCustomX.value);
+                    targetY = parseInt(oledCustomY.value);
+                }
+
+                // 3. Sub-pixel Thickness Shifting
+                const t = parseFloat(oledThicknessInput.value);
+                if (t < 0) oledCtx.globalCompositeOperation = 'darken';
+                else if (t > 0) oledCtx.globalCompositeOperation = 'lighten';
+                else oledCtx.globalCompositeOperation = 'source-over';
+
+                oledCtx.drawImage(oledOffscreen, targetX, targetY, targetW, targetH);
+
+                if (t !== 0) {
+                    const offset = Math.abs(t); 
+                    oledCtx.drawImage(oledOffscreen, targetX - offset, targetY, targetW, targetH);
+                    oledCtx.drawImage(oledOffscreen, targetX + offset, targetY, targetW, targetH);
+                    oledCtx.drawImage(oledOffscreen, targetX, targetY - offset, targetW, targetH);
+                    oledCtx.drawImage(oledOffscreen, targetX, targetY + offset, targetW, targetH);
+                    oledCtx.drawImage(oledOffscreen, targetX - offset*0.7, targetY - offset*0.7, targetW, targetH);
+                    oledCtx.drawImage(oledOffscreen, targetX + offset*0.7, targetY - offset*0.7, targetW, targetH);
+                    oledCtx.drawImage(oledOffscreen, targetX - offset*0.7, targetY + offset*0.7, targetW, targetH);
+                    oledCtx.drawImage(oledOffscreen, targetX + offset*0.7, targetY + offset*0.7, targetW, targetH);
+                }
+                oledCtx.globalCompositeOperation = 'source-over';
+
+                // 4. KONVERSI LUMINANCE NTSC
+                const ditherMode = oledDitherModeInput.value;
+                const thresholdValue = parseInt(oledThresholdInput.value);
+                const bias = thresholdValue - 128;
+                const imageData = oledCtx.getImageData(0, 0, 128, 64);
+                const data = imageData.data;
+                
+                let gray = new Int16Array(128 * 64);
+                for (let i = 0; i < 128 * 64; i++) {
+                    let luminance = (data[i*4] * 0.299) + (data[i*4+1] * 0.587) + (data[i*4+2] * 0.114);
+                    gray[i] = Math.max(0, Math.min(255, luminance - bias));
+                }
+
+                // 5. PENERAPAN DITHERING & THRESHOLD
+                if (ditherMode === 'threshold') {
+                    for (let i = 0; i < 128 * 64; i++) {
+                        let color = gray[i] >= 128 ? 255 : 0;
+                        data[i*4] = data[i*4+1] = data[i*4+2] = color;
+                    }
+                } 
+                else if (ditherMode === 'bayer') {
+                    for (let y = 0; y < 64; y++) {
+                        for (let x = 0; x < 128; x++) {
+                            let idx = y * 128 + x;
+                            let bayerValue = (bayer8x8[y % 8][x % 8] / 64.0) * 255;
+                            data[idx*4] = data[idx*4+1] = data[idx*4+2] = gray[idx] >= bayerValue ? 255 : 0;
+                        }
+                    }
+                } 
+                else if (ditherMode === 'floyd' || ditherMode === 'atkinson') {
+                    for (let y = 0; y < 64; y++) {
+                        for (let x = 0; x < 128; x++) {
+                            let idx = y * 128 + x;
+                            let oldPixel = gray[idx];
+                            let newPixel = oldPixel >= 128 ? 255 : 0;
+                            
+                            data[idx*4] = data[idx*4+1] = data[idx*4+2] = newPixel;
+                            let err = oldPixel - newPixel;
+                            
+                            if (ditherMode === 'floyd') {
+                                if (x < 127) gray[idx + 1] += (err * 7) >> 4;
+                                if (x > 0 && y < 63) gray[idx + 127] += (err * 3) >> 4;
+                                if (y < 63) gray[idx + 128] += (err * 5) >> 4;
+                                if (x < 127 && y < 63) gray[idx + 129] += (err * 1) >> 4;
+                            } else {
+                                err = err >> 3; // Atkinson
+                                if (x + 1 < 128) gray[idx + 1] += err;
+                                if (x + 2 < 128) gray[idx + 2] += err;
+                                if (y + 1 < 64) {
+                                    if (x - 1 >= 0) gray[idx + 127] += err;
+                                    gray[idx + 128] += err;
+                                    if (x + 1 < 128) gray[idx + 129] += err;
+                                }
+                                if (y + 2 < 64) gray[idx + 256] += err;
+                            }
+                        }
+                    }
+                }
+                oledCtx.putImageData(imageData, 0, 0);
+
+                // Stream to Physical OLED if enabled
+                if (isOledStreamingEnabled && !isOledStreamSending) {
+                    isOledStreamSending = true;
+                    const byteArray = new Uint8Array(1024);
+                    let byteIdx = 0;
+                    for (let y = 0; y < 64; y++) {
+                        for (let x_byte = 0; x_byte < 16; x_byte++) {
+                            let byte = 0;
+                            for (let bit = 0; bit < 8; bit++) {
+                                let x = (x_byte * 8) + bit;
+                                let pos = (y * 128 + x) * 4;
+                                if (data[pos] === 255) {
+                                    byte |= (1 << (7 - bit));
+                                }
+                            }
+                            byteArray[byteIdx++] = byte;
+                        }
+                    }
+                    
+                    fetch('/api/controller/set_live_face', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/octet-stream' },
+                        body: byteArray
+                    }).then(res => res.json())
+                      .catch(err => console.error("Error streaming to OLED:", err))
+                      .finally(() => {
+                          isOledStreamSending = false;
+                      });
+                }
+            }
+
+            // FUNGSI EKSTRAKSI ARRAY C++
+            oledConvertBtn.addEventListener('click', async () => {
+                if(oledIsConverting) return;
+                oledIsConverting = true;
+                oledConvertBtn.disabled = true;
+                oledOutputArray.value = "Processing... This might take a few moments.";
+                oledFrameCountSpan.innerText = "0";
+                
+                oledVideo.pause();
+                oledStatus.innerText = "Extracting frames...";
+
+                let framesData = [];
+                const fps = parseInt(oledFpsInput.value);
+                const duration = oledVideo.duration;
+                const totalFrames = Math.floor(duration * fps);
+                const interval = 1 / fps;
+
+                for (let i = 0; i < totalFrames; i++) {
+                    oledVideo.currentTime = i * interval;
+                    await new Promise(resolve => { oledVideo.onseeked = resolve; });
+                    drawFrame();
+
+                    const imageData = oledCtx.getImageData(0, 0, 128, 64);
+                    const data = imageData.data;
+                    let byteArray = [];
+
+                    for (let y = 0; y < 64; y++) {
+                        for (let x_byte = 0; x_byte < 16; x_byte++) {
+                            let byte = 0;
+                            for (let bit = 0; bit < 8; bit++) {
+                                let x = (x_byte * 8) + bit;
+                                let pos = (y * 128 + x) * 4;
+                                if (data[pos] === 255) { byte |= (1 << (7 - bit)); }
+                            }
+                            byteArray.push("0x" + byte.toString(16).padStart(2, '0'));
+                        }
+                    }
+                    framesData.push(`  {\n    ${byteArray.join(", ")}\n  }`);
+                    oledFrameCountSpan.innerText = framesData.length;
+                }
+
+                const finalCode = 
+`#include <Arduino.h>
+
+const int TOTAL_FRAMES = ${framesData.length};
+const int FRAME_DELAY = ${Math.floor(1000 / fps)}; // Target delay (ms)
+
+const unsigned char video_frames[][1024] PROGMEM = {
+${framesData.join(",\n")}
+};`;
+                
+                oledOutputArray.value = finalCode;
+                oledStatus.innerText = "✅ Done! Copy the code below.";
+                oledIsConverting = false;
+                oledConvertBtn.disabled = false;
+            });
+
+            // Copy Action Binding
+            const setupCopyAction = (btnId, outputEl) => {
+                document.getElementById(btnId).addEventListener('click', () => {
+                    if(outputEl.value.trim() === "") return;
+                    outputEl.select();
+                    document.execCommand('copy');
+                    const btn = document.getElementById(btnId);
+                    const originalText = btn.innerHTML;
+                    btn.innerHTML = "<i class='fas fa-check'></i> Copied Successfully!";
+                    setTimeout(() => btn.innerHTML = originalText, 2000);
+                });
+            };
+            
+            setupCopyAction('oledCopyArrayBtn', oledOutputArray);
+            setupCopyAction('oledCopyMainBtn', oledOutputMain);
+        }
+
+        async function syncDatabaseToSD() {
+            try {
+                updateStatus('running', 'Synchronizing database to SD card...', 30);
+                const res = await fetch('/api/system/sync_sd', { method: 'POST' });
+                const data = await res.json();
+                if (data.status === 'success') {
+                    updateStatus('success', data.message, 100);
+                    showToast('Sync Successful', data.message, 'success');
+                } else {
+                    updateStatus('error', data.message, 0);
+                    showToast('Sync Failed', data.message, 'error');
                 }
             } catch (e) {
-                showToast('Error', 'Network error sending to OLED.', 'error');
+                updateStatus('error', 'Connection failed', 0);
+                showToast('Sync Error', 'Failed to reach server.', 'error');
             }
         }
-
-        // Initialize Dashboard Import Form
-        document.addEventListener('DOMContentLoaded', function () {
-            const dashboardImportForm = document.getElementById("dashboardImportForm");
-            if (dashboardImportForm) {
-                dashboardImportForm.addEventListener("submit", async (evt) => {
-                    evt.preventDefault();
-                    const fileInput = document.getElementById("dashboardImportFile");
-                    if (!fileInput.files.length) {
-                        showToast("Error", "Select a CSV file first.", "error");
-                        return;
-                    }
-                    const formData = new FormData();
-                    formData.append("file", fileInput.files[0]);
-
-                    try {
-                        const res = await fetch("/api/data/import-students", {
-                            method: "POST",
-                            body: formData
-                        });
-                        const result = await res.json();
-                        if (result.status === "success") {
-                            showToast("Import Success", `Ingested ${result.added} profiles, skipped ${result.skipped} duplicates.`, "success");
-                            refreshStatus();
-                            fileInput.value = "";
-                        } else {
-                            showToast("Import Failed", result.message || "Bulk import failed", "error");
-                        }
-                    } catch (err) {
-                        showToast("Import Error", err.message || "Failed to import CSV", "error");
-                    }
-                });
-            }
-        });
-
-        let previewActive = false;
-        let currentPreviewSource = 'webcam';
-
-        async function toggleLivePreviewState() {
-            const img = document.getElementById('cameraPreviewImage');
-            const placeholder = document.getElementById('cameraPlaceholderText');
-            const btn = document.getElementById('togglePreviewBtn');
-            const dot = document.getElementById('previewPulseDot');
-            const text = document.getElementById('previewStatusText');
-
-            if (previewActive) {
-                previewActive = false;
-                img.style.display = 'none';
-                img.src = '';
-                placeholder.style.display = 'block';
-                btn.innerHTML = '<i class="fas fa-play"></i> Start Preview';
-                btn.className = 'btn btn-ghost';
-                dot.style.background = 'var(--text-muted)';
-                text.textContent = 'Preview Idle';
-                
-                if (currentPreviewSource === 'webcam') {
-                    await fetch('/api/camera/check/stop', { method: 'POST' });
-                }
-            } else {
-                previewActive = true;
-                img.style.display = 'block';
-                placeholder.style.display = 'none';
-                btn.innerHTML = '<i class="fas fa-stop"></i> Stop Preview';
-                btn.className = 'btn btn-rose';
-                dot.style.background = 'var(--emerald)';
-                text.textContent = 'Preview Active';
-
-                if (currentPreviewSource === 'esp32_cam') {
-                    const configRes = await fetch('/api/biometric/config');
-                    const config = await configRes.json();
-                    if (config.esp32_cam_ip && config.esp32_cam_ip !== '0.0.0.0') {
-                        const streamUrl = `http://${config.esp32_cam_ip}:81/stream`;
-                        img.src = streamUrl;
-                        // Tell backend to use this IP for recognition tasks
-                        fetch('/api/camera/set', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ camera_source: streamUrl })
-                        });
-                    } else {
-                        showToast('ESP32-CAM Not Found', 'Ensure the ESP32-CAM is connected to the same network.', 'error');
-                        toggleLivePreviewState(); // Revert
-                    }
-                } else {
-                    // For USB, trigger camera check to start the backend stream
-                    await fetch('/api/camera/check', { method: 'POST' });
-                    img.src = `/api/camera/preview?t=${Date.now()}`;
-                    
-                    fetch('/api/camera/set', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ camera_source: 0 }) 
-                    });
-                }
-            }
-        }
-
-        async function toggleCameraSource(value) {
-            currentPreviewSource = value;
-            if (previewActive) {
-                await toggleLivePreviewState(); 
-                await toggleLivePreviewState();
-            }
-        }
-
-        async function showBiometricModal() {
-            document.getElementById('biometricModal').classList.add('show');
-            loadBiometricData();
-        }
-
-        async function loadBiometricData() {
-            try {
-                const response = await fetch('/api/biometric/config');
-                const data = await response.json();
-                
-                document.getElementById('controller-status').textContent = data.controller_status;
-                document.getElementById('controller-status').style.color = data.controller_status.includes('online') ? 'var(--emerald)' : 'var(--rose)';
-                document.getElementById('esp32-cam-status').textContent = data.esp32_cam_ip;
-                
-                const tbody = document.getElementById('biometric-mapping-body');
-                let html = '';
-                
-                if (data.students && data.students.length > 0) {
-                    data.students.forEach(student => {
-                        html += `<tr>
-                            <td>${student.id}</td>
-                            <td>${student.name}</td>
-                            <td>${student.fp_slot || '<span style="color:var(--text-light);">Unmapped</span>'}</td>
-                            <td>
-                                <button class="btn btn-ghost-accent btn-sm" onclick="mapFingerprint('${student.id}')">
-                                    <i class="fas fa-fingerprint"></i> Map Slot
-                                </button>
-                            </td>
-                        </tr>`;
-                    });
-                } else {
-                    html = '<tr><td colspan="4" style="text-align:center; color:var(--text-muted);">No students enrolled</td></tr>';
-                }
-                
-                tbody.innerHTML = html;
-            } catch (error) {
-                console.error('Failed to load biometric data:', error);
-            }
-        }
-
-        async function mapFingerprint(studentId) {
-            const slot = prompt(`Enter Fingerprint Slot ID (1-1000) for Student ${studentId}:`);
-            if (slot === null) return;
-
-            const slotNum = parseInt(slot);
-            if (isNaN(slotNum) || slotNum < 1 || slotNum > 1000) {
-                showToast('Invalid Slot', 'Please enter a number between 1 and 1000.', 'error');
-                return;
-            }
-            try {
-                const response = await fetch('/api/biometric/config', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ student_id: studentId, slot: slotNum })
-                });
-                const result = await response.json();
-                if (result.status === 'success') {
-                    showToast('Mapped', `Student ${studentId} mapped to slot ${slotNum}`, 'success');
-                    loadBiometricData();
-                }
-            } catch (error) {
-                showToast('Error', 'Failed to save mapping.', 'error');
-            }
-        }
-
-        async function toggleHardwareFeature(feature) {
-            let payload = {};
-            if (feature === 'hazard') {
-                // Read current state (using the UI class or a global)
-                // For simplicity, we toggle a hypothetical state, or just send true then false later
-                // Let's just toggle based on a local variable
-                window.hazardState = !window.hazardState;
-                payload.hazard = window.hazardState;
-                showToast('Hardware Command', window.hazardState ? 'Hazard lights enabled.' : 'Hazard lights disabled.', 'info');
-            } else if (feature === 'unlock') {
-                payload.unlock = 5; // 5 seconds
-                showToast('Hardware Command', 'Unlocking door for 5 seconds.', 'success');
-            } else if (feature === 'flash') {
-                window.flashState = !window.flashState;
-                payload.flash = window.flashState;
-                document.getElementById('cam-hw-flash').textContent = window.flashState ? 'On' : 'Off';
-                showToast('Hardware Command', window.flashState ? 'ESP32-CAM Flash turned ON.' : 'ESP32-CAM Flash turned OFF.', 'info');
-            }
-            
-            try {
-                await fetch('/api/hardware/control', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-            } catch (error) {
-                showToast('Hardware Error', 'Failed to send command to hardware.', 'error');
-            }
-        }
-
-        // Periodically update the Hardware Cards on the dashboard
-        setInterval(async () => {
-            try {
-                const configRes = await fetch('/api/biometric/config');
-                const config = await configRes.json();
-                
-                const cStatus = document.getElementById('controller-hw-status');
-                const cIp = document.getElementById('controller-hw-ip');
-                const cDot = document.getElementById('controller-dot');
-                
-                const camStatus = document.getElementById('cam-hw-status');
-                const camDot = document.getElementById('cam-dot');
-                
-                let activeDevices = 0;
-                
-                if (config.controller_status.includes('online')) {
-                    cStatus.textContent = 'Online';
-                    cStatus.style.color = 'var(--emerald)';
-                    cIp.textContent = 'Connected'; // IP not exposed yet
-                    cDot.className = 'hw-dot';
-                    activeDevices++;
-                } else {
-                    cStatus.textContent = 'Offline';
-                    cStatus.style.color = 'var(--rose)';
-                    cDot.className = 'hw-dot offline';
-                }
-                
-                if (config.esp32_cam_ip && config.esp32_cam_ip !== '0.0.0.0') {
-                    camStatus.textContent = config.esp32_cam_ip;
-                    camStatus.style.color = 'var(--emerald)';
-                    camDot.className = 'hw-dot';
-                    activeDevices++;
-                } else {
-                    camStatus.textContent = 'Offline';
-                    camStatus.style.color = 'var(--rose)';
-                    camDot.className = 'hw-dot offline';
-                }
-                
-                document.getElementById('hw-device-count').textContent = activeDevices;
-                document.getElementById('hw-status-trend').innerHTML = activeDevices > 0 ? 
-                    '<i class="fas fa-circle" style="font-size:0.5rem; color:var(--emerald);"></i> Online' : 
-                    '<i class="fas fa-circle" style="font-size:0.5rem;"></i> Offline';
-                
-            } catch (err) {}
-        }, 3000);
 
         async function resetSystemDatabase() {
-            const confirmText = prompt('CRITICAL ACTION: This will erase ALL student records and biometric data.\\nType "RESET" to confirm:');
+            const confirmText = prompt('CRITICAL ACTION: This will erase ALL student records and biometric data.\nType "RESET" to confirm:');
             if (confirmText !== 'RESET') return;
             
             const password = prompt('Enter admin password to proceed:');
             if (!password) return;
-
+            
             const fullReset = confirm('Do you also want to wipe all fingerprints from the hardware sensor memory? (Recommended if starting fresh)');
 
             try {
@@ -3739,8 +4435,8 @@
                 if (data.status === 'success') {
                     updateStatus('success', 'System reset completed successfully.', 100);
                     showToast('Database Reset', 'All records have been purged.', 'success');
-                    if(typeof loadStudentData === "function") loadStudentData();
-                    if(typeof refreshStatus === "function") refreshStatus();
+                    loadStudentData();
+                    refreshStatus();
                 } else {
                     updateStatus('error', data.message, 0);
                     showToast('Reset Failed', data.message, 'error');
@@ -3748,6 +4444,16 @@
             } catch (e) {
                 updateStatus('error', 'Connection failed', 0);
             }
+        }
+
+        function viewFullFingerprint(slot) {
+            const modal = document.getElementById('fpPreviewModal');
+            const img = document.getElementById('fullFpImage');
+            const meta = document.getElementById('fpImageMeta');
+            
+            img.src = `/static/captured_photos/fingerprints/fp_${slot}.bmp?t=${new Date().getTime()}`;
+            meta.textContent = `Slot #${slot} · High-Resolution Biometric Scan`;
+            modal.classList.add('show');
         }
     </script>
 </body>
