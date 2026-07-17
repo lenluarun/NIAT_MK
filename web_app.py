@@ -67,6 +67,7 @@ preview_state = {"active": False, "frame": None, "label": ""}
 camera_check_stop_event = threading.Event()
 capture_stop_event = threading.Event()
 recognition_stop_event = threading.Event()
+recognition_running = False
 
 
 def update_preview_frame(frame, label=None):
@@ -339,8 +340,10 @@ def system_status():
         "boot_animation": app_settings.get('boot_animation', True) if app_settings else True,
         "hud_mode": app_settings.get('hud_mode', True) if app_settings else True,
         "recognition_available": RECOGNITION_AVAILABLE,
+        "recognition_import_error": RECOGNITION_IMPORT_ERROR,
         "latest_attendance": latest_report['file_name'],
         "camera_count": 1,
+        "preview_active": preview_state.get("active", False),
     })
 
 @app.route('/api/camera/check', methods=['POST'])
@@ -537,6 +540,63 @@ def train_images():
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
 
+def start_recognition_internal():
+    """Start face recognition background process"""
+    global recognition_running
+    if recognition_running:
+        return "started", "Already running"
+
+    emit_status("Starting attendance recognition...", 0)
+    recognition_stop_event.clear()
+    before_snapshot = _recognition_snapshot()
+
+    def handle_face_match(student_id, name):
+        """Handle face recognition match for OLED and Web"""
+        if biometric_manager:
+            biometric_manager.last_match = {
+                "type": "Face",
+                "id": student_id,
+                "name": name,
+                "timestamp": time.time()
+            }
+
+    def run_recognition():
+        global last_recognition_result, recognition_running
+        try:
+            recognition_running = True
+            preview_state["active"] = True
+            recognize.recognize_attendence(
+                storage_paths,
+                data_manager,
+                camera_index=app_settings['camera_index'],
+                pass_mark=app_settings['recognition_pass_mark'],
+                fast_mode=(app_settings.get("recognition_mode", "fast") == "fast"),
+                frame_callback=lambda frame: update_preview_frame(frame, "recognition"),
+                match_callback=handle_face_match,
+                show_window=False,
+                max_runtime_seconds=45,
+                stop_event=recognition_stop_event
+            )
+            
+            if recognition_stop_event.is_set():
+                emit_status("Recognition stopped by user", 100, "warning")
+                return
+
+            last_recognition_result = _build_recognition_result(before_snapshot)
+            emit_status(last_recognition_result['message'], 100, "success")
+        except Exception as e:
+            emit_status(f"Recognition failed: {str(e)}", 0, "error")
+        finally:
+            recognition_running = False
+            preview_state["active"] = False
+            clear_preview_frame()
+
+    thread = threading.Thread(target=run_recognition)
+    thread.daemon = True
+    thread.start()
+    return "started", "Started"
+
+
 @app.route('/api/recognize/attendance', methods=['POST'])
 def recognize_attendance():
     """Start attendance recognition"""
@@ -544,55 +604,9 @@ def recognize_attendance():
         return jsonify({"status": "error", "message": "Recognition module not available"}), 500
 
     try:
-        emit_status("Starting attendance recognition...", 0)
-        recognition_stop_event.clear()
-        before_snapshot = _recognition_snapshot()
-
-        def handle_face_match(student_id, name):
-            """Handle face recognition match for OLED and Web"""
-            if biometric_manager:
-                biometric_manager.last_match = {
-                    "type": "Face",
-                    "id": student_id,
-                    "name": name,
-                    "timestamp": time.time()
-                }
-            
-            # This will be picked up by the next poll
-            
-        def run_recognition():
-            global last_recognition_result
-            try:
-                preview_state["active"] = True
-                recognize.recognize_attendence(
-                    storage_paths,
-                    data_manager,
-                    camera_index=app_settings['camera_index'],
-                    pass_mark=app_settings['recognition_pass_mark'],
-                    fast_mode=(app_settings.get("recognition_mode", "fast") == "fast"),
-                    frame_callback=lambda frame: update_preview_frame(frame, "recognition"),
-                    match_callback=handle_face_match,
-                    show_window=False,
-                    max_runtime_seconds=45,
-                    stop_event=recognition_stop_event
-                )
-                
-                if recognition_stop_event.is_set():
-                    emit_status("Recognition stopped by user", 100, "warning")
-                    return
-
-                last_recognition_result = _build_recognition_result(before_snapshot)
-                emit_status(last_recognition_result['message'], 100, "success")
-            except Exception as e:
-                emit_status(f"Recognition failed: {str(e)}", 0, "error")
-            finally:
-                preview_state["active"] = False
-                clear_preview_frame()
-
-        thread = threading.Thread(target=run_recognition)
-        thread.daemon = True
-        thread.start()
-
+        status, msg = start_recognition_internal()
+        if status == "error":
+            return jsonify({"status": "error", "message": msg}), 500
         return jsonify({"status": "started"})
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
@@ -1149,8 +1163,15 @@ def operation_status():
     try:
         result = dict(current_operation)
         result['last_recognition_result'] = last_recognition_result
+        result['preview_active'] = preview_state.get("active", False)
+        result['recognition_running'] = recognition_running
+        if 'trigger_download' in current_operation:
+            del current_operation['trigger_download']
         return jsonify(result)
     except Exception:
+        # If result is already created, make sure we still try to delete trigger_download
+        if 'trigger_download' in current_operation:
+            del current_operation['trigger_download']
         return jsonify(current_operation)
 
 
@@ -1188,6 +1209,9 @@ def controller_poll():
         oled_line2 = match['name'][:20] # Truncate if too long
         oled_line3 = f"ID: {match['id']}"
     
+    if time.time() < getattr(biometric_manager, "stats_display_until", 0):
+        oled_line1, oled_line2, oled_line3 = biometric_manager.stats_lines
+
     response = {
         "esp32_cam_ip": biometric_manager.esp32_cam_ip,
         "oled_line1": oled_line1,
@@ -1200,13 +1224,13 @@ def controller_poll():
         "hazard": getattr(biometric_manager, "hazard", False),
         "preview_active": preview_state.get("active", False)
     }
-    
+
     # Auto-reset one-time triggers
     if getattr(biometric_manager, "unlock_duration", 0) > 0:
         biometric_manager.unlock_duration = 0
     if getattr(biometric_manager, "empty_sensor_db", False):
         biometric_manager.empty_sensor_db = False
-        
+
     return jsonify(response)
 
 @app.route('/api/controller/event', methods=['POST'])
@@ -1221,12 +1245,109 @@ def controller_event():
     slot = data.get('slot', 0)
     status = data.get('status', '')
     confidence = data.get('confidence', 0)
-    
+
     biometric_manager.last_fp_event = {
         "slot": slot,
         "action": action,
         "timestamp": time.time()
     }
+
+    if action == "button_press":
+        button_id = str(slot)
+        if button_id in biometric_manager.button_states:
+            import datetime
+            now_str = datetime.datetime.now().strftime('%H:%M:%S')
+            biometric_manager.button_states[button_id]["last_pressed"] = now_str
+
+        if slot == 1: # Start/Stop Cam Preview
+            if not preview_state.get("active", False):
+                emit_status("Checking camera...", 0)
+                camera_check_stop_event.clear()
+                def run_check():
+                    try:
+                        preview_state["active"] = True
+                        check_camera.camer(app_settings['camera_index'], frame_callback=lambda frame: update_preview_frame(frame, "camera-check"), show_window=False, stop_event=camera_check_stop_event)
+                        emit_status("Camera check completed successfully!", 100, "success")
+                    except Exception as e:
+                        emit_status(f"Camera check failed: {str(e)}", 0, "error")
+                    finally:
+                        preview_state["active"] = False
+                        clear_preview_frame()
+                thread = threading.Thread(target=run_check)
+                thread.daemon = True
+                thread.start()
+                emit_status("Camera preview started by physical button", 100, "success")
+            else:
+                camera_check_stop_event.set()
+                emit_status("Camera preview stopped by physical button", 100, "warning")
+            return jsonify({"status": "success", "preview_active": preview_state.get("active", False)})
+
+        elif slot == 2: # OLED Stats Display
+            students = data_manager.get_all_students()
+            total_students = len(students)
+            enrolled_fps = sum(1 for s in students if s.get('fp_slot') and str(s['fp_slot']).strip() != "")
+
+            present_count = 0
+            absent_count = total_students
+
+            # Find today's report or latest report
+            files = _attendance_files()
+            if files:
+                today_date = datetime.datetime.now().strftime('%Y-%m-%d')
+                today_file = f"Attendance_{today_date}.csv"
+                if today_file in files:
+                    report_data = _read_attendance_csv(today_file)
+                    if report_data:
+                        present_count = report_data.get('present_count', 0)
+                        absent_count = report_data.get('absent_count', total_students)
+                else:
+                    report_data = _read_attendance_csv(files[0])
+                    if report_data:
+                        present_count = report_data.get('present_count', 0)
+                        absent_count = report_data.get('absent_count', total_students)
+
+            biometric_manager.stats_display_until = time.time() + 8 # Show for 8 seconds
+            biometric_manager.stats_lines = [
+                f"Total Reg: {total_students}",
+                f"Present: {present_count}",
+                f"Absent:  {absent_count}"
+            ]
+            emit_status(f"Physical Button 2: Stats displayed on OLED (Reg: {total_students}, Pres: {present_count}, Abs: {absent_count})", 100, "success")
+            return jsonify({"status": "success"})
+
+        elif slot == 3: # Download PDF
+            files = _attendance_files()
+            if files:
+                latest_file = files[0]
+                try:
+                    report_data = _read_attendance_csv(latest_file)
+                    if report_data:
+                        pdf_path = _export_attendance_pdf_file(report_data)
+                        pdf_name = os.path.basename(pdf_path)
+                        current_operation["trigger_download"] = f"/api/reports/download/{pdf_name}"
+                        emit_status(f"Physical Button 3: PDF download triggered for {latest_file}", 100, "success")
+                        return jsonify({"status": "success", "pdf_name": pdf_name})
+                except Exception as e:
+                    emit_status(f"Physical Button 3: PDF export error: {str(e)}", 0, "error")
+                    return jsonify({"status": "error", "message": str(e)}), 500
+            else:
+                emit_status("Physical Button 3: No attendance logs found to export", 0, "error")
+                return jsonify({"status": "error", "message": "No reports found"}), 404
+
+            return jsonify({"status": "success"})
+
+        elif slot == 4: # Toggle Face Recognition
+            global recognition_running
+            if not recognition_running:
+                status, msg = start_recognition_internal()
+                if status == "error":
+                    emit_status(f"Physical Button 4: Recognition start failed: {msg}", 0, "error")
+                    return jsonify({"status": "error", "message": msg}), 500
+                emit_status("Physical Button 4: Face recognition started", 100, "success")
+            else:
+                recognition_stop_event.set()
+                emit_status("Physical Button 4: Face recognition stopped", 100, "warning")
+            return jsonify({"status": "success", "recognition_active": recognition_running})
     
     if action == "enroll_success" and slot > 0:
         student_id = pending_enrollment["student_id"]
@@ -1427,7 +1548,8 @@ def biometric_config():
         return jsonify({
             "esp32_cam_ip": biometric_manager.esp32_cam_ip,
             "controller_status": biometric_manager.controller_status,
-            "students": students
+            "students": students,
+            "button_states": getattr(biometric_manager, "button_states", {})
         })
         
     data = request.get_json(silent=True) or {}

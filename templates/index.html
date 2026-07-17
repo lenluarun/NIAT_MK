@@ -11,35 +11,95 @@
         rel="stylesheet">
     <style>
         :root {
-            --ink: #0A0E1A;
-            --ink-2: #1A2035;
-            --ink-3: #2A3150;
-            --surface: #F0F2F8;
-            --surface-2: #E4E8F4;
-            --white: #FFFFFF;
-            --accent: #4F46E5;
-            --accent-light: #818CF8;
-            --accent-glow: rgba(79, 70, 229, 0.18);
-            --teal: #0EA5B0;
-            --teal-light: #5EEAD4;
+            --ink: #F1F5F9;
+            --ink-2: #0E1326;
+            --ink-3: #1A2242;
+            --surface: #04060F;
+            --surface-2: #0B0E1B;
+            --white: rgba(14, 20, 38, 0.6);
+            --white-solid: #0A0D1A;
+            --accent: #6366F1;
+            --accent-light: #A5B4FC;
+            --accent-glow: rgba(99, 102, 241, 0.25);
+            --teal: #14B8A6;
+            --teal-light: #99F6E4;
             --amber: #F59E0B;
-            --amber-light: #FCD34D;
+            --amber-light: #FDE68A;
             --rose: #F43F5E;
-            --rose-light: #FDA4AF;
+            --rose-light: #FECDD3;
             --emerald: #10B981;
-            --emerald-light: #6EE7B7;
-            --border: rgba(100, 116, 180, 0.14);
-            --border-hover: rgba(79, 70, 229, 0.3);
-            --text: #0A0E1A;
-            --text-muted: #6B7280;
-            --text-light: #9CA3AF;
-            --shadow-sm: 0 2px 8px rgba(10, 14, 26, 0.06);
-            --shadow-md: 0 8px 24px rgba(10, 14, 26, 0.08);
-            --shadow-lg: 0 20px 48px rgba(10, 14, 26, 0.12);
-            --shadow-glow: 0 0 40px rgba(79, 70, 229, 0.15);
-            --radius: 18px;
+            --emerald-light: #A7F3D0;
+            --border: rgba(99, 102, 241, 0.16);
+            --border-hover: rgba(99, 102, 241, 0.4);
+            --text: #F1F5F9;
+            --text-muted: #94A3B8;
+            --text-light: #64748B;
+            --shadow-sm: 0 4px 12px rgba(0, 0, 0, 0.45);
+            --shadow-md: 0 12px 32px rgba(0, 0, 0, 0.6);
+            --shadow-lg: 0 24px 64px rgba(0, 0, 0, 0.75);
+            --shadow-glow: 0 0 35px rgba(99, 102, 241, 0.25);
+            --radius: 16px;
             --radius-sm: 10px;
-            --radius-lg: 28px;
+            --radius-lg: 24px;
+        }
+
+        /* Camera live HUD styles */
+        .camera-container {
+            position: relative;
+            width: 100%;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+            background: #000;
+            aspect-ratio: 16/9;
+            max-width: 720px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.95);
+        }
+
+        .camera-container::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: 
+                linear-gradient(rgba(99, 102, 241, 0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(99, 102, 241, 0.05) 1px, transparent 1px);
+            background-size: 24px 24px;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            z-index: 2;
+        }
+
+        .camera-container::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, transparent, rgba(99, 102, 241, 0.85), transparent);
+            box-shadow: 0 0 12px rgba(99, 102, 241, 0.7);
+            pointer-events: none;
+            opacity: 0;
+            z-index: 3;
+        }
+
+        .camera-container.active::before {
+            opacity: 1;
+        }
+
+        .camera-container.active::after {
+            opacity: 1;
+            animation: scan-anim 2.8s linear infinite;
+        }
+
+        @keyframes scan-anim {
+            0% { top: 0%; }
+            50% { top: 100%; }
+            100% { top: 0%; }
         }
 
         *,
@@ -56,7 +116,9 @@
 
         body {
             font-family: 'DM Sans', sans-serif;
-            background: var(--surface);
+            background: radial-gradient(circle at 80% 20%, rgba(99, 102, 241, 0.15), transparent 45%),
+                        radial-gradient(circle at 15% 80%, rgba(20, 184, 166, 0.1), transparent 50%),
+                        var(--surface);
             color: var(--text);
             min-height: 100vh;
             -webkit-font-smoothing: antialiased;
@@ -70,7 +132,7 @@
             left: 0;
             right: 0;
             height: 64px;
-            background: rgba(255, 255, 255, 0.85);
+            background: rgba(14, 19, 36, 0.7);
             backdrop-filter: blur(20px);
             -webkit-backdrop-filter: blur(20px);
             border-bottom: 1px solid var(--border);
@@ -386,23 +448,23 @@
         }
 
         .kpi-icon.violet {
-            background: #EEF2FF;
-            color: var(--accent);
+            background: rgba(99, 102, 241, 0.15);
+            color: var(--accent-light);
         }
 
         .kpi-icon.teal {
-            background: #ECFEFF;
-            color: var(--teal);
+            background: rgba(20, 184, 166, 0.15);
+            color: var(--teal-light);
         }
 
         .kpi-icon.amber {
-            background: #FFFBEB;
-            color: var(--amber);
+            background: rgba(245, 158, 11, 0.15);
+            color: var(--amber-light);
         }
 
         .kpi-icon.green {
-            background: #ECFDF5;
-            color: var(--emerald);
+            background: rgba(16, 185, 129, 0.15);
+            color: var(--emerald-light);
         }
 
         .kpi-value {
@@ -491,33 +553,33 @@
         }
 
         .chip-blue {
-            background: #EEF2FF;
-            color: var(--accent);
+            background: rgba(99, 102, 241, 0.15);
+            color: var(--accent-light);
         }
 
         .chip-teal {
-            background: #ECFEFF;
-            color: var(--teal);
+            background: rgba(20, 184, 166, 0.15);
+            color: var(--teal-light);
         }
 
         .chip-amber {
-            background: #FFFBEB;
-            color: var(--amber);
+            background: rgba(245, 158, 11, 0.15);
+            color: var(--amber-light);
         }
 
         .chip-rose {
-            background: #FFF1F2;
-            color: var(--rose);
+            background: rgba(244, 63, 94, 0.15);
+            color: var(--rose-light);
         }
 
         .chip-green {
-            background: #ECFDF5;
-            color: var(--emerald);
+            background: rgba(16, 185, 129, 0.15);
+            color: var(--emerald-light);
         }
 
         .chip-slate {
-            background: #F1F5F9;
-            color: #475569;
+            background: rgba(100, 116, 139, 0.15);
+            color: var(--text-muted);
         }
 
         .action-icon {
@@ -902,23 +964,23 @@
         }
 
         .status-idle .status-icon {
-            background: #F1F5F9;
-            color: #64748B;
+            background: rgba(100, 116, 139, 0.18);
+            color: var(--text-muted);
         }
 
         .status-running .status-icon {
-            background: #EEF2FF;
-            color: var(--accent);
+            background: rgba(99, 102, 241, 0.18);
+            color: var(--accent-light);
         }
 
         .status-success .status-icon {
-            background: #ECFDF5;
-            color: var(--emerald);
+            background: rgba(16, 185, 129, 0.18);
+            color: var(--emerald-light);
         }
 
         .status-error .status-icon {
-            background: #FFF1F2;
-            color: var(--rose);
+            background: rgba(244, 63, 94, 0.18);
+            color: var(--rose-light);
         }
 
         .status-title {
@@ -1779,6 +1841,245 @@
             object-fit: cover;
             image-rendering: pixelated;
         }
+		
+    :root {
+        /* Enterprise Dark Palette */
+        --ink: #FFFFFF;
+        --ink-2: #FAFAFA;
+        --ink-3: #F4F4F5;
+        --surface: #09090B;
+        --surface-2: #18181B;
+        --white: rgba(255, 255, 255, 0.03);
+        --white-solid: #18181B;
+        
+        /* Brand & Accents (Trust-building Blue instead of Indigo/Purple) */
+        --accent: #2563EB;
+        --accent-light: #60A5FA;
+        --accent-glow: rgba(37, 99, 235, 0.15);
+        
+        /* Semantic Colors */
+        --teal: #0D9488;
+        --teal-light: #5EEAD4;
+        --amber: #D97706;
+        --amber-light: #FCD34D;
+        --rose: #E11D48;
+        --rose-light: #FDA4AF;
+        --emerald: #059669;
+        --emerald-light: #6EE7B7;
+        
+        /* UI Elements */
+        --border: #27272A;
+        --border-hover: #3F3F46;
+        --text: #E4E4E7;
+        --text-muted: #A1A1AA;
+        --text-light: #71717A;
+        
+        /* Shadows & Radius */
+        --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+        --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -2px rgba(0, 0, 0, 0.3);
+        --shadow-glow: 0 0 20px rgba(37, 99, 235, 0.1);
+        --radius: 12px;
+        --radius-sm: 8px;
+        --radius-lg: 16px;
+    }
+
+    /* ── Base Reset & Typography ── */
+    *, *::before, *::after {
+        margin: 0; padding: 0; box-sizing: border-box;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+        font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+        background-color: var(--surface);
+        background-image: radial-gradient(circle at top center, rgba(37, 99, 235, 0.03), transparent 60%);
+        color: var(--text);
+        min-height: 100vh;
+        -webkit-font-smoothing: antialiased;
+        overflow-x: hidden;
+    }
+
+    /* ── Topbar ── */
+    .topbar {
+        position: fixed; top: 0; left: 0; right: 0; height: 60px;
+        background: rgba(9, 9, 11, 0.85);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border-bottom: 1px solid var(--border);
+        display: flex; align-items: center; padding: 0 24px;
+        z-index: 900; gap: 16px;
+    }
+
+    .topbar-brand {
+        display: flex; align-items: center; gap: 10px;
+        font-family: 'Syne', sans-serif; font-weight: 700; font-size: 1rem;
+        color: var(--ink); letter-spacing: -0.02em; text-decoration: none;
+    }
+
+    .brand-icon {
+        width: 32px; height: 32px;
+        background: var(--surface-2); border: 1px solid var(--border);
+        border-radius: var(--radius-sm); display: flex; align-items: center;
+        justify-content: center; color: var(--text); font-size: 0.85rem;
+    }
+
+    .topbar-subtitle { font-size: 0.8rem; color: var(--text-muted); font-weight: 400; }
+    .topbar-right { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+
+    .topbar-pill {
+        display: flex; align-items: center; gap: 8px;
+        background: transparent; border: 1px solid var(--border);
+        padding: 4px 12px; border-radius: 999px; font-size: 0.75rem;
+        font-weight: 500; color: var(--text-muted);
+    }
+
+    .pulse-dot {
+        width: 6px; height: 6px; border-radius: 50%;
+        background: var(--emerald);
+        box-shadow: 0 0 8px var(--emerald);
+    }
+
+    /* ── Layout & Sidebar ── */
+    .layout { display: flex; min-height: 100vh; padding-top: 60px; }
+
+    .sidebar {
+        width: 260px; flex-shrink: 0; background: var(--surface);
+        border-right: 1px solid var(--border);
+        position: fixed; top: 60px; left: 0; bottom: 0;
+        overflow-y: auto; z-index: 800; padding: 24px 16px;
+        display: flex; flex-direction: column; gap: 4px;
+    }
+
+    .sidebar-section {
+        font-size: 0.65rem; font-weight: 600; letter-spacing: 0.05em;
+        text-transform: uppercase; color: var(--text-light);
+        padding: 16px 12px 8px; margin-top: 8px;
+    }
+
+    .sidebar-item {
+        display: flex; align-items: center; gap: 12px;
+        padding: 8px 12px; border-radius: var(--radius-sm);
+        cursor: pointer; transition: all 0.2s ease;
+        color: var(--text-muted); font-size: 0.875rem;
+        font-weight: 500; border: none; background: transparent;
+        width: 100%; text-align: left; font-family: inherit;
+    }
+
+    .sidebar-item:hover { background: var(--surface-2); color: var(--text); }
+    .sidebar-item.active {
+        background: var(--white); color: var(--ink);
+        border-left: 3px solid var(--accent);
+        border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+    }
+
+    /* ── Main Area & Header ── */
+    .main { margin-left: 260px; flex: 1; padding: 40px; min-width: 0; }
+
+    .page-header { margin-bottom: 32px; }
+    .page-label {
+        font-size: 0.75rem; font-weight: 600; text-transform: uppercase;
+        color: var(--accent-light); margin-bottom: 8px; letter-spacing: 0.05em;
+    }
+    .page-title {
+        font-family: 'Syne', sans-serif; font-size: 1.8rem;
+        font-weight: 700; color: var(--ink); letter-spacing: -0.02em;
+    }
+    .page-desc { font-size: 0.9rem; color: var(--text-muted); margin-top: 4px; }
+
+    /* ── Cards & Grid ── */
+    .kpi-strip {
+        display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 16px; margin-bottom: 32px;
+    }
+
+    .kpi-card, .action-card, .hw-card, .oled-card, .overview-card {
+        background: var(--surface); border: 1px solid var(--border);
+        border-radius: var(--radius); padding: 24px;
+        transition: all 0.2s ease; position: relative;
+    }
+
+    .kpi-card:hover, .action-card:hover, .hw-card:hover {
+        border-color: var(--border-hover);
+        transform: translateY(-2px); box-shadow: var(--shadow-md);
+    }
+
+    .kpi-row { display: flex; align-items: center; justify-content: space-between; }
+    
+    .kpi-icon {
+        width: 36px; height: 36px; border-radius: var(--radius-sm);
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1rem; background: var(--surface-2); color: var(--text);
+        border: 1px solid var(--border);
+    }
+
+    .kpi-value {
+        font-family: 'Syne', sans-serif; font-size: 1.75rem;
+        font-weight: 700; color: var(--ink); margin-top: 16px; line-height: 1;
+    }
+
+    .kpi-label { font-size: 0.8rem; font-weight: 500; color: var(--text-muted); margin-top: 8px; }
+
+    .section-grid {
+        display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; margin-bottom: 24px;
+    }
+
+    /* ── Buttons (Enterprise Flat Style) ── */
+    .btn {
+        display: inline-flex; align-items: center; justify-content: center;
+        gap: 8px; padding: 10px 16px; border-radius: var(--radius-sm);
+        font-size: 0.875rem; font-weight: 500; border: 1px solid transparent;
+        cursor: pointer; transition: all 0.2s ease; font-family: inherit;
+    }
+
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover:not(:disabled) { background: #1D4ED8; }
+    
+    .btn-ghost { background: transparent; border-color: var(--border); color: var(--text); }
+    .btn-ghost:hover:not(:disabled) { background: var(--surface-2); border-color: var(--border-hover); }
+    
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* ── Camera Preview container ── */
+    .camera-container {
+        position: relative; width: 100%; border-radius: var(--radius-sm);
+        overflow: hidden; border: 1px solid var(--border);
+        background: #000; aspect-ratio: 16/9; max-width: 720px;
+        margin: 0 auto; display: flex; align-items: center; justify-content: center;
+    }
+
+    /* ── Modals & Forms ── */
+    .modal {
+        display: none; position: fixed; inset: 0;
+        background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(4px);
+        z-index: 2000; align-items: center; justify-content: center; padding: 24px;
+    }
+    .modal.show { display: flex; }
+
+    .modal-content {
+        background: var(--surface); border: 1px solid var(--border);
+        border-radius: var(--radius); max-width: 500px; width: 100%;
+        max-height: 90vh; overflow: hidden; display: flex; flex-direction: column;
+        box-shadow: var(--shadow-lg);
+    }
+    
+    .form-input {
+        width: 100%; padding: 10px 12px; background: var(--surface-2);
+        border: 1px solid var(--border); border-radius: var(--radius-sm);
+        font-size: 0.875rem; color: var(--text); font-family: inherit;
+        transition: border-color 0.2s;
+    }
+    .form-input:focus {
+        outline: none; border-color: var(--accent);
+    }
+
+    /* Scrollbars */
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--border-hover); }
+
     </style>
 </head>
 
@@ -1992,7 +2293,7 @@
                         </div>
                     </div>
                 </div>
-                <div style="position:relative; width:100%; border-radius:12px; overflow:hidden; border:1px solid var(--border); background:#000; aspect-ratio: 16/9; max-width: 720px; margin: 0 auto; display: flex; align-items: center; justify-content: center;">
+                <div id="cameraPreviewContainer" class="camera-container">
                     <img id="cameraPreviewImage" src="" alt="Live Camera Preview" style="width:100%; height:100%; object-fit:contain; display:none;">
                     <div id="cameraPlaceholderText" style="color: var(--text-muted); font-size: 0.9rem; font-weight: 600;"><i class="fas fa-video-slash" style="margin-right: 8px;"></i> Live Preview Stopped</div>
                 </div>
@@ -2022,7 +2323,7 @@
                     <div class="action-title">Register Profiles</div>
                     <div class="action-desc">Capture real-time face imagery for new students or update existing
                         biometric profiles.</div>
-                    <button class="btn btn-amber btn-full" onclick="captureFaces()">
+                    <button class="btn btn-ghost btn-full" onclick="captureFaces()">
                         <i class="fas fa-camera-retro"></i> Start Capture
                     </button>
                 </div>
@@ -2140,6 +2441,14 @@
                         <div class="hw-actions">
                             <button class="btn btn-ghost btn-sm" onclick="toggleHardwareFeature('hazard')"><i class="fas fa-exclamation-triangle" style="color:var(--amber);"></i> Hazard</button>
                             <button class="btn btn-ghost btn-sm" onclick="toggleHardwareFeature('unlock')"><i class="fas fa-unlock-alt" style="color:var(--emerald);"></i> Unlock</button>
+                        </div>
+                        
+                        <!-- Physical Buttons Section -->
+                        <div style="margin-top: 15px; padding-top: 12px; border-top: 1px solid var(--border); width: 100%;">
+                            <span style="font-size: 0.75rem; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;">Physical Buttons</span>
+                            <div id="physical-buttons-list" style="display: flex; flex-direction: column; gap: 6px;">
+                                <div style="font-size: 0.75rem; color: var(--text-muted); font-style: italic;">No buttons active</div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -2477,6 +2786,23 @@
                     const response = await fetch('/api/operation/status');
                     const data = await response.json();
                     updateStatus(data.status, data.message, data.progress);
+
+                    if (typeof data.preview_active !== 'undefined') {
+                        syncPreviewUI(data.preview_active);
+                    }
+                    if (typeof data.recognition_running !== 'undefined') {
+                        syncRecognitionUI(data.recognition_running);
+                    }
+
+                    if (data.trigger_download) {
+                        showToast('Report Downloaded', 'Downloading latest PDF report...', 'success');
+                        const a = document.createElement('a');
+                        a.href = data.trigger_download;
+                        a.download = '';
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                    }
                     
                     const lr = data.last_recognition_result || null;
                     if (lr) {
@@ -3511,62 +3837,111 @@
         let previewActive = false;
         let currentPreviewSource = 'webcam';
 
-        async function toggleLivePreviewState() {
+        function syncRecognitionUI(running) {
+            if (isRecognizing === running) return;
+            isRecognizing = running;
+            const btn = document.getElementById('recognizeBtn');
+            const btn2 = document.getElementById('recognizeBtn2');
+            if (running) {
+                if (btn) btn.innerHTML = '<i class="fas fa-stop-circle"></i> Stop Recognition';
+                if (btn2) btn2.innerHTML = '<i class="fas fa-stop-circle"></i> Stop Recognition';
+                updateStatus('running', 'Live attendance recognition active...', 0);
+            } else {
+                if (btn) btn.innerHTML = '<i class="fas fa-play-circle"></i> Start Recognition';
+                if (btn2) btn2.innerHTML = '<i class="fas fa-play-circle"></i> Start Recognition';
+                updateStatus('idle', 'Recognition engine stopped', 0);
+            }
+        }
+
+        async function syncPreviewUI(active) {
+            if (previewActive === active) return;
+            previewActive = active;
+
             const img = document.getElementById('cameraPreviewImage');
             const placeholder = document.getElementById('cameraPlaceholderText');
             const btn = document.getElementById('togglePreviewBtn');
             const dot = document.getElementById('previewPulseDot');
             const text = document.getElementById('previewStatusText');
+            const container = document.getElementById('cameraPreviewContainer');
 
-            if (previewActive) {
-                previewActive = false;
-                img.style.display = 'none';
-                img.src = '';
-                placeholder.style.display = 'block';
-                btn.innerHTML = '<i class="fas fa-play"></i> Start Preview';
-                btn.className = 'btn btn-ghost';
-                dot.style.background = 'var(--text-muted)';
-                text.textContent = 'Preview Idle';
-                
-                if (currentPreviewSource === 'webcam') {
-                    await fetch('/api/camera/check/stop', { method: 'POST' });
+            if (active) {
+                if (container) container.classList.add('active');
+                if (img) img.style.display = 'block';
+                if (placeholder) placeholder.style.display = 'none';
+                if (btn) {
+                    btn.innerHTML = '<i class="fas fa-stop"></i> Stop Preview';
+                    btn.className = 'btn btn-rose';
                 }
-            } else {
-                previewActive = true;
-                img.style.display = 'block';
-                placeholder.style.display = 'none';
-                btn.innerHTML = '<i class="fas fa-stop"></i> Stop Preview';
-                btn.className = 'btn btn-rose';
-                dot.style.background = 'var(--emerald)';
-                text.textContent = 'Preview Active';
+                if (dot) dot.style.background = 'var(--emerald)';
+                if (text) text.textContent = 'Preview Active';
 
                 if (currentPreviewSource === 'esp32_cam') {
-                    const configRes = await fetch('/api/biometric/config');
-                    const config = await configRes.json();
-                    if (config.esp32_cam_ip && config.esp32_cam_ip !== '0.0.0.0') {
-                        const streamUrl = `http://${config.esp32_cam_ip}:81/stream`;
-                        img.src = streamUrl;
-                        // Tell backend to use this IP for recognition tasks
-                        fetch('/api/camera/set', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ camera_source: streamUrl })
-                        });
-                    } else {
-                        showToast('ESP32-CAM Not Found', 'Ensure the ESP32-CAM is connected to the same network.', 'error');
-                        toggleLivePreviewState(); // Revert
+                    try {
+                        const configRes = await fetch('/api/biometric/config');
+                        const config = await configRes.json();
+                        if (config.esp32_cam_ip && config.esp32_cam_ip !== '0.0.0.0') {
+                            if (img) img.src = `http://${config.esp32_cam_ip}:81/stream`;
+                        }
+                    } catch (e) {
+                        console.error("Failed to load ESP32-CAM Stream:", e);
                     }
                 } else {
-                    // For USB, trigger camera check to start the backend stream
-                    await fetch('/api/camera/check', { method: 'POST' });
-                    img.src = `/api/camera/preview?t=${Date.now()}`;
-                    
-                    fetch('/api/camera/set', {
+                    if (img) img.src = `/api/camera/preview?t=${Date.now()}`;
+                }
+            } else {
+                if (container) container.classList.remove('active');
+                if (img) {
+                    img.style.display = 'none';
+                    img.src = '';
+                }
+                if (placeholder) placeholder.style.display = 'block';
+                if (btn) {
+                    btn.innerHTML = '<i class="fas fa-play"></i> Start Preview';
+                    btn.className = 'btn btn-ghost';
+                }
+                if (dot) dot.style.background = 'var(--text-muted)';
+                if (text) text.textContent = 'Preview Idle';
+            }
+        }
+
+        async function toggleLivePreviewState() {
+            if (previewActive) {
+                if (currentPreviewSource === 'webcam') {
+                    await fetch('/api/camera/check/stop', { method: 'POST' });
+                } else {
+                    await fetch('/api/camera/check/stop', { method: 'POST' });
+                }
+                await syncPreviewUI(false);
+            } else {
+                if (currentPreviewSource === 'esp32_cam') {
+                    try {
+                        const configRes = await fetch('/api/biometric/config');
+                        const config = await configRes.json();
+                        if (config.esp32_cam_ip && config.esp32_cam_ip !== '0.0.0.0') {
+                            const streamUrl = `http://${config.esp32_cam_ip}:81/stream`;
+                            await fetch('/api/camera/set', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ camera_source: streamUrl })
+                            });
+                            await fetch('/api/camera/check', { method: 'POST' });
+                        } else {
+                            showToast('ESP32-CAM Not Found', 'Ensure the ESP32-CAM is connected to the same network.', 'error');
+                            return;
+                        }
+                    } catch (e) {
+                        showToast('Error', 'Failed to initialize ESP32-CAM source.', 'error');
+                        return;
+                    }
+                } else {
+                    await fetch('/api/camera/set', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ camera_source: 0 }) 
                     });
+                    await fetch('/api/camera/check', { method: 'POST' });
                 }
+                await syncPreviewUI(true);
             }
         }
 
@@ -3715,6 +4090,24 @@
                 document.getElementById('hw-status-trend').innerHTML = activeDevices > 0 ? 
                     '<i class="fas fa-circle" style="font-size:0.5rem; color:var(--emerald);"></i> Online' : 
                     '<i class="fas fa-circle" style="font-size:0.5rem;"></i> Offline';
+                
+                // Update Physical Buttons list
+                const btnList = document.getElementById('physical-buttons-list');
+                if (btnList && config.button_states) {
+                    let html = '';
+                    Object.keys(config.button_states).forEach(key => {
+                        const btn = config.button_states[key];
+                        const isRecent = btn.last_pressed !== 'Never';
+                        const timeBadge = isRecent ? `<span class="badge" style="font-size:0.65rem; padding: 2px 6px; background-color: var(--indigo); color: white;">${btn.last_pressed}</span>` : `<span style="font-size:0.7rem; color:var(--text-muted);">Never</span>`;
+                        html += `
+                            <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.75rem; background: rgba(255,255,255,0.03); padding: 5px 8px; border-radius: 6px; border: 1px solid var(--border);">
+                                <span style="font-weight: 500;">B${key}: ${btn.name} <small style="color:var(--text-muted); font-size: 0.65rem;">(GPIO ${btn.pin})</small></span>
+                                ${timeBadge}
+                            </div>
+                        `;
+                    });
+                    btnList.innerHTML = html;
+                }
                 
             } catch (err) {}
         }, 3000);

@@ -13,6 +13,14 @@ class BiometricManager:
         self.esp32_cam_ip = "0.0.0.0"
         self.controller_status = "offline"
         self.last_fp_event = {"slot": 0, "action": "none", "timestamp": 0}
+        self.button_states = {
+            "1": {"name": "Toggle Cam Preview", "last_pressed": "Never", "pin": 13},
+            "2": {"name": "OLED Stats Display", "last_pressed": "Never", "pin": 27},
+            "3": {"name": "Website PDF Download", "last_pressed": "Never", "pin": 32},
+            "4": {"name": "Start Face Recognition", "last_pressed": "Never", "pin": 12}
+        }
+        self.stats_display_until = 0
+        self.stats_lines = ["", "", ""]
         self.slot_mapping_file = os.path.join(
             os.path.dirname(self.data_manager.student_file), 
             "FingerprintSlots.csv"

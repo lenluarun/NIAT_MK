@@ -14,7 +14,7 @@ const char* ssid = "Arunesh";
 const char* password = "00000000";
 
 // ─── Server Configuration (Computer IPv4: 10.83.201.98) ───
-const String SERVER_IP = "10.83.201.98";  // Your Computer's IPv4 Address
+const String SERVER_IP = " 10.10.17.49";  // Your Computer's IPv4 Address
 const int SERVER_PORT = 5000;
 const String cameraPollEndpoint = "http://" + SERVER_IP + ":5000/api/camera/poll";
 

@@ -9,11 +9,11 @@
 #include "soc/rtc_cntl_reg.h"
 
 // ─── WiFi Configuration ───
-const char* ssid = "Arunesh";
-const char* password = "00000000";
+const char* ssid = "NIAT_TAKEOVER_2026";
+const char* password = "Takeover@2026";
 
 // ─── Server Configuration ───
-const String SERVER_IP = "10.83.201.98"; 
+const String SERVER_IP = "10.10.17.49:5000";
 const int SERVER_PORT = 5000;
 String ESP32_CAM_IP = "0.0.0.0";
 const String pollUrl = "http://" + SERVER_IP + ":5000/api/controller/poll";
@@ -24,6 +24,12 @@ const String eventUrl = "http://" + SERVER_IP + ":5000/api/controller/event";
 #define RED_LED   15
 #define BUZZER    2
 #define RELAY_PIN 4
+
+// ─── Push Button Pins (4 Buttons) ───
+#define BTN_PREVIEW   13  // Button 1: Toggle live camera preview on OLED
+#define BTN_STATS     27  // Button 2: Show stored data / stats on OLED
+#define BTN_DOWNLOAD  32  // Button 3: Download PDF report on website
+#define BTN_RECOG     12  // Button 4: Start Face Recognition
 
 // ─── OLED Configuration ───
 Adafruit_SSD1306 display(128, 64, &Wire, -1);
@@ -50,6 +56,12 @@ bool hazardOn = false;
 int hzStep = -1;
 int ssX = 0, ssY = 0, ssDX = 1, ssDY = 1;
 
+// ─── Button Configuration & Debounce ───
+const int buttonPins[4] = {BTN_PREVIEW, BTN_STATS, BTN_DOWNLOAD, BTN_RECOG};
+unsigned long lastBtnTime[4] = {0, 0, 0, 0};
+const unsigned long debounceDelay = 250; // ms
+unsigned long tempDisplayUntil = 0;      // Non-blocking timer to preserve status screens
+
 // Reusable HTTP client for speed
 HTTPClient httpClient;
 
@@ -67,12 +79,18 @@ bool drawCam();
 String getSDName(int id);
 void bootAnimation();
 uint8_t identifyFinger(uint16_t &id, uint16_t &conf);
+void checkButtons();
+void handleButtonPress(int btn);
 
 void setup() {
   WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0);
   Serial.begin(115200);
   pinMode(GREEN_LED, OUTPUT); pinMode(RED_LED, OUTPUT); pinMode(BUZZER, OUTPUT); pinMode(RELAY_PIN, OUTPUT);
   digitalWrite(GREEN_LED, 0); digitalWrite(RED_LED, 0); digitalWrite(RELAY_PIN, 0);
+
+  for (int i = 0; i < 4; i++) {
+    pinMode(buttonPins[i], INPUT_PULLUP);
+  }
 
   Wire.begin(21, 22);
   Wire.setClock(400000); // Fast I2C
@@ -154,6 +172,7 @@ void loop() {
 
   updateLock();
   updateHazard();
+  checkButtons();
 
   if (now - lastPoll >= pollInterval) {
     lastPoll = now;
@@ -226,13 +245,11 @@ void loop() {
     }
   }
 
-  // 4. Screensaver / Idle
+  // 4. Screensaver / Idle (Screensaver disabled, ssActive remains false)
   if (!action) {
-    if (now - lastAction > 15000) { 
-      ssActive = true; drawSS();
-    } else if (isLocked) {
+    if (isLocked) {
       static unsigned long lastU = 0;
-      if (now - lastU > 500) { lastU = now; updateOLED(o1, o2, o3); }
+      if (now - lastU > 500 && now >= tempDisplayUntil) { lastU = now; updateOLED(o1, o2, o3); }
     }
   }
   delay(1);
@@ -298,14 +315,68 @@ bool drawCam() {
 void updateOLED(String l1, String l2, String l3) {
   if (!oledReady || ssActive) return;
   display.clearDisplay(); display.setTextSize(1); display.setTextColor(WHITE);
-  display.drawRect(0, 0, 128, 64, WHITE);
-  display.setCursor(6, 4); display.print(isLocked ? "[SECURE] E2C" : "[UNLOCK] E2C");
-  display.drawLine(4, 13, 124, 13, WHITE); display.drawLine(36, 17, 36, 60, WHITE);
-  if (l1 == "DOOR LOCKED" || l1 == "SYSTEM IDLE") {
-    display.drawRect(6, 22, 24, 26, WHITE); display.drawCircle(18, 30, 6, WHITE); display.drawLine(18, 36, 18, 42, WHITE);
-    display.fillRoundRect(40, 18, 66, 11, 2, WHITE); display.setTextColor(BLACK); display.setCursor(43, 20); display.print("STATION");
-    display.setTextColor(WHITE); drawMargin("READY", 40, 33); drawMargin("Scan to start", 40, 46);
-  } else { drawMargin(l1, 40, 18); drawMargin(l2, 40, 32); drawMargin(l3, 40, 48); }
+  
+  // 1. Draw Corner HUD brackets
+  display.drawLine(0, 0, 8, 0, WHITE); display.drawLine(0, 0, 0, 8, WHITE);
+  display.drawLine(127, 0, 119, 0, WHITE); display.drawLine(127, 0, 127, 8, WHITE);
+  display.drawLine(0, 63, 8, 63, WHITE); display.drawLine(0, 63, 0, 55, WHITE);
+  display.drawLine(127, 63, 119, 63, WHITE); display.drawLine(127, 63, 127, 55, WHITE);
+  
+  // 2. Draw Sleek Top Bar
+  display.fillRoundRect(22, 2, 84, 11, 2, WHITE);
+  display.setTextColor(BLACK);
+  display.setCursor(26, 4);
+  display.print(isLocked ? "SECURED MODE" : "UNLOCKED MODE");
+  display.setTextColor(WHITE);
+  
+  // 3. Draw Wi-Fi indicator
+  display.fillRect(114, 10, 2, 2, WHITE);
+  display.fillRect(118, 8, 2, 4, WHITE);
+  display.fillRect(122, 6, 2, 6, WHITE);
+
+  // 4. Draw Divider line
+  display.drawLine(4, 15, 124, 15, WHITE); 
+  display.drawLine(34, 18, 34, 60, WHITE);
+  
+  // 5. Draw Left Side Graphic
+  if (l1 == "DOOR LOCKED" || l1 == "SYSTEM IDLE" || l1 == "SYSTEM READY") {
+    // Padlock body
+    display.fillRoundRect(8, 32, 20, 20, 2, WHITE);
+    if (isLocked) {
+      // Padlock shackle (closed)
+      display.drawCircle(18, 32, 6, WHITE);
+      display.fillRect(12, 32, 13, 6, BLACK);
+    } else {
+      // Padlock shackle (open)
+      display.drawCircle(13, 26, 6, WHITE);
+      display.fillRect(13, 26, 7, 7, BLACK);
+    }
+    // Keyhole
+    display.fillCircle(18, 40, 2, BLACK);
+    display.drawLine(18, 42, 18, 48, BLACK);
+
+    // Right Side Info
+    display.fillRoundRect(38, 18, 86, 11, 2, WHITE); 
+    display.setTextColor(BLACK); 
+    display.setCursor(42, 20); 
+    display.print("E2C ACTIVE");
+    display.setTextColor(WHITE);
+    drawMargin("Scan Bio", 38, 34);
+    drawMargin("System Ready", 38, 48);
+  } else {
+    // Draw animated scanner box
+    display.drawRect(8, 24, 20, 28, WHITE);
+    display.drawCircle(18, 38, 4, WHITE);
+    display.drawCircle(18, 38, 8, WHITE);
+    int lineY = 26 + ((millis() / 150) % 24);
+    display.drawLine(9, lineY, 26, lineY, WHITE);
+    
+    // Right Side Info
+    drawMargin(l1, 38, 18); 
+    drawMargin(l2, 38, 32); 
+    drawMargin(l3, 38, 48); 
+  }
+  
   display.display();
 }
 
@@ -450,4 +521,65 @@ uint8_t doEnroll(int id) {
   updateOLED("FAILED", "Store error", ""); 
   sendEvent("enroll_fail", id, "Store error", p);
   delay(1500); return 0xFF;
+}
+
+void checkButtons() {
+  unsigned long now = millis();
+  for (int i = 0; i < 4; i++) {
+    int state = digitalRead(buttonPins[i]);
+    if (state == LOW) { // Active Low (button pressed pulls to GND)
+      if (now - lastBtnTime[i] > debounceDelay) {
+        lastBtnTime[i] = now;
+        handleButtonPress(i + 1); // 1-indexed button number
+      }
+    }
+  }
+}
+
+void handleButtonPress(int btn) {
+  Serial.print("[Physical Button] pressed: "); Serial.println(btn);
+  
+  // Make a short feedback beep
+  toneShort(BUZZER, 1200, 80);
+  
+  // Send the button press event to the server
+  sendEvent("button_press", btn, "Pressed", 0);
+  
+  switch(btn) {
+    case 1:
+      // Cam Toggle Button
+      previewActive = !previewActive;
+      ssActive = false;
+      lastAction = millis();
+      updateOLED("CAMERA MODE", previewActive ? "Toggled ON" : "Toggled OFF", "Local control");
+      tempDisplayUntil = millis() + 2500; // Keep message visible for 2.5s
+      break;
+      
+    case 2:
+      // OLED Stats Button
+      // The server calculates stats and feeds them via polling.
+      // We display a brief loading state immediately.
+      ssActive = false;
+      lastAction = millis();
+      updateOLED("FETCHING STATS", "Accessing server...", "Please wait");
+      tempDisplayUntil = millis() + 8000; // Let poll data display for 8 seconds
+      break;
+      
+    case 3:
+      // Download PDF Button
+      // The server generates the PDF and sets the download trigger for web client.
+      ssActive = false;
+      lastAction = millis();
+      updateOLED("DOWNLOADING PDF", "Triggering report", "on web client");
+      tempDisplayUntil = millis() + 3000; // Keep message visible for 3s
+      break;
+      
+    case 4:
+      // Face Recognition Button
+      ssActive = false;
+      lastAction = millis();
+      updateOLED("FACE RECOG", "Toggling...", "Face attendance");
+      tempDisplayUntil = millis() + 3000; // Keep message visible for 3s
+      break;
+  }
 }
