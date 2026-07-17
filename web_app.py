@@ -496,6 +496,9 @@ def capture_faces():
                             camera_index=app_settings['camera_index'],
                             pass_mark=app_settings['recognition_pass_mark'],
                             fast_mode=(app_settings.get("recognition_mode", "fast") == "fast"),
+                            frame_callback=lambda frame: update_preview_frame(frame, "recognition"),
+                            match_callback=handle_face_match,
+                            show_window=False,
                             stop_event=recognition_stop_event
                         )
                         last_recognition_result = _build_recognition_result(before_snapshot)
@@ -540,6 +543,17 @@ def train_images():
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
 
+def handle_face_match(student_id, name):
+    """Handle face recognition match for OLED and Web"""
+    if biometric_manager:
+        biometric_manager.last_match = {
+            "type": "Face",
+            "id": student_id,
+            "name": name,
+            "timestamp": time.time()
+        }
+        biometric_manager.unlock_duration = 5  # Trigger remote unlock on face match
+
 def start_recognition_internal():
     """Start face recognition background process"""
     global recognition_running
@@ -549,16 +563,6 @@ def start_recognition_internal():
     emit_status("Starting attendance recognition...", 0)
     recognition_stop_event.clear()
     before_snapshot = _recognition_snapshot()
-
-    def handle_face_match(student_id, name):
-        """Handle face recognition match for OLED and Web"""
-        if biometric_manager:
-            biometric_manager.last_match = {
-                "type": "Face",
-                "id": student_id,
-                "name": name,
-                "timestamp": time.time()
-            }
 
     def run_recognition():
         global last_recognition_result, recognition_running
