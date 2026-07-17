@@ -47,71 +47,97 @@ The following block diagram shows how the hardware controller, remote camera nod
 
 ```mermaid
 flowchart TB
-    %% Nodes and Styles %%
-    subgraph LAN ["Local Wi-Fi Network"]
-        direction LR
+    %% Definitions of styling classes
+    classDef mcu fill:#1e1b4b,stroke:#818cf8,stroke-width:2px,color:#e0e7ff,rx:10,ry:10;
+    classDef sensor fill:#3c1642,stroke:#b20d30,stroke-width:2px,color:#ffe3e3;
+    classDef output fill:#064e3b,stroke:#34d399,stroke-width:2px,color:#d1fae5;
+    classDef server fill:#0f172a,stroke:#38bdf8,stroke-width:2px,color:#f0f9ff;
+    classDef database fill:#1c1917,stroke:#f59e0b,stroke-width:2px,color:#fef3c7;
+    classDef client fill:#030712,stroke:#ec4899,stroke-width:2px,color:#fdf2f8;
+    classDef network fill:#111827,stroke:#6b7280,stroke-width:1px,color:#f3f4f6,stroke-dasharray: 5 5;
+
+    %% Main Subgraphs
+    subgraph PHYSICAL ["🏢 Physical Location (Entrance)"]
+        direction TB
+
         subgraph ESP_CTRL ["📟 ESP32 Controller (Biometric Node)"]
             direction TB
-            MCU["ESP32 DevKit V1"]
-            FP["R307 Fingerprint"]
-            OLED["SSD1306 OLED (128x64)"]
-            RLY["Relay (Lock Control)"]
-            BTN["4x Buttons (GPIO 12, 13, 27, 32)"]
-            IND["LEDs & Buzzer"]
+            MCU["ESP32 DevKit V1<br/>(Main Controller)"]:::mcu
+            FP["R307 Fingerprint<br/>Sensor"]:::sensor
+            BTN["4x Tactile Buttons<br/>(Preview/Stats/PDF/Face)"]:::sensor
+            OLED["0.96 inch SSD1306 OLED<br/>(Status/Stats Display)"]:::output
+            RLY["5V Relay Module<br/>(Door Lock Control)"]:::output
+            IND["Alert System<br/>(Buzzer & Green/Red LEDs)"]:::output
 
-            MCU -- "Serial (TX25/RX26)" --> FP
+            %% Internal Connections
+            MCU -- "UART (TX25/RX26)" --> FP
             MCU -- "I2C (SDA21/SCL22)" --> OLED
-            MCU -- "GPIO 4" --> RLY
-            MCU -- "GPIO Input Pullup" --> BTN
-            MCU -- "GPIO 2, 14, 15" --> IND
+            MCU -- "GPIO 4 (Signal)" --> RLY
+            MCU -- "GPIO Pullup" --> BTN
+            MCU -- "GPIO 2,14,15" --> IND
         end
 
         subgraph ESP_CAM ["📷 ESP32-CAM (Vision Node)"]
             direction TB
-            CAM_MCU["ESP32-S (AI-Thinker)"]
-            OV2640["OV2640 Camera"]
-            SD["SD Card MMC"]
-            FLSH["Flash LED (GPIO 4)"]
+            CAM_MCU["ESP32-S AI-Thinker<br/>(Wi-Fi Camera)"]:::mcu
+            OV2640["OV2640 Lens<br/>(Vision Input)"]:::sensor
+            FLSH["Onboard Flash LED<br/>(Illumination)"]:::output
+            SD_CARD["SD Card MMC<br/>(Local Storage)"]:::database
 
             CAM_MCU --- OV2640
-            CAM_MCU --- SD
             CAM_MCU --- FLSH
+            CAM_MCU --- SD_CARD
         end
+    end
 
-        subgraph SERVER ["💻 Flask Backend & AI Engine"]
+    subgraph local_network ["🌐 Local Network (Wi-Fi)"]
+        direction LR
+
+        subgraph SERVER ["💻 Flask Backend & AI Core"]
             direction TB
-            FLSK["Flask Web Server"]
-            CV2["OpenCV Face Recog (LBPH)"]
-            DB["Local Storage (JSON/CSV)"]
-            PDF["ReportLab (PDF Reports)"]
+            FLSK["Flask Web Server<br/>(REST API Hub)"]:::server
+            CV2["OpenCV Recognition Engine<br/>(LBPH Local Model)"]:::server
+            DB_JSON[("Student DB<br/>(JSON Storage)")]:::database
+            DB_CSV[("Attendance Logs<br/>(CSV Database)")]:::database
+            PDF_GEN["ReportLab Engine<br/>(PDF Generation)"]:::server
 
-            FLSK --- CV2
-            FLSK --- DB
-            FLSK --- PDF
+            FLSK <--> CV2
+            FLSK <--> DB_JSON
+            FLSK <--> DB_CSV
+            FLSK --> PDF_GEN
         end
 
-        ESP_CTRL -- "REST API (JSON Events)" --> FLSK
-        ESP_CAM -- "MJPEG Video Stream (81/stream)" --> CV2
-        FLSK -- "OLED Screen Updates & Commands" --> ESP_CTRL
+        subgraph WEB_CLIENT ["🖥️ User Interfaces"]
+            direction TB
+            DSH["Web Dashboard<br/>(Glassmorphic Admin UI)"]:::client
+            TRM["Terminal UI<br/>(Power-User CLI)"]:::client
+        end
     end
 
-    subgraph CLIENT ["🖥️ Client Access"]
-        DSH["Web Dashboard (Bootstrap 5 & Glassmorphism)"]
-        TRM["Terminal Interface (Power-User)"]
-    end
+    %% Network Inter-connections (with styling labels)
+    FP -- "1. Send Biometric ID<br/>(HTTP POST)" --> FLSK
+    BTN -- "2. Trigger Action<br/>(HTTP POST)" --> FLSK
+    CAM_MCU -- "3. MJPEG Video Stream<br/>(HTTP Stream/Port 81)" --> CV2
+    FLSK -- "4. Response Commands<br/>(OLED Text / Unlock Signal)" --> MCU
+    
+    FLSK -- "5. Live Updates<br/>(Server-Sent Events)" --> DSH
+    FLSK <--> TRM
+    
+    %% Style the connection links for visibility
+    linkStyle 12 stroke:#f59e0b,stroke-width:2px;
+    linkStyle 13 stroke:#f59e0b,stroke-width:2px;
+    linkStyle 14 stroke:#ef4444,stroke-width:2px;
+    linkStyle 15 stroke:#10b981,stroke-width:2px;
+    linkStyle 16 stroke:#3b82f6,stroke-width:2px;
+    linkStyle 17 stroke:#3b82f6,stroke-width:2px;
 
-    SERVER -- "HTTP / SSE" --> DSH
-    SERVER -- "Standard IO" --> TRM
-
-    style ESP_CTRL fill:#0c1020,stroke:#6366F1,stroke-width:2px,color:#fff
-    style ESP_CAM fill:#0c1020,stroke:#14B8A6,stroke-width:2px,color:#fff
-    style SERVER fill:#0c1020,stroke:#EC4899,stroke-width:2px,color:#fff
-    style CLIENT fill:#030712,stroke:#3b82f6,stroke-dasharray: 5 5,stroke-width:2px,color:#fff
-    style LAN fill:#030712,stroke:#4b5563,stroke-width:1px,color:#fff
-
-    classDef default fill:#1f2937,stroke:#4b5563,color:#f3f4f6
-    classDef highlight fill:#312e81,stroke:#6366f1,color:#e0e7ff
-    class MCU,CAM_MCU,FLSK highlight
+    %% Overall container styles
+    style PHYSICAL fill:#020617,stroke:#1e293b,stroke-width:2px
+    style local_network fill:#020617,stroke:#1e293b,stroke-width:2px
+    style ESP_CTRL fill:#0b0f19,stroke:#6366f1,stroke-width:2px
+    style ESP_CAM fill:#0b0f19,stroke:#14b8a6,stroke-width:2px
+    style SERVER fill:#090d16,stroke:#38bdf8,stroke-width:2px
+    style WEB_CLIENT fill:#0f0514,stroke:#d946ef,stroke-width:2px
 ```
 
 ---
