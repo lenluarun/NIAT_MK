@@ -1376,9 +1376,17 @@ def controller_event():
             success, message = biometric_manager.mark_attendance(student_id)
             student = next((s for s in data_manager.get_all_students() if str(s.get('id', '')).strip().lstrip('0') == student_id), None)
             
+            # Update last_match for OLED and Web UI polling
+            biometric_manager.last_match = {
+                "type": "Finger",
+                "id": student.get('id') if student else student_id,
+                "name": student.get('name') if student else 'Unknown',
+                "timestamp": time.time()
+            }
+            
             last_recognition_result = {
                 'marked': success,
-                'student_id': student_id,
+                'student_id': student.get('id') if student else student_id,
                 'student_name': student.get('name') if student else 'Unknown',
                 'message': f"Fingerprint: {message}",
             }
@@ -1387,7 +1395,7 @@ def controller_event():
             return jsonify({
                 "status": "success",
                 "name": student.get('name') if student else "Access Granted",
-                "id": student_id
+                "id": student.get('id') if student else student_id
             })
     
     return jsonify({"status": "received"})
@@ -1538,6 +1546,28 @@ def controller_live_face():
     except Exception as e:
         print("Error generating OLED frame:", e)
         return Response(b'\x00' * 1024, mimetype='application/octet-stream')
+
+@app.route('/api/controller/student_details', methods=['GET'])
+def controller_student_details():
+    """Endpoint for ESP32 Controller to resolve a fingerprint slot to name and ID"""
+    if not biometric_manager:
+        return jsonify({"status": "error", "message": "Biometric manager not ready"}), 500
+        
+    slot = request.args.get('slot', 0)
+    if not slot or int(slot) <= 0:
+        return jsonify({"status": "error", "message": "Invalid slot"}), 400
+        
+    student_id = biometric_manager.get_student_id_from_slot(slot)
+    if student_id:
+        student = next((s for s in data_manager.get_all_students() if str(s.get('id', '')).strip().lstrip('0') == student_id), None)
+        if student:
+            return jsonify({
+                "status": "success",
+                "name": student.get('name'),
+                "id": student.get('id')
+            })
+            
+    return jsonify({"status": "error", "message": "Student not found"}), 404
 
 @app.route('/api/biometric/config', methods=['GET', 'POST'])
 def biometric_config():

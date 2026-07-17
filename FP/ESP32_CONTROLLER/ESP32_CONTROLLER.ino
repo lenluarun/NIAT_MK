@@ -209,8 +209,15 @@ void loop() {
       if (p == FINGERPRINT_OK) {
         action = true; lastAction = now; ssActive = false;
         digitalWrite(GREEN_LED, 1); toneShort(BUZZER, 1000, 150);
-        String name = getSDName(id);
-        updateOLED("ACCESS GRANTED", name, "ID: " + String(id));
+        String details = getSDName(id);
+        String displayName = details;
+        String displayId = "ID: " + String(id);
+        int sepIndex = details.indexOf('|');
+        if (sepIndex != -1) {
+          displayName = details.substring(0, sepIndex);
+          displayId = "ID: " + details.substring(sepIndex + 1);
+        }
+        updateOLED("ACCESS GRANTED", displayName, displayId);
         unlock(5); sendEvent("match", id, "Success", conf);
         delay(2000); digitalWrite(GREEN_LED, 0);
       } else if (p == FINGERPRINT_NOTFOUND) {
@@ -387,22 +394,46 @@ int drawMargin(String t, int x, int y) {
 }
 
 String getSDName(int id) {
-  if (ESP32_CAM_IP == "0.0.0.0") return "ID:" + String(id);
-  
-  HTTPClient h; h.begin("http://" + ESP32_CAM_IP + ":81/sd/read?path=/students.json");
+  // 1. Try querying Python server directly first (contains latest DB)
+  HTTPClient h; 
+  h.begin("http://" + SERVER_IP + ":5000/api/controller/student_details?slot=" + String(id));
   h.setTimeout(2000);
-  if (h.GET() == 200) {
+  int code = h.GET();
+  if (code == 200) {
     JsonDocument d;
     if (!deserializeJson(d, h.getString())) {
-      JsonArray arr = d.as<JsonArray>();
-      for (JsonObject o : arr) {
-        int s = o["slot"] | o["fp_id"] | 0;
-        if (s == id) {
-          const char* name = o["name"];
-          return name ? String(name) : "ID:" + String(id);
+      const char* name = d["name"];
+      const char* studId = d["id"];
+      if (name && studId) {
+        h.end();
+        return String(name) + "|" + String(studId);
+      }
+    }
+  }
+  h.end();
+
+  // 2. Fallback to ESP32-CAM if server is not accessible
+  if (ESP32_CAM_IP != "0.0.0.0") {
+    h.begin("http://" + ESP32_CAM_IP + ":81/sd/read?path=/students.json");
+    h.setTimeout(2000);
+    if (h.GET() == 200) {
+      JsonDocument d;
+      if (!deserializeJson(d, h.getString())) {
+        JsonArray arr = d.as<JsonArray>();
+        for (JsonObject o : arr) {
+          int s = o["slot"] | o["fp_id"] | 0;
+          if (s == id) {
+            const char* name = o["name"];
+            const char* studId = o["id"];
+            h.end();
+            if (name) {
+              return String(name) + "|" + (studId ? String(studId) : String(id));
+            }
+          }
         }
       }
     }
+    h.end();
   }
   return "ID:" + String(id);
 }
