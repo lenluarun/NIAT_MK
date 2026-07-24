@@ -47,3 +47,6 @@ AttendanceRecords/
 !StudentDetails.csv
 storage_config.json
 *.log
+
+*.pptx
+~$*
